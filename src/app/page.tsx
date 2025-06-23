@@ -9,8 +9,8 @@ export default function Home() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
-        <div className="text-lg text-orange-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-lg text-orange-400">Loading...</div>
       </div>
     )
   }
@@ -37,25 +37,50 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#181824] via-[#23243a] to-[#1a1a1a] relative">
+    <div className="min-h-screen w-full bg-black relative overflow-hidden">
       <Header />
-      <main className="flex flex-col md:flex-row items-center md:items-stretch justify-center min-h-screen px-6 md:px-20">
-        {/* Left-aligned text block */}
-        <div className="flex flex-col justify-center md:justify-center md:items-start items-center w-full md:w-1/2 py-24 md:py-0">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight tracking-tight text-left md:text-left">
-            SunSpec
-          </h1>
-          <p className="text-xl md:text-2xl font-light text-white/90 mb-8 max-w-xl text-left md:text-left">
-            Your Sunshine Valet, Your Time Monetization Platform
-          </p>
-          <SignInButton mode="modal">
-            <button className="mt-2 px-8 py-4 bg-white text-black rounded-full font-semibold text-lg shadow-sm hover:bg-neutral-100 transition-colors duration-200 text-left">
-              Experience SunSpec Now
-            </button>
-          </SignInButton>
+      
+      {/* Main Content Container */}
+      <main className="flex min-h-screen">
+        {/* Left Column - Content (40%) */}
+        <div className="w-2/5 flex flex-col justify-center items-start px-16 relative z-10">
+          <div className="max-w-lg">
+            <h1 className="sunspec-title mb-8">
+              SunSpec
+            </h1>
+            <p className="sunspec-slogan mb-12">
+              Your Sunshine Valet, Your Time Monetization Platform
+            </p>
+            <SignInButton mode="modal">
+              <button className="cta-button">
+                <span className="relative z-10">Experience SunSpec Now</span>
+                <div className="button-glow"></div>
+              </button>
+            </SignInButton>
+          </div>
         </div>
-        {/* Right side: empty for now, just for layout balance */}
-        <div className="hidden md:block w-1/2"></div>
+
+        {/* Right Column - Animation Grid (60%) */}
+        <div className="w-3/5 relative flex items-center justify-center">
+          <div className="dust-mite-grid">
+            {Array.from({ length: 81 }, (_, i) => (
+              <div key={i} className="grid-cell" style={{ animationDelay: `${(i * 0.1) % 8}s` }}>
+                <div className="dust-mite-icon">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6">
+                    <path d="M12 2C8.5 2 6 4.5 6 8c0 1.5.5 3 1.5 4L12 22l4.5-10c1-1 1.5-2.5 1.5-4 0-3.5-2.5-6-6-6z" fill="currentColor"/>
+                    <circle cx="12" cy="8" r="2" fill="rgba(0,0,0,0.3)"/>
+                  </svg>
+                </div>
+                <div className="health-icon">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6">
+                    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
     </div>
   )
