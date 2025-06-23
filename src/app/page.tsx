@@ -1,87 +1,62 @@
 'use client'
 
-import { useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import LoginForm from '@/components/auth/LoginForm'
-import RegisterForm from '@/components/auth/RegisterForm'
-import UserProfile from '@/components/auth/UserProfile'
+import { SignInButton, useUser } from '@clerk/nextjs'
+import Header from '@/components/Header'
+import Link from 'next/link'
 
 export default function Home() {
-  const { user, loading } = useAuth()
-  const [showRegister, setShowRegister] = useState(false)
+  const { isSignedIn, user, isLoaded } = useUser()
 
-  if (loading) {
+  if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
+        <div className="text-lg text-orange-600">Loading...</div>
+      </div>
+    )
+  }
+
+  if (isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50">
+        <Header />
+        <main className="max-w-4xl mx-auto px-4 py-8">
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-yellow-100">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Welcome back, {user?.firstName || 'User'}!</h2>
+            <p className="text-gray-600">
+              Ready to experience SunSpec? Your sunshine valet service awaits.
+            </p>
+            <Link href="/dashboard">
+              <button className="mt-6 bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white px-8 py-3 rounded-full font-semibold shadow-lg transform hover:scale-105 transition-all duration-200">
+                Start Your Sunshine Journey
+              </button>
+            </Link>
+          </div>
+        </main>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            SunSpec Project
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#181824] via-[#23243a] to-[#1a1a1a] relative">
+      <Header />
+      <main className="flex flex-col md:flex-row items-center md:items-stretch justify-center min-h-screen px-6 md:px-20">
+        {/* Left-aligned text block */}
+        <div className="flex flex-col justify-center md:justify-center md:items-start items-center w-full md:w-1/2 py-24 md:py-0">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight tracking-tight text-left md:text-left">
+            SunSpec
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            A modern web application built with Next.js and Supabase authentication.
-            Sign up or log in to get started.
+          <p className="text-xl md:text-2xl font-light text-white/90 mb-8 max-w-xl text-left md:text-left">
+            Your Sunshine Valet, Your Time Monetization Platform
           </p>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-md mx-auto">
-          {user ? (
-            <div className="space-y-6">
-              <UserProfile />
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-2xl font-semibold mb-4">Welcome to SunSpec!</h2>
-                <p className="text-gray-600">
-                  You are successfully logged in. This is a simple landing page to test 
-                  the authentication functionality.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white p-8 rounded-lg shadow-md">
-              <div className="mb-6">
-                <div className="flex space-x-1 mb-4">
-                  <button
-                    onClick={() => setShowRegister(false)}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium ${
-                      !showRegister
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => setShowRegister(true)}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium ${
-                      showRegister
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Sign Up
-                  </button>
-                </div>
-              </div>
-              
-              {showRegister ? <RegisterForm /> : <LoginForm />}
-            </div>
-          )}
-        </main>
-
-        {/* Footer */}
-        <footer className="text-center mt-12 text-gray-500">
-          <p>&copy; 2024 SunSpec Project. Built with Next.js and Supabase.</p>
-        </footer>
-      </div>
+          <SignInButton mode="modal">
+            <button className="mt-2 px-8 py-4 bg-white text-black rounded-full font-semibold text-lg shadow-sm hover:bg-neutral-100 transition-colors duration-200 text-left">
+              Experience SunSpec Now
+            </button>
+          </SignInButton>
+        </div>
+        {/* Right side: empty for now, just for layout balance */}
+        <div className="hidden md:block w-1/2"></div>
+      </main>
     </div>
   )
 }
