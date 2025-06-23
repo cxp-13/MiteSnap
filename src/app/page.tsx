@@ -10,7 +10,7 @@ export default function Home() {
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-lg text-orange-400">Loading...</div>
+        <div className="text-lg text-orange-400 animate-pulse">Loading...</div>
       </div>
     )
   }
@@ -38,47 +38,91 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-black relative overflow-hidden">
+      {/* Cyberpunk Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
+      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      
       <Header />
       
       {/* Main Content Container */}
-      <main className="flex min-h-screen">
+      <main className="flex min-h-screen relative z-10">
         {/* Left Column - Content (40%) */}
-        <div className="w-2/5 flex flex-col justify-center items-start px-16 relative z-10">
+        <div className="w-2/5 flex flex-col justify-center items-start px-16 relative">
           <div className="max-w-lg">
-            <h1 className="sunspec-title mb-8">
-              SunSpec
+            {/* Enhanced SunSpec Title with Volumetric Glow */}
+            <h1 className="sunspec-title-enhanced mb-8">
+              <span className="title-main">SunSpec</span>
+              <span className="title-glow">SunSpec</span>
+              <span className="title-particles"></span>
             </h1>
-            <p className="sunspec-slogan mb-12">
+            
+            {/* Enhanced Slogan */}
+            <p className="sunspec-slogan-enhanced mb-12">
               Your Sunshine Valet, Your Time Monetization Platform
             </p>
+            
+            {/* Premium CTA Button */}
             <SignInButton mode="modal">
-              <button className="cta-button">
-                <span className="relative z-10">Experience SunSpec Now</span>
-                <div className="button-glow"></div>
+              <button className="cta-button-premium">
+                <span className="button-text">Experience SunSpec Now</span>
+                <div className="button-glass-overlay"></div>
+                <div className="button-glow-enhanced"></div>
+                <div className="button-particles"></div>
               </button>
             </SignInButton>
           </div>
         </div>
 
-        {/* Right Column - Animation Grid (60%) */}
+        {/* Right Column - Enhanced Animation Grid (60%) */}
         <div className="w-3/5 relative flex items-center justify-center">
-          <div className="dust-mite-grid">
-            {Array.from({ length: 81 }, (_, i) => (
-              <div key={i} className="grid-cell" style={{ animationDelay: `${(i * 0.1) % 8}s` }}>
-                <div className="dust-mite-icon">
-                  <svg viewBox="0 0 24 24" className="w-6 h-6">
-                    <path d="M12 2C8.5 2 6 4.5 6 8c0 1.5.5 3 1.5 4L12 22l4.5-10c1-1 1.5-2.5 1.5-4 0-3.5-2.5-6-6-6z" fill="currentColor"/>
-                    <circle cx="12" cy="8" r="2" fill="rgba(0,0,0,0.3)"/>
-                  </svg>
-                </div>
-                <div className="health-icon">
-                  <svg viewBox="0 0 24 24" className="w-6 h-6">
-                    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  </svg>
-                </div>
-              </div>
-            ))}
+          {/* Grid Container with Cyberpunk Effects */}
+          <div className="grid-container">
+            <div className="grid-glow-overlay"></div>
+            <div className="dust-mite-grid-enhanced">
+              {Array.from({ length: 81 }, (_, i) => {
+                const row = Math.floor(i / 9)
+                const col = i % 9
+                const delay = (row + col) * 0.15
+                
+                return (
+                  <div 
+                    key={i} 
+                    className="grid-cell-enhanced" 
+                    style={{ 
+                      animationDelay: `${delay}s`,
+                      '--cell-index': i 
+                    }}
+                  >
+                    {/* Dust Mite Icon */}
+                    <div className="dust-mite-icon-enhanced">
+                      <svg viewBox="0 0 32 32" className="w-8 h-8">
+                        <ellipse cx="16" cy="16" rx="8" ry="6" fill="currentColor" opacity="0.8"/>
+                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="20" cy="12" r="1.5" fill="currentColor"/>
+                        <path d="M8 16 L6 14 M8 18 L6 20 M24 16 L26 14 M24 18 L26 20" stroke="currentColor" strokeWidth="1"/>
+                        <path d="M16 22 L14 26 M16 22 L18 26" stroke="currentColor" strokeWidth="1"/>
+                      </svg>
+                    </div>
+                    
+                    {/* Health Icon */}
+                    <div className="health-icon-enhanced">
+                      <svg viewBox="0 0 32 32" className="w-8 h-8">
+                        <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.8"/>
+                        <path d="M10 16 L14 20 L22 12" stroke="currentColor" strokeWidth="2.5" fill="none"/>
+                        <circle cx="16" cy="16" r="3" fill="currentColor" opacity="0.6"/>
+                      </svg>
+                    </div>
+                    
+                    {/* Particle Effects */}
+                    <div className="cell-particles">
+                      {Array.from({ length: 6 }, (_, pi) => (
+                        <div key={pi} className="particle" style={{ '--particle-index': pi }}></div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       </main>

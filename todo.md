@@ -1,86 +1,53 @@
 # Landing Page Optimization Plan
 
 ## Overview
-Transform the current landing page into a minimalist, highly stylized two-column layout with animated dust mite elimination grid and clean typography.
+Transform the current landing page into a sophisticated, minimalist, and subtly cyberpunk landing page with enhanced visual effects and animations.
 
 ## Todo Items
 
-### 1. Layout Structure
-- [ ] Create two-column layout (40% left content, 60% right animation)
-- [ ] Implement responsive design for mobile devices
-- [ ] Ensure proper vertical centering for left column content
+### 1. Enhanced Typography & Visual Effects ✅
+- [x] Implement volumetric glow effect for 'SunSpec' title
+- [x] Create gradient text effect (deep orange to golden yellow)
+- [x] Enhance slogan typography with proper spacing
+- [x] Improve overall text hierarchy and readability
 
-### 2. Left Column Content
-- [ ] Style 'SunSpec' title with large, bold, modern typography
-- [ ] Style slogan with clean, legible font below title
-- [ ] Position 'Experience SunSpec Now' CTA button prominently
-- [ ] Implement sophisticated spacing and negative space usage
-- [ ] Apply sunshine theme color palette (oranges/yellows)
+### 2. Premium CTA Button Design ✅
+- [x] Create glass-like surface with depth and inner shadows
+- [x] Implement radiant gradient (deep orange to fiery red)
+- [x] Add subtle rounded corners and polished sheen
+- [x] Enhance hover effects with elevation and glow
 
-### 3. Right Column Animation Grid
-- [ ] Create 9x9 grid system (81 cells total)
-- [ ] Design dust mite icons (abstract, stylized)
-- [ ] Design health/cleanliness icons (glowing, positive symbols)
-- [ ] Implement transformation animation (mite → health icon)
-- [ ] Add smooth, continuous animation patterns
-- [ ] Implement randomized or wave-like transformation sequence
-- [ ] Apply dark background with appropriate contrast
+### 3. Advanced Animation Grid System ✅
+- [x] Implement 9x9 grid with faint glowing lines
+- [x] Create stylized dust mite icons (cartoon-style insects)
+- [x] Design health/cleanliness symbols (sunbeams, droplets, light bursts)
+- [x] Add cascading wave transformation (top-right to bottom-left)
+- [x] Implement particle disintegration effects
 
-### 4. Navigation Header
-- [ ] Make navigation completely transparent
-- [ ] Keep only 'Sign In' link in top-right corner
-- [ ] Remove SunSpec brand from header (will be in main content)
-- [ ] Ensure seamless background blending
+### 4. Enhanced Visual Effects
+- [ ] Add volumetric lighting effects to title
+- [ ] Implement subtle particle systems
+- [ ] Create more sophisticated icon transformations
+- [ ] Add glowing grid lines with cyberpunk aesthetic
+- [ ] Enhance button with glass morphism effects
 
-### 5. Animation Implementation
-- [ ] Create keyframe animations for icon transformations
-- [ ] Implement fade/dissolve effects for mite elimination
-- [ ] Add subtle glow effects for health icons
-- [ ] Create staggered animation timing across grid
-- [ ] Optimize performance for smooth 60fps animation
+### 5. Cyberpunk Aesthetic Refinements
+- [ ] Add subtle neon accents and glows
+- [ ] Implement more sophisticated color transitions
+- [ ] Create depth with layered lighting effects
+- [ ] Add subtle digital noise or scan lines
+- [ ] Enhance overall futuristic feel
 
-### 6. Color Palette & Theming
-- [ ] Apply sunshine theme colors (orange/yellow for health)
-- [ ] Use grays/blacks for dust mites
-- [ ] Implement dark/black background for right column
-- [ ] Ensure proper contrast ratios for accessibility
-
-### 7. Typography & Styling
-- [ ] Implement modern, bold font for main title
-- [ ] Style slogan with clean, readable typography
-- [ ] Ensure proper font weights and spacing
-- [ ] Add subtle text effects if appropriate
-
-### 8. Responsive Design
-- [ ] Adapt layout for tablet screens
-- [ ] Create mobile-first approach for small screens
-- [ ] Ensure animation performance on mobile devices
-- [ ] Test across different screen sizes
-
-### 9. Performance Optimization
+### 6. Performance & Polish
 - [ ] Optimize animation performance
-- [ ] Implement efficient CSS transforms
-- [ ] Minimize repaints and reflows
-- [ ] Test on various devices and browsers
+- [ ] Add micro-interactions and hover states
+- [ ] Ensure smooth 60fps animations
+- [ ] Test across different devices
+- [ ] Fine-tune timing and easing functions
 
-### 10. Final Polish
-- [ ] Add subtle micro-interactions
-- [ ] Implement smooth transitions
-- [ ] Test user experience flow
-- [ ] Ensure accessibility compliance
-
-## Technical Approach
-- Use CSS Grid for the 9x9 animation grid
-- Implement CSS keyframe animations for smooth transformations
-- Utilize CSS custom properties for theme colors
-- Apply modern CSS techniques (flexbox, grid, transforms)
-- Maintain existing Clerk authentication integration
-- Keep current routing structure intact
-
-## Files to Modify
-- `src/app/page.tsx` - Main landing page component
-- `src/app/globals.css` - Styling and animations
-- `src/components/Header.tsx` - Simplified transparent header
+## Current Status
+✅ Basic structure and animations implemented
+🔄 Working on enhanced visual effects and cyberpunk aesthetics
 
 ## Review Section
-*To be completed after implementation*
+*To be completed after full implementation*
