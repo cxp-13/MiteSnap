@@ -77,6 +77,63 @@ body {
   box-shadow: 0 0 20px rgba(251, 146, 60, 0.2);
 }
 
+/* === CUSTOM SCROLLBAR STYLING === */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* === MINIMAL HIDDEN SCROLLBAR === */
+.minimal-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.minimal-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+.minimal-scrollbar:hover {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.minimal-scrollbar:hover::-webkit-scrollbar {
+  width: 3px;
+}
+
+.minimal-scrollbar:hover::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.minimal-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+.minimal-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
 /* === ENHANCED TITLE WITH VOLUMETRIC GLOW === */
 .sunspec-title-enhanced {
   position: relative;
