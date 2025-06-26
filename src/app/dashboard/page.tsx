@@ -27,13 +27,12 @@ export default function Dashboard() {
   const [currentAnalysisStep, setCurrentAnalysisStep] = useState(0)
   const [stepCompleted, setStepCompleted] = useState<boolean[]>([false, false, false])
   const [analysisResult, setAnalysisResult] = useState<{material: string, miteScore: number, reasons: string[], imageUrl: string} | null>(null)
-  const [showAnalysisResult, setShowAnalysisResult] = useState(false)
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [cleaningHistory, setCleaningHistory] = useState<'new' | 'long_time' | 'recent'>('new')
   const [isEditingMaterial, setIsEditingMaterial] = useState(false)
   const [isEditingThickness, setIsEditingThickness] = useState(false)
   const [duvetThickness, setDuvetThickness] = useState('Medium')
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1)
 
   const [duvets, setDuvets] = useState<Duvet[]>([])
   const [isLoadingDuvets, setIsLoadingDuvets] = useState(false)
@@ -156,7 +155,6 @@ export default function Dashboard() {
     setCurrentAnalysisStep(0)
     setStepCompleted([false, false, false])
     setAnalysisResult(null)
-    setShowAnalysisResult(false)
     setShowNewDuvetModal(false)
   }
 
@@ -180,9 +178,13 @@ export default function Dashboard() {
         })
       } else {
         console.error('Weather API request failed:', response.statusText)
+        // Set default weather data if API fails
+        setWeather({ temperature: 22, humidity: 50 })
       }
     } catch (error) {
       console.error('Error fetching weather data:', error)
+      // Set default weather data if request fails
+      setWeather({ temperature: 22, humidity: 50 })
     } finally {
       setIsLoadingWeather(false)
     }
@@ -216,22 +218,22 @@ export default function Dashboard() {
         (error) => {
           console.error('Error getting location:', error)
           setIsLoadingLocation(false)
-          alert('Unable to get your location. Please enable location services.')
+          // Set default location and weather data instead of showing alert
+          setLocation({ latitude: 40.7128, longitude: -74.0060, address: 'Default Location' })
+          setWeather({ temperature: 22, humidity: 50 })
         }
       )
     } else {
       setIsLoadingLocation(false)
-      alert('Geolocation is not supported by this browser.')
+      // Set default location and weather data for unsupported browsers
+      setLocation({ latitude: 40.7128, longitude: -74.0060, address: 'Default Location' })
+      setWeather({ temperature: 22, humidity: 50 })
     }
   }
 
   const handleSubmitNewDuvet = async () => {
     if (!selectedPhoto) {
       alert('Please upload a photo of your duvet.')
-      return
-    }
-    if (!duvetName.trim()) {
-      alert('Please enter a name for your duvet.')
       return
     }
     if (!location) {
@@ -286,15 +288,15 @@ export default function Dashboard() {
         return
       }
       
-      // Show analysis result for confirmation
+      // Set analysis result and go to step 3
       setAnalysisResult({
         ...analysisResult,
         imageUrl: uploadResult.url
       })
       setSelectedMaterial(analysisResult.material)
       setIsEditingMaterial(false)
-      setShowAnalysisResult(true)
       setIsAnalyzing(false)
+      setCurrentStep(4)
       
     } catch (error) {
       console.error('Error creating duvet:', error)
@@ -568,7 +570,7 @@ export default function Dashboard() {
       {/* New Duvet Modal */}
       {showNewDuvetModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-50 rounded-2xl p-10 max-w-6xl w-full mx-4 shadow-2xl">
+          <div className={`bg-gray-50 rounded-2xl p-10 w-full mx-4 shadow-2xl ${currentStep === 4 ? 'max-w-7xl' : 'max-w-4xl'}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-black">Add New Duvet</h3>
               <button 
@@ -580,191 +582,140 @@ export default function Dashboard() {
             </div>
 
             {/* Dynamic Content Based on State */}
-            {showAnalysisResult ? (
-              /* Analysis Complete - Optimized Layout with Risk Score + Specifications */
-              <div className="space-y-10">
-                {/* Header with Increased Spacing */}
-                <div className="text-center py-4">
-                  <h4 className="text-3xl font-bold text-gray-900 mb-4 tracking-wide">Analysis Complete</h4>
-                  <p className="text-lg text-gray-600 font-medium">Review and confirm your duvet analysis</p>
+            {currentStep === 1 ? (
+              /* Step 1: Photo Upload Only */
+              <div className="space-y-8">
+                <div className="text-center">
+                  <h4 className="text-2xl font-semibold text-black mb-4">Step 1: Upload Photo</h4>
+                  <p className="text-gray-600 text-lg">Take a clear photo of your duvet</p>
+                </div>
+                
+                <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-black transition-colors cursor-pointer">
+                  {photoPreview ? (
+                    <div className="space-y-4">
+                      <img 
+                        src={photoPreview} 
+                        alt="Duvet preview" 
+                        className="max-h-48 mx-auto rounded-xl shadow-md"
+                      />
+                      <p className="text-base text-green-600 font-medium">Photo uploaded successfully</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="text-6xl text-gray-400">📷</div>
+                      <div>
+                        <p className="text-xl text-gray-600 font-medium">Click to upload a photo</p>
+                        <p className="text-sm text-gray-500 mt-2">JPG, PNG or HEIC format</p>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
                 </div>
 
-                {/* Main Content - Two Column Layout with Risk Score + Specifications on Left */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                  {/* Left Panel - Risk Score + Duvet Specifications */}
-                  <div className="lg:col-span-2 space-y-8">
-                    {/* Risk Score Section */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm">
-                      <div className="text-center">
-                        <h5 className="text-xl font-bold text-gray-900 mb-6 tracking-wide">Risk Assessment</h5>
-                        <CircularProgress score={analysisResult?.miteScore || 0} />
-                        <div className="mt-4">
-                          <p className="text-lg font-semibold text-gray-800">{getMiteRiskLevel(analysisResult?.miteScore || 0)}</p>
-                          <p className="text-sm text-gray-600 mt-1">Mite Risk Level</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Duvet Specifications */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm">
-                      <h5 className="text-xl font-bold text-gray-900 mb-6 tracking-wide border-b border-gray-100 pb-3">Duvet Specifications</h5>
-                      
-                      <div className="space-y-6">
-                        {/* Material Specification */}
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3 tracking-wider uppercase">Material</label>
-                          
-                          {!isEditingMaterial ? (
-                            <div className="space-y-2">
-                              <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-                                <span className="text-lg font-semibold text-gray-900">
-                                  {selectedMaterial || analysisResult?.material}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => setIsEditingMaterial(true)}
-                                className="text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors duration-200"
-                              >
-                                Incorrect? Modify
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              <select
-                                value={selectedMaterial}
-                                onChange={(e) => setSelectedMaterial(e.target.value)}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-gray-400 focus:border-gray-500 transition-all duration-300"
-                                autoFocus
-                              >
-                                <option value="Cotton">Cotton</option>
-                                <option value="Polyester">Polyester</option>
-                                <option value="Down">Down</option>
-                                <option value="Silk">Silk</option>
-                                <option value="Bamboo Fiber">Bamboo Fiber</option>
-                                <option value="Memory Foam">Memory Foam</option>
-                                <option value="Wool">Wool</option>
-                                <option value="Linen">Linen</option>
-                                <option value="Microfiber">Microfiber</option>
-                              </select>
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={() => setIsEditingMaterial(false)}
-                                  className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedMaterial(analysisResult?.material || '')
-                                    setIsEditingMaterial(false)
-                                  }}
-                                  className="text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors duration-200"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Thickness Specification */}
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3 tracking-wider uppercase">Thickness</label>
-                          
-                          {!isEditingThickness ? (
-                            <div className="space-y-2">
-                              <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-                                <span className="text-lg font-semibold text-gray-900">
-                                  {duvetThickness}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => setIsEditingThickness(true)}
-                                className="text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors duration-200"
-                              >
-                                Not right? Change it
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              <select
-                                value={duvetThickness}
-                                onChange={(e) => setDuvetThickness(e.target.value)}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-gray-400 focus:border-gray-500 transition-all duration-300"
-                                autoFocus
-                              >
-                                <option value="Thin">Thin</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Thick">Thick</option>
-                                <option value="Extra Thick">Extra Thick</option>
-                              </select>
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={() => setIsEditingThickness(false)}
-                                  className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setDuvetThickness('Medium')
-                                    setIsEditingThickness(false)
-                                  }}
-                                  className="text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors duration-200"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Panel - Risk Factors (Expanded) */}
-                  <div className="lg:col-span-3 bg-white rounded-3xl p-8 border border-gray-150 shadow-sm">
-                    <h5 className="text-xl font-bold text-gray-900 mb-6 tracking-wide border-b border-gray-100 pb-3">Risk Factors</h5>
-                    
-                    <div className="h-96 overflow-y-auto minimal-scrollbar">
-                      <div className="space-y-4 pr-2">
-                        {analysisResult?.reasons?.map((reason: string, index: number) => (
-                          <div key={index} className="p-5 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-gray-100 transition-colors duration-200">
-                            <div className="flex items-start space-x-4">
-                              <div className="flex-shrink-0 w-2 h-2 bg-gray-400 rounded-full mt-3"></div>
-                              <p className="text-base text-gray-800 font-medium leading-relaxed">{reason}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                {/* Next Button */}
+                <button
+                  onClick={() => {
+                    if (selectedPhoto) {
+                      setCurrentStep(2)
+                    }
+                  }}
+                  disabled={!selectedPhoto}
+                  className="w-full bg-black text-white px-6 py-4 rounded-xl font-semibold text-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {!selectedPhoto ? 'Please upload a photo first' : 'Continue to Location'}
+                </button>
+              </div>
+            ) : currentStep === 2 ? (
+              /* Step 2: Location Collection */
+              <div className="space-y-8">
+                <div className="text-center">
+                  <h4 className="text-2xl font-semibold text-black mb-4">Step 2: Get Location</h4>
+                  <p className="text-gray-600 text-lg">We need your location to analyze environmental factors</p>
+                </div>
+                
+                <div className="bg-gray-50 rounded-xl p-8 text-center">
+                  <div className="space-y-6">
+                    <div className="text-5xl text-gray-400">📍</div>
+                    <div>
+                      <p className="text-xl text-gray-700 font-medium mb-2">Location & Weather Data</p>
+                      <p className="text-sm text-gray-500">This helps us provide accurate mite risk analysis</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Buttons - Subtly Integrated */}
-                <div className="flex space-x-8 pt-8 border-t border-gray-100">
+                {/* Location Status */}
+                {isLoadingLocation && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-blue-700 font-medium">Getting your location...</span>
+                    </div>
+                  </div>
+                )}
+
+                {isLoadingWeather && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-blue-700 font-medium">Getting weather data...</span>
+                    </div>
+                  </div>
+                )}
+
+                {location && weather && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="text-green-600">✓</div>
+                      <div>
+                        <p className="text-green-700 font-medium">Environment data collected</p>
+                        <p className="text-sm text-green-600">
+                          {weather.temperature}°C, {weather.humidity}% humidity
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex space-x-4">
                   <button
-                    onClick={() => {
-                      setShowAnalysisResult(false)
-                      setAnalysisResult(null)
-                    }}
-                    className="flex-1 px-10 py-5 bg-white hover:bg-gray-50 text-gray-700 rounded-2xl font-semibold border-2 border-gray-200 hover:border-gray-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                    onClick={() => setCurrentStep(1)}
+                    className="flex-1 px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
                   >
-                    Re-analyze
+                    Back
                   </button>
-                  <button
-                    onClick={handleConfirmAnalysis}
-                    className="flex-1 px-10 py-5 bg-gray-900 hover:bg-black text-white rounded-2xl font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
-                  >
-                    Add to My Duvets
-                  </button>
+                  
+                  {!(location && weather) ? (
+                    <button
+                      onClick={getCurrentLocation}
+                      disabled={isLoadingLocation || isLoadingWeather}
+                      className="flex-1 px-6 py-4 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors disabled:bg-gray-400"
+                    >
+                      {isLoadingLocation || isLoadingWeather ? 'Getting Data...' : 'Get My Location'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setCurrentStep(3)
+                        handleSubmitNewDuvet()
+                      }}
+                      className="flex-1 px-6 py-4 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
+                    >
+                      Continue to Analysis
+                    </button>
+                  )}
                 </div>
               </div>
-            ) : isAnalyzing ? (
-              /* Full Screen Analysis Interface */
+            ) : currentStep === 3 ? (
+              /* Step 3: Analysis Interface */
               <div className="space-y-8 py-8">
                 <div className="text-center">
-                  <h4 className="text-2xl font-semibold text-black mb-8">Analyzing Your Duvet</h4>
+                  <h4 className="text-2xl font-semibold text-black mb-8">Step 3: Analyzing Your Duvet</h4>
                   
                   {/* Progress Steps */}
                   <div className="space-y-6">
@@ -809,126 +760,46 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            ) : currentStep === 1 ? (
-              /* Step 1: Photo Upload Only */
-              <div className="space-y-8">
-                <div className="text-center">
-                  <h4 className="text-2xl font-semibold text-black mb-4">Step 1: Upload Photo</h4>
-                  <p className="text-gray-600 text-lg">Take a clear photo of your duvet</p>
-                </div>
-                
-                <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-black transition-colors cursor-pointer">
-                  {photoPreview ? (
-                    <div className="space-y-4">
-                      <img 
-                        src={photoPreview} 
-                        alt="Duvet preview" 
-                        className="max-h-48 mx-auto rounded-xl shadow-md"
-                      />
-                      <p className="text-base text-green-600 font-medium">Photo uploaded successfully</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="text-6xl text-gray-400">📷</div>
-                      <div>
-                        <p className="text-xl text-gray-600 font-medium">Click to upload a photo</p>
-                        <p className="text-sm text-gray-500 mt-2">JPG, PNG or HEIC format</p>
-                      </div>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
-
-                {/* Location Status */}
-                {isLoadingLocation && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      <span className="text-blue-700 font-medium">Getting your location...</span>
-                    </div>
-                  </div>
-                )}
-
-                {isLoadingWeather && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      <span className="text-blue-700 font-medium">Getting weather data...</span>
-                    </div>
-                  </div>
-                )}
-
-                {location && weather && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-green-600">✓</div>
-                      <div>
-                        <p className="text-green-700 font-medium">Environment data collected</p>
-                        <p className="text-sm text-green-600">
-                          {weather.temperature}°C, {weather.humidity}% humidity
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Next Button */}
-                <button
-                  onClick={() => {
-                    if (selectedPhoto) {
-                      setCurrentStep(2)
-                      handleSubmitNewDuvet()
-                    }
-                  }}
-                  disabled={!selectedPhoto || isLoadingLocation || isLoadingWeather}
-                  className="w-full bg-black text-white px-6 py-4 rounded-xl font-semibold text-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {!selectedPhoto ? 'Please upload a photo first' : 'Continue to Analysis'}
-                </button>
-              </div>
-            ) : currentStep === 3 ? (
-              /* Step 3: Final Details */
-              <div className="space-y-10">
+            ) : currentStep === 4 ? (
+              /* Step 4: Final Details */
+              <div className="space-y-6">
                 {/* Header */}
-                <div className="text-center py-4">
-                  <h4 className="text-3xl font-bold text-gray-900 mb-4 tracking-wide">Step 3: Complete Your Duvet</h4>
-                  <p className="text-lg text-gray-600 font-medium">Add final details and save to your collection</p>
+                <div className="text-center py-2">
+                  <h4 className="text-2xl font-bold text-gray-900 mb-2 tracking-wide">Step 4: Complete Your Duvet</h4>
+                  <p className="text-base text-gray-600">Add final details and save to your collection</p>
                 </div>
 
-                {/* Main Content - Two Column Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                {/* Main Content - Compact Two Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
                   {/* Left Panel - Risk Score + Duvet Specifications */}
-                  <div className="lg:col-span-2 space-y-8">
+                  <div className="space-y-4">
                     {/* Risk Score Section */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm">
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                       <div className="text-center">
-                        <h5 className="text-xl font-bold text-gray-900 mb-6 tracking-wide">Risk Assessment</h5>
-                        <CircularProgress score={analysisResult?.miteScore || 0} />
-                        <div className="mt-4">
-                          <p className="text-lg font-semibold text-gray-800">{getMiteRiskLevel(analysisResult?.miteScore || 0)}</p>
-                          <p className="text-sm text-gray-600 mt-1">Mite Risk Level</p>
+                        <h5 className="text-sm font-bold text-gray-900 mb-3">Risk Assessment</h5>
+                        <div className="scale-50 -my-8">
+                          <CircularProgress score={analysisResult?.miteScore || 0} />
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-sm font-semibold text-gray-800">{getMiteRiskLevel(analysisResult?.miteScore || 0)}</p>
+                          <p className="text-xs text-gray-600">Mite Risk Level</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Duvet Specifications */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm">
-                      <h5 className="text-xl font-bold text-gray-900 mb-6 tracking-wide border-b border-gray-100 pb-3">Duvet Specifications</h5>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                      <h5 className="text-sm font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">Duvet Specifications</h5>
                       
-                      <div className="space-y-6">
+                      <div className="space-y-3">
                         {/* Material Specification */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3 tracking-wider uppercase">Material</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1 tracking-wider uppercase">Material</label>
                           
                           {!isEditingMaterial ? (
-                            <div className="space-y-2">
-                              <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-                                <span className="text-lg font-semibold text-gray-900">
+                            <div className="space-y-1">
+                              <div className="px-2 py-1 bg-gray-50 rounded border border-gray-200">
+                                <span className="text-xs font-medium text-gray-900">
                                   {selectedMaterial || analysisResult?.material}
                                 </span>
                               </div>
@@ -936,15 +807,15 @@ export default function Dashboard() {
                                 onClick={() => setIsEditingMaterial(true)}
                                 className="text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors duration-200"
                               >
-                                Incorrect? Modify
+                                Wrong? Fix it
                               </button>
                             </div>
                           ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-1">
                               <select
                                 value={selectedMaterial}
                                 onChange={(e) => setSelectedMaterial(e.target.value)}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-gray-400 focus:border-gray-500 transition-all duration-300"
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-900 bg-white focus:ring-1 focus:ring-gray-400 focus:border-gray-500"
                                 autoFocus
                               >
                                 <option value="Cotton">Cotton</option>
@@ -980,12 +851,12 @@ export default function Dashboard() {
 
                         {/* Thickness Specification */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3 tracking-wider uppercase">Thickness</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1 tracking-wider uppercase">Thickness</label>
                           
                           {!isEditingThickness ? (
-                            <div className="space-y-2">
-                              <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-                                <span className="text-lg font-semibold text-gray-900">
+                            <div className="space-y-1">
+                              <div className="px-2 py-1 bg-gray-50 rounded border border-gray-200">
+                                <span className="text-xs font-medium text-gray-900">
                                   {duvetThickness}
                                 </span>
                               </div>
@@ -993,15 +864,15 @@ export default function Dashboard() {
                                 onClick={() => setIsEditingThickness(true)}
                                 className="text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors duration-200"
                               >
-                                Not right? Change it
+                                Wrong? Fix it
                               </button>
                             </div>
                           ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-1">
                               <select
                                 value={duvetThickness}
                                 onChange={(e) => setDuvetThickness(e.target.value)}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-gray-400 focus:border-gray-500 transition-all duration-300"
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-900 bg-white focus:ring-1 focus:ring-gray-400 focus:border-gray-500"
                                 autoFocus
                               >
                                 <option value="Thin">Thin</option>
@@ -1033,15 +904,15 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Right Panel - User Input Form */}
-                  <div className="lg:col-span-3 space-y-8">
+                  {/* Right Panel - User Input Form + Risk Factors */}
+                  <div className="space-y-4">
                     {/* Duvet Name Input */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm">
-                      <h5 className="text-xl font-bold text-gray-900 mb-6 tracking-wide border-b border-gray-100 pb-3">Duvet Details</h5>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                      <h5 className="text-sm font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">Duvet Details</h5>
                       
-                      <div className="space-y-6">
+                      <div className="space-y-3">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3 tracking-wider uppercase">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1 tracking-wider uppercase">
                             Duvet Name
                           </label>
                           <input
@@ -1049,45 +920,45 @@ export default function Dashboard() {
                             value={duvetName}
                             onChange={(e) => setDuvetName(e.target.value)}
                             placeholder="e.g., Master Bedroom Duvet"
-                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-gray-400 focus:border-gray-500 transition-all duration-300 placeholder-gray-500"
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-900 bg-white focus:ring-1 focus:ring-gray-400 focus:border-gray-500 placeholder-gray-400"
                           />
                         </div>
 
                         {/* Cleaning History */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3 tracking-wider uppercase">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1 tracking-wider uppercase">
                             Cleaning History
                           </label>
-                          <div className="space-y-3">
-                            <label className="flex items-center p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                          <div className="space-y-1">
+                            <label className="flex items-center p-1 rounded border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
                               <input
                                 type="radio"
                                 value="new"
                                 checked={cleaningHistory === 'new'}
                                 onChange={(e) => setCleaningHistory(e.target.value as 'new' | 'long_time' | 'recent')}
-                                className="mr-4 text-black focus:ring-black w-4 h-4"
+                                className="mr-2 text-black focus:ring-black w-3 h-3"
                               />
-                              <span className="text-gray-900 font-medium">Brand New</span>
+                              <span className="text-gray-900 font-medium text-xs">Brand New</span>
                             </label>
-                            <label className="flex items-center p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                            <label className="flex items-center p-1 rounded border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
                               <input
                                 type="radio"
                                 value="recent"
                                 checked={cleaningHistory === 'recent'}
                                 onChange={(e) => setCleaningHistory(e.target.value as 'new' | 'long_time' | 'recent')}
-                                className="mr-4 text-black focus:ring-black w-4 h-4"
+                                className="mr-2 text-black focus:ring-black w-3 h-3"
                               />
-                              <span className="text-gray-900 font-medium">Recently Cleaned</span>
+                              <span className="text-gray-900 font-medium text-xs">Recently Cleaned</span>
                             </label>
-                            <label className="flex items-center p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                            <label className="flex items-center p-1 rounded border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
                               <input
                                 type="radio"
                                 value="long_time"
                                 checked={cleaningHistory === 'long_time'}
                                 onChange={(e) => setCleaningHistory(e.target.value as 'new' | 'long_time' | 'recent')}
-                                className="mr-4 text-black focus:ring-black w-4 h-4"
+                                className="mr-2 text-black focus:ring-black w-3 h-3"
                               />
-                              <span className="text-gray-900 font-medium">Not Cleaned for Long Time</span>
+                              <span className="text-gray-900 font-medium text-xs">Not Cleaned for Long Time</span>
                             </label>
                           </div>
                         </div>
@@ -1095,16 +966,16 @@ export default function Dashboard() {
                     </div>
 
                     {/* Risk Factors */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm">
-                      <h5 className="text-xl font-bold text-gray-900 mb-6 tracking-wide border-b border-gray-100 pb-3">Risk Factors</h5>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                      <h5 className="text-sm font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">Risk Factors</h5>
                       
-                      <div className="h-64 overflow-y-auto minimal-scrollbar">
-                        <div className="space-y-4 pr-2">
+                      <div className="max-h-48 overflow-y-auto minimal-scrollbar">
+                        <div className="space-y-2">
                           {analysisResult?.reasons?.map((reason: string, index: number) => (
-                            <div key={index} className="p-5 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-gray-100 transition-colors duration-200">
-                              <div className="flex items-start space-x-4">
-                                <div className="flex-shrink-0 w-2 h-2 bg-gray-400 rounded-full mt-3"></div>
-                                <p className="text-base text-gray-800 font-medium leading-relaxed">{reason}</p>
+                            <div key={index} className="p-2 bg-gray-50 rounded border border-gray-100">
+                              <div className="flex items-start space-x-2">
+                                <div className="flex-shrink-0 w-1 h-1 bg-gray-400 rounded-full mt-1.5"></div>
+                                <p className="text-xs text-gray-800 font-medium leading-relaxed">{reason}</p>
                               </div>
                             </div>
                           ))}
@@ -1115,38 +986,23 @@ export default function Dashboard() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex space-x-8 pt-8 border-t border-gray-100">
+                <div className="flex space-x-3 pt-4 border-t border-gray-100 max-w-4xl mx-auto">
                   <button
                     onClick={() => setCurrentStep(1)}
-                    className="flex-1 px-10 py-5 bg-white hover:bg-gray-50 text-gray-700 rounded-2xl font-semibold border-2 border-gray-200 hover:border-gray-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                    className="flex-1 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg font-medium border border-gray-200 hover:border-gray-300 transition-all duration-300 text-sm"
                   >
                     Back to Start
                   </button>
                   <button
                     onClick={handleConfirmAnalysis}
                     disabled={!duvetName.trim()}
-                    className="flex-1 px-10 py-5 bg-gray-900 hover:bg-black text-white rounded-2xl font-semibold transition-all duration-300 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-gray-900 hover:bg-black text-white rounded-lg font-medium transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
                   >
                     Save to My Duvets
                   </button>
                 </div>
               </div>
-            ) : (
-              /* Step 2: Analysis Interface (Existing) */
-              <div className="space-y-6">
-                <div className="space-y-6">
-                {/* Analysis Progress - Keep existing content */}
-                {isAnalyzing && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      <span className="text-blue-700 font-medium">{analysisStep}</span>
-                    </div>
-                  </div>
-                )}
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}
