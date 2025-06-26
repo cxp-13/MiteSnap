@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SunSpec Project",
+  title: "Acarid Bloom Project",
   description: "A modern web application with Clerk authentication",
 };
 

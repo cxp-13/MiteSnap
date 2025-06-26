@@ -1,436 +1,429 @@
 'use client'
 
 import { useState } from 'react'
-import { useUser } from '@clerk/nextjs'
-import Header from '@/components/Header'
+import { useUser, UserButton } from '@clerk/nextjs'
+import Image from 'next/image'
 
-type OrderStatus = 'pending' | 'accepted' | 'picked_up' | 'drying' | 'pending_return' | 'delivered'
-
-interface Order {
+interface Duvet {
   id: string
-  userId: string
-  quiltQuantity: number
-  address: string
-  timeSlot: string
-  phone: string
-  status: OrderStatus
-  requestTime: string
-  serviceProvider?: {
-    name: string
-    phone: string
-  }
+  name: string
+  miteRisk: 'Low Risk' | 'Moderate' | 'High'
+  mitePercentage: number
+  lastCleaned: string
 }
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser()
-  const [activeTab, setActiveTab] = useState<'requests' | 'orders'>('requests')
-  const [formData, setFormData] = useState({
-    quiltQuantity: 1,
-    address: '123 Main Street, Downtown',
-    timeSlot: 'weekday-19-21',
-    phone: '+1 (555) 123-4567'
-  })
+  const [activeTab, setActiveTab] = useState<'duvets' | 'orders'>('duvets')
+  const [showNewDuvetModal, setShowNewDuvetModal] = useState(false)
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [location, setLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null)
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false)
+  const [weather, setWeather] = useState<{ temperature: number; humidity: number } | null>(null)
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false)
 
-  // Mock data for demonstration
-  const [myRequests, setMyRequests] = useState<Order[]>([
+  // Mock duvet data
+  const duvets: Duvet[] = [
     {
       id: '1',
-      userId: user?.id || '',
-      quiltQuantity: 2,
-      address: '123 Main Street, Downtown',
-      timeSlot: 'Weekday 19:00-21:00',
-      phone: '+1 (555) 123-4567',
-      status: 'accepted',
-      requestTime: '2024-01-15 10:30',
-      serviceProvider: {
-        name: 'Sarah Chen',
-        phone: '+1 (555) 987-6543'
-      }
+      name: 'Master Bedroom Duvet',
+      miteRisk: 'Low Risk',
+      mitePercentage: 15,
+      lastCleaned: '2024-01-20 14:30'
     },
     {
       id: '2',
-      userId: user?.id || '',
-      quiltQuantity: 1,
-      address: '123 Main Street, Downtown',
-      timeSlot: 'Weekend 09:00-12:00',
-      phone: '+1 (555) 123-4567',
-      status: 'drying',
-      requestTime: '2024-01-14 15:45'
-    }
-  ])
-
-  const [availableOrders, setAvailableOrders] = useState<Order[]>([
+      name: 'Guest Room Duvet',
+      miteRisk: 'Moderate',
+      mitePercentage: 45,
+      lastCleaned: '2024-01-15 09:15'
+    },
     {
       id: '3',
-      userId: 'other-user-1',
-      quiltQuantity: 3,
-      address: 'Oak Street Area',
-      timeSlot: 'Weekday 19:00-21:00',
-      phone: '+1 (555) 234-5678',
-      status: 'pending',
-      requestTime: '2024-01-15 14:20'
+      name: "Children's Room Duvet",
+      miteRisk: 'High',
+      mitePercentage: 78,
+      lastCleaned: '2024-01-10 16:45'
     },
     {
       id: '4',
-      userId: 'other-user-2',
-      quiltQuantity: 1,
-      address: 'Pine Avenue District',
-      timeSlot: 'Weekend 09:00-12:00',
-      phone: '+1 (555) 345-6789',
-      status: 'pending',
-      requestTime: '2024-01-15 12:10'
+      name: 'Spare Duvet',
+      miteRisk: 'Low Risk',
+      mitePercentage: 22,
+      lastCleaned: '2024-01-18 11:20'
     }
-  ])
+  ]
 
-  const [acceptedOrders, setAcceptedOrders] = useState<Order[]>([
-    {
-      id: '5',
-      userId: 'other-user-3',
-      quiltQuantity: 2,
-      address: '456 Elm Street, Riverside',
-      timeSlot: 'Weekend 14:00-17:00',
-      phone: '+1 (555) 456-7890',
-      status: 'picked_up',
-      requestTime: '2024-01-14 09:15'
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'Low Risk': return 'text-gray-600'
+      case 'Moderate': return 'text-gray-700'
+      case 'High': return 'text-black'
+      default: return 'text-gray-600'
     }
-  ])
+  }
+
+  const getRiskIcon = (risk: string) => {
+    switch (risk) {
+      case 'Low Risk': return '●'
+      case 'Moderate': return '●●'
+      case 'High': return '●●●'
+      default: return '●'
+    }
+  }
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedPhoto(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const getWeatherData = async (latitude: number, longitude: number) => {
+    setIsLoadingWeather(true)
+    try {
+      const response = await fetch(`https://api.tomorrow.io/v4/weather/realtime?location=${latitude}%2C${longitude}&apikey=${process.env.NEXT_PUBLIC_TOMORROW_API_KEY}`, {
+        method: 'GET',
+        headers: {
+          'Accept': '*/*',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive'
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setWeather({
+          temperature: data.data.values.temperature,
+          humidity: data.data.values.humidity
+        })
+      } else {
+        console.error('Weather API request failed:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error fetching weather data:', error)
+    } finally {
+      setIsLoadingWeather(false)
+    }
+  }
+
+  const getCurrentLocation = () => {
+    setIsLoadingLocation(true)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+          setLocation({ latitude, longitude })
+          setIsLoadingLocation(false)
+          
+          // Get weather data for this location
+          await getWeatherData(latitude, longitude)
+          
+          // Optional: Reverse geocoding to get address
+          fetch(`https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.results && data.results[0]) {
+                setLocation(prev => ({ ...prev!, address: data.results[0].formatted }))
+              }
+            })
+            .catch(() => {
+              // Fallback if geocoding fails
+              setLocation(prev => ({ ...prev!, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }))
+            })
+        },
+        (error) => {
+          console.error('Error getting location:', error)
+          setIsLoadingLocation(false)
+          alert('Unable to get your location. Please enable location services.')
+        }
+      )
+    } else {
+      setIsLoadingLocation(false)
+      alert('Geolocation is not supported by this browser.')
+    }
+  }
+
+  const handleSubmitNewDuvet = () => {
+    if (!selectedPhoto) {
+      alert('Please upload a photo of your duvet.')
+      return
+    }
+    if (!location) {
+      alert('Please get your location.')
+      return
+    }
+    
+    // Here you would typically send the data to your backend
+    console.log('Submitting new duvet:', {
+      photo: selectedPhoto,
+      location: location
+    })
+    
+    // Reset form and close modal
+    setSelectedPhoto(null)
+    setPhotoPreview(null)
+    setLocation(null)
+    setWeather(null)
+    setShowNewDuvetModal(false)
+    
+    alert('Duvet added successfully!')
+  }
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
-        <div className="text-lg text-orange-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-lg text-gray-600">Loading...</div>
       </div>
     )
   }
 
-  const handleSubmitRequest = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newRequest: Order = {
-      id: Date.now().toString(),
-      userId: user?.id || '',
-      quiltQuantity: formData.quiltQuantity,
-      address: formData.address,
-      timeSlot: formData.timeSlot.replace('-', ' ').replace('-', ':') + ':00',
-      phone: formData.phone,
-      status: 'pending',
-      requestTime: new Date().toLocaleString()
-    }
-    setMyRequests([newRequest, ...myRequests])
-    setFormData({ ...formData, quiltQuantity: 1 })
-  }
-
-  const handleAcceptOrder = (orderId: string) => {
-    const order = availableOrders.find(o => o.id === orderId)
-    if (order) {
-      const acceptedOrder = {
-        ...order,
-        status: 'accepted' as OrderStatus,
-        serviceProvider: {
-          name: user?.firstName + ' ' + user?.lastName || 'Service Provider',
-          phone: '+1 (555) 123-4567'
-        }
-      }
-      setAcceptedOrders([acceptedOrder, ...acceptedOrders])
-      setAvailableOrders(availableOrders.filter(o => o.id !== orderId))
-    }
-  }
-
-  const handleStatusUpdate = (orderId: string, newStatus: OrderStatus) => {
-    setAcceptedOrders(acceptedOrders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ))
-  }
-
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'accepted': return 'bg-blue-100 text-blue-800'
-      case 'picked_up': return 'bg-purple-100 text-purple-800'
-      case 'drying': return 'bg-orange-100 text-orange-800'
-      case 'pending_return': return 'bg-green-100 text-green-800'
-      case 'delivered': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusText = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending': return 'Pending Acceptance'
-      case 'accepted': return 'Accepted'
-      case 'picked_up': return 'Picked Up'
-      case 'drying': return 'Drying'
-      case 'pending_return': return 'Pending Return'
-      case 'delivered': return 'Delivered'
-      default: return 'Unknown'
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-green-50">
-      <Header />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Top Navigation */}
-        <div className="bg-white rounded-2xl shadow-sm border border-yellow-100 mb-8">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Welcome back, {user?.firstName || 'User'}!
-              </h1>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span className="text-yellow-500">☀️</span>
-                <span>SunSpec Dashboard</span>
-              </div>
+    <div className="min-h-screen bg-white flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-black text-white flex flex-col">
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center space-x-3">
+            <Image 
+              src="/logo.png" 
+              alt="Acarid Bloom Logo" 
+              width={32} 
+              height={32}
+            />
+            <h1 className="text-xl font-semibold">Acarid Bloom</h1>
+          </div>
+        </div>
+        
+        <nav className="flex-1 px-4 py-6">
+          <div className="space-y-2">
+            <button
+              onClick={() => setActiveTab('duvets')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'duvets'
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-300 hover:bg-gray-900 hover:text-white'
+              }`}
+            >
+              My Duvets
+            </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'orders'
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-300 hover:bg-gray-900 hover:text-white'
+              }`}
+            >
+              View Nearby Orders
+            </button>
+          </div>
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Image 
+                src="/logo.png" 
+                alt="Acarid Bloom Logo" 
+                width={24} 
+                height={24}
+              />
+              <span className="text-lg font-semibold text-black">Acarid Bloom</span>
             </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Welcome, {user?.firstName || 'User'}
+              </span>
+              <UserButton />
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 p-6">
+          <div className="max-w-6xl mx-auto">
+            {activeTab === 'duvets' && (
+              <div className="bg-white">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-2xl font-bold text-black">My Duvets</h2>
+                  <button 
+                    onClick={() => setShowNewDuvetModal(true)}
+                    className="bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <span className="text-lg">+</span>
+                    <span>New Duvet</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {duvets.map((duvet) => (
+                    <div
+                      key={duvet.id}
+                      className="bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-black hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                    >
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-black mb-2 group-hover:text-gray-800">
+                            {duvet.name}
+                          </h3>
+                        </div>
+                        
+                        <div className="border-t border-gray-100 pt-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-gray-700">Mite Risk Status</span>
+                            <span className={`text-lg ${getRiskColor(duvet.miteRisk)}`}>
+                              {getRiskIcon(duvet.miteRisk)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className={`text-lg font-semibold ${getRiskColor(duvet.miteRisk)}`}>
+                              {duvet.miteRisk}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {duvet.mitePercentage}%
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="border-t border-gray-100 pt-4">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-gray-700">Last Cleaned</p>
+                            <p className="text-base text-black">
+                              {new Date(duvet.lastCleaned).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(duvet.lastCleaned).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
-            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setActiveTab('requests')}
-                className={`flex-1 py-3 px-6 rounded-md font-medium transition-all duration-200 ${
-                  activeTab === 'requests'
-                    ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-md'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
+            {activeTab === 'orders' && (
+              <div className="bg-white">
+                <h2 className="text-2xl font-bold text-black mb-6">View Nearby Orders</h2>
+                <div className="bg-gray-50 rounded-lg p-8 text-center">
+                  <p className="text-gray-500">Content will be displayed here</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* New Duvet Modal */}
+      {showNewDuvetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-black">Add New Duvet</h3>
+              <button 
+                onClick={() => setShowNewDuvetModal(false)}
+                className="text-gray-400 hover:text-black text-2xl"
               >
-                <span className="mr-2">🛏️</span>
-                My Requests
+                ×
               </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Photo Upload Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Upload Duvet Photo
+                </label>
+                <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-black transition-colors cursor-pointer">
+                  {photoPreview ? (
+                    <div className="space-y-3">
+                      <img 
+                        src={photoPreview} 
+                        alt="Duvet preview" 
+                        className="max-h-40 mx-auto rounded-lg"
+                      />
+                      <p className="text-sm text-gray-600">Photo uploaded successfully</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="text-4xl text-gray-400">📷</div>
+                      <p className="text-gray-600">Click to upload a photo</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Location Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Get Current Location
+                </label>
+                <div className="space-y-3">
+                  <button
+                    onClick={getCurrentLocation}
+                    disabled={isLoadingLocation || isLoadingWeather}
+                    className="w-full bg-gray-100 text-black px-4 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    {isLoadingLocation ? 'Getting Location...' : 
+                     isLoadingWeather ? 'Getting Weather...' : 'Get My Location'}
+                  </button>
+                  {location && (
+                    <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                      <p className="text-sm text-gray-700">
+                        📍 Location: {location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+                      </p>
+                      {weather && (
+                        <div className="border-t border-gray-200 pt-2">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Current Weather:</p>
+                          <div className="flex space-x-4">
+                            <span className="text-sm text-gray-600">
+                              🌡️ Temperature: {weather.temperature}°C
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              💧 Humidity: {weather.humidity}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Button */}
               <button
-                onClick={() => setActiveTab('orders')}
-                className={`flex-1 py-3 px-6 rounded-md font-medium transition-all duration-200 ${
-                  activeTab === 'orders'
-                    ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-md'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
+                onClick={handleSubmitNewDuvet}
+                className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
               >
-                <span className="mr-2">💼</span>
-                Available Orders
+                Add Duvet
               </button>
             </div>
           </div>
         </div>
-
-        {/* My Requests Tab */}
-        {activeTab === 'requests' && (
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Post Drying Request Form */}
-            <div className="bg-white rounded-2xl shadow-sm border border-yellow-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Post a Drying Request</h2>
-              
-              <form onSubmit={handleSubmitRequest} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Quilt Quantity
-                  </label>
-                  <select
-                    value={formData.quiltQuantity}
-                    onChange={(e) => setFormData({ ...formData, quiltQuantity: Number(e.target.value) })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500"
-                  >
-                    <option value={1}>1 quilt</option>
-                    <option value={2}>2 quilts</option>
-                    <option value={3}>3 quilts</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Pick-up/Delivery Address
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500"
-                      placeholder="Enter your address"
-                    />
-                    <button
-                      type="button"
-                      className="px-4 py-3 text-sm text-yellow-600 border border-yellow-300 rounded-lg hover:bg-yellow-50"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Pick-up/Delivery Time Slot
-                  </label>
-                  <select
-                    value={formData.timeSlot}
-                    onChange={(e) => setFormData({ ...formData, timeSlot: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500"
-                  >
-                    <option value="weekday-19-21">Weekday 19:00-21:00</option>
-                    <option value="weekend-09-12">Weekend 09:00-12:00</option>
-                    <option value="weekend-14-17">Weekend 14:00-17:00</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white py-3 px-6 rounded-lg font-semibold shadow-md transform hover:scale-105 transition-all duration-200"
-                >
-                  Post Request
-                </button>
-              </form>
-            </div>
-
-            {/* My Quilt Progress List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-yellow-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">My Quilt Progress</h2>
-              
-              <div className="space-y-4">
-                {myRequests.map((request) => (
-                  <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {request.quiltQuantity} quilt{request.quiltQuantity > 1 ? 's' : ''}
-                        </p>
-                        <p className="text-sm text-gray-600">Posted: {request.requestTime}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-                        {getStatusText(request.status)}
-                      </span>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 mb-2">Time: {request.timeSlot}</p>
-                    
-                    {request.serviceProvider && (
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="text-sm font-medium text-blue-900">Service Provider:</p>
-                        <p className="text-sm text-blue-800">{request.serviceProvider.name}</p>
-                        <p className="text-sm text-blue-800">{request.serviceProvider.phone}</p>
-                      </div>
-                    )}
-                    
-                    {request.status === 'delivered' && (
-                      <button className="mt-3 w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium">
-                        Confirm Completion & Rate
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Available Orders Tab */}
-        {activeTab === 'orders' && (
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Available Orders List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-yellow-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Available Orders</h2>
-              
-              <div className="space-y-4">
-                {availableOrders.map((order) => (
-                  <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {order.quiltQuantity} quilt{order.quiltQuantity > 1 ? 's' : ''}
-                        </p>
-                        <p className="text-sm text-gray-600">Posted: {order.requestTime}</p>
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 mb-2">📍 {order.address}</p>
-                    <p className="text-sm text-gray-600 mb-4">⏰ {order.timeSlot}</p>
-                    
-                    <button
-                      onClick={() => handleAcceptOrder(order.id)}
-                      className="w-full bg-gradient-to-r from-green-400 to-blue-400 hover:from-green-500 hover:to-blue-500 text-white py-2 px-4 rounded-lg font-medium transform hover:scale-105 transition-all duration-200"
-                    >
-                      Accept Order Now
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* My Accepted Orders List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-yellow-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">My Accepted Orders</h2>
-              
-              <div className="space-y-4">
-                {acceptedOrders.map((order) => (
-                  <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {order.quiltQuantity} quilt{order.quiltQuantity > 1 ? 's' : ''}
-                        </p>
-                        <p className="text-sm text-gray-600">Accepted: {order.requestTime}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {getStatusText(order.status)}
-                      </span>
-                    </div>
-                    
-                    <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                      <p className="text-sm font-medium text-gray-900">Customer Info:</p>
-                      <p className="text-sm text-gray-700">📍 {order.address}</p>
-                      <p className="text-sm text-gray-700">📞 {order.phone}</p>
-                      <p className="text-sm text-gray-700">⏰ {order.timeSlot}</p>
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                      {order.status === 'accepted' && (
-                        <button
-                          onClick={() => handleStatusUpdate(order.id, 'picked_up')}
-                          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium"
-                        >
-                          Confirm Picked Up
-                        </button>
-                      )}
-                      {order.status === 'picked_up' && (
-                        <button
-                          onClick={() => handleStatusUpdate(order.id, 'drying')}
-                          className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-3 rounded-lg text-sm font-medium"
-                        >
-                          Start Drying
-                        </button>
-                      )}
-                      {order.status === 'drying' && (
-                        <button
-                          onClick={() => handleStatusUpdate(order.id, 'pending_return')}
-                          className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-medium"
-                        >
-                          Ready for Return
-                        </button>
-                      )}
-                      {order.status === 'pending_return' && (
-                        <button
-                          onClick={() => handleStatusUpdate(order.id, 'delivered')}
-                          className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-2 px-3 rounded-lg text-sm font-medium"
-                        >
-                          Confirm Delivered
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

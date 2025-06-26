@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -83,32 +84,35 @@ body {
   font-size: 6rem;
   font-weight: 900;
   line-height: 0.85;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .title-main {
   position: relative;
-  z-index: 3;
+  z-index: 5;
   background: linear-gradient(135deg, #fb923c 0%, #fbbf24 50%, #f97316 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 30px rgba(251, 146, 60, 0.6));
+  filter: drop-shadow(0 0 40px rgba(251, 146, 60, 0.8)) drop-shadow(0 0 20px rgba(251, 191, 36, 0.6));
 }
 
 .title-glow {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
   z-index: 1;
   background: linear-gradient(135deg, #fb923c 0%, #fbbf24 50%, #f97316 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: blur(20px);
-  opacity: 0.8;
+  filter: blur(35px);
+  opacity: 0.7;
   animation: titlePulse 4s ease-in-out infinite;
+  transform: scale(1.15);
 }
 
 .title-particles {
@@ -146,12 +150,12 @@ body {
 
 @keyframes titlePulse {
   0%, 100% { 
-    opacity: 0.6;
-    transform: scale(1.02);
+    opacity: 0.5;
+    transform: scale(1.12);
   }
   50% { 
-    opacity: 1;
-    transform: scale(1.05);
+    opacity: 0.9;
+    transform: scale(1.18);
   }
 }
 
@@ -171,11 +175,19 @@ body {
   font-family: var(--font-geist-sans), 'Inter', 'Segoe UI', Arial, sans-serif;
   font-size: 1.6rem;
   font-weight: 300;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.4;
-  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.5;
+  letter-spacing: 0.08em;
   margin: 0;
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Subtle Light Divider */
+.light-divider {
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 20%, rgba(251, 146, 60, 0.3) 50%, rgba(255, 255, 255, 0.15) 80%, transparent 100%);
+  box-shadow: 0 0 10px rgba(251, 146, 60, 0.2);
 }
 
 /* === PREMIUM CTA BUTTON === */
@@ -183,19 +195,22 @@ body {
   position: relative;
   background: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
   color: white;
-  padding: 1.5rem 3rem;
-  border-radius: 60px;
-  border: 2px solid rgba(251, 146, 60, 0.3);
-  font-size: 1.2rem;
+  padding: 1.2rem 2.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  font-size: 1.1rem;
   font-weight: 600;
   font-family: var(--font-geist-sans), 'Inter', 'Segoe UI', Arial, sans-serif;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   box-shadow: 
-    0 15px 35px rgba(251, 146, 60, 0.3),
-    inset 0 2px 10px rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+    0 20px 40px rgba(251, 146, 60, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    inset 2px 0 4px rgba(255, 255, 255, 0.1),
+    inset -2px 0 4px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
 }
 
 .button-text {
@@ -209,10 +224,11 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
-  border-radius: 60px 60px 0 0;
+  height: 70%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 40%, rgba(251, 146, 60, 0.1) 70%, transparent 100%);
+  border-radius: 12px 12px 0 0;
   z-index: 5;
+  backdrop-filter: blur(5px);
 }
 
 .button-glow-enhanced {
@@ -229,6 +245,20 @@ body {
   transition: opacity 0.4s ease;
 }
 
+.button-neon-outline {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #00ffff, #0080ff, #00ffff);
+  border-radius: 14px;
+  z-index: -1;
+  opacity: 0;
+  filter: blur(1px);
+  transition: opacity 0.4s ease;
+}
+
 .button-particles {
   position: absolute;
   top: 0;
@@ -238,20 +268,28 @@ body {
   z-index: 8;
   pointer-events: none;
   overflow: hidden;
-  border-radius: 60px;
+  border-radius: 12px;
 }
 
 .cta-button-premium:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow: 
-    0 25px 50px rgba(251, 146, 60, 0.4),
-    inset 0 2px 15px rgba(255, 255, 255, 0.15);
+    0 35px 70px rgba(251, 146, 60, 0.4),
+    inset 0 3px 6px rgba(255, 255, 255, 0.5),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.4),
+    inset 3px 0 6px rgba(255, 255, 255, 0.2),
+    inset -3px 0 6px rgba(0, 0, 0, 0.2);
   border-color: rgba(251, 146, 60, 0.6);
 }
 
 .cta-button-premium:hover .button-glow-enhanced {
   opacity: 0.9;
   animation: buttonGlowPulse 2s ease-in-out infinite;
+}
+
+.cta-button-premium:hover .button-neon-outline {
+  opacity: 0.6;
+  animation: neonPulse 1.5s ease-in-out infinite;
 }
 
 .cta-button-premium:active {
@@ -269,7 +307,1653 @@ body {
   }
 }
 
+@keyframes neonPulse {
+  0%, 100% { 
+    opacity: 0.4;
+    filter: blur(1px);
+  }
+  50% { 
+    opacity: 0.8;
+    filter: blur(2px);
+  }
+}
+
+/* === SUNSPEC LOGO COMPONENT === */
+
+/* Logo Container */
+.logo-container {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 1.25rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(251, 146, 60, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.logo-container:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(251, 146, 60, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(251, 146, 60, 0.3);
+}
+
+/* Quilt Stack Logo */
+.quilt-stack {
+  position: relative;
+  width: 36px;
+  height: 32px;
+}
+
+.quilt {
+  position: absolute;
+  width: 24px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, 
+    rgba(251, 146, 60, 0.8) 0%,
+    rgba(251, 191, 36, 0.7) 50%,
+    rgba(254, 240, 138, 0.6) 100%
+  );
+  box-shadow: 
+    0 2px 8px rgba(251, 146, 60, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.quilt-back {
+  top: 8px;
+  left: 12px;
+  opacity: 0.8;
+  transform: rotate(-5deg);
+  background: linear-gradient(135deg, 
+    rgba(147, 197, 253, 0.8) 0%,
+    rgba(196, 224, 255, 0.7) 100%
+  );
+  box-shadow: 
+    0 2px 4px rgba(147, 197, 253, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.quilt-middle {
+  top: 4px;
+  left: 6px;
+  opacity: 0.9;
+  transform: rotate(2deg);
+  background: linear-gradient(135deg, 
+    rgba(254, 240, 138, 0.9) 0%,
+    rgba(251, 191, 36, 0.8) 100%
+  );
+  box-shadow: 
+    0 2px 6px rgba(251, 191, 36, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.quilt-front {
+  top: 0;
+  left: 0;
+  opacity: 1;
+  transform: rotate(-2deg);
+  background: linear-gradient(135deg, 
+    rgba(251, 146, 60, 1) 0%,
+    rgba(245, 158, 11, 0.9) 50%,
+    rgba(217, 119, 6, 0.8) 100%
+  );
+  box-shadow: 
+    0 3px 8px rgba(251, 146, 60, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Quilt Pattern Details */
+.quilt::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  background-image: 
+    linear-gradient(45deg, rgba(255, 255, 255, 0.2) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.2) 25%, transparent 25%);
+  background-size: 6px 6px;
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+/* Brand Text */
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.brand-name {
+  font-family: 'Poppins', 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #fbbf24 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-tagline {
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Simplified Logo Container */
+.logo-container-simple {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.logo-container-simple:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Simplified Brand Name with Gradient */
+.brand-name-simple {
+  font-family: 'Poppins', 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ffffff 0%, #fbbf24 50%, #f59e0b 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .logo-container-simple {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.4rem 0.8rem;
+    gap: 0.5rem;
+  }
+  
+  .quilt-stack {
+    width: 28px;
+    height: 24px;
+  }
+  
+  .quilt {
+    width: 18px;
+    height: 14px;
+  }
+  
+  .brand-name-simple {
+    font-size: 1rem;
+  }
+}
+
+/* === SUNSPEC MITE ELIMINATION LANDING PAGE === */
+
+/* Clean Background */
+.mite-clean-background {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  transition: all 0.8s ease;
+}
+
+/* Moving Grid Background */
+.moving-grid-background {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(71, 85, 105, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71, 85, 105, 0.1) 1px, transparent 1px);
+  background-size: 80px 80px;
+  animation: gridMove 20s linear infinite;
+  z-index: 1;
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(80px, 80px); }
+}
+
+/* Mite Particles Container */
+.mite-particles-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mite-particle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border-radius: 0;
+  animation: miteBreathing 3s ease-in-out infinite;
+  transition: all 0.6s ease;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+  filter: grayscale(100%) brightness(0.3);
+}
+
+/* Mite elimination - fade out effect on button hover */
+.mite-particles-container.eliminate-mode .mite-particle {
+  opacity: 0 !important;
+  transform: scale(0.5) !important;
+  animation: miteDisappear 1.5s ease-out !important;
+}
+
+/* CSS-only fallback using :has() selector */
+.laundry-launch-container:has(.laundry-launch-button:hover) .mite-particle {
+  opacity: 0 !important;
+  transform: scale(0.5) !important;
+  animation: miteDisappear 1.5s ease-out !important;
+}
+
+/* Direct hover selector for better browser support */
+.laundry-launch-button:hover ~ * .mite-particle,
+.laundry-launch-button:hover + * .mite-particle {
+  opacity: 0 !important;
+  transform: scale(0.5) !important;
+  animation: miteDisappear 1.5s ease-out !important;
+}
+
+/* Alternative approach using parent container hover */
+main:has(.laundry-launch-button:hover) .mite-particle {
+  opacity: 0 !important;
+  transform: scale(0.5) !important;
+  animation: miteDisappear 1.5s ease-out !important;
+}
+
+/* Ensure button hover area is clear - debug styles */
+.laundry-launch-button {
+  /* Add a subtle border to make hover area visible during debugging */
+  box-sizing: border-box;
+}
+
+/* Fallback for browsers without :has() support - use root level selector */
+body:hover .laundry-launch-button:hover ~ .mite-particles-container .mite-particle,
+body:hover .laundry-launch-button:hover ~ * .mite-particles-container .mite-particle {
+  background: rgba(34, 197, 94, 0.9) !important;
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.8) !important;
+  transform: scale(0.8) !important;
+  animation: miteElimination 1s ease-in-out !important;
+}
+
+@keyframes miteDisappear {
+  0% {
+    opacity: 0.8;
+    transform: scale(1) rotate(0deg);
+    filter: grayscale(100%) brightness(0.3);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.8) rotate(180deg);
+    filter: grayscale(50%) brightness(0.2);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(360deg);
+    filter: grayscale(100%) brightness(0.1);
+  }
+}
+
+@keyframes miteBreathing {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: scale(1.3);
+    opacity: 0.5;
+  }
+}
+
+/* === MODERN LAUNDRY DRYING SERVICE LANDING PAGE === */
+
+/* Vibrant Warm Background */
+.laundry-warm-background {
+  background: linear-gradient(135deg, 
+    #fef3c7 0%,           /* Warm cream */
+    #fef9e7 25%,          /* Soft yellow */
+    #dbeafe 50%,          /* Light sky blue */
+    #fefce8 75%,          /* Pale yellow */
+    #ffffff 100%          /* Pure white */
+  );
+  transition: all 0.8s ease;
+}
+
+/* Soft Diffused Lighting Effects */
+.soft-lighting-overlay {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 30% 20%, rgba(251, 191, 36, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(147, 197, 253, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 90% 30%, rgba(254, 240, 138, 0.12) 0%, transparent 40%);
+  z-index: 1;
+}
+
+/* Faint Sunbeam Patterns */
+.sunbeam-patterns {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(45deg, transparent 40%, rgba(251, 191, 36, 0.05) 50%, transparent 60%),
+    linear-gradient(-45deg, transparent 40%, rgba(254, 240, 138, 0.03) 50%, transparent 60%),
+    linear-gradient(135deg, transparent 45%, rgba(251, 146, 60, 0.04) 50%, transparent 55%);
+  background-size: 300px 300px, 400px 400px, 500px 500px;
+  animation: gentleSunbeams 20s ease-in-out infinite;
+  z-index: 2;
+}
+
+/* Organic Flowing Shapes */
+.organic-flow-shapes {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(ellipse 200px 100px at 20% 70%, rgba(147, 197, 253, 0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 150px 200px at 80% 20%, rgba(254, 240, 138, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 180px 120px at 50% 90%, rgba(251, 191, 36, 0.05) 0%, transparent 70%);
+  animation: organicFlow 25s ease-in-out infinite;
+  z-index: 3;
+}
+
+/* Content Area Hover Transition */
+.laundry-content-transition {
+  position: absolute;
+  top: 25%;
+  left: 20%;
+  right: 20%;
+  bottom: 25%;
+  background: rgba(251, 191, 36, 0);
+  border-radius: 30px;
+  transition: background-color 0.7s ease;
+  z-index: 4;
+}
+
+/* Prominent Laundry Title */
+.laundry-title-prominent {
+  position: relative;
+  font-family: 'Poppins', 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 5.5rem;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.title-main-laundry {
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #ea580c 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 30px rgba(245, 158, 11, 0.7));
+}
+
+.title-glow-laundry {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #ea580c 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: blur(25px);
+  opacity: 0.8;
+  animation: laundryGlowPulse 4s ease-in-out infinite;
+}
+
+/* Sunshine Halo Effect */
+.sunshine-halo-effect {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, 
+    rgba(251, 191, 36, 0.15) 0%, 
+    rgba(254, 240, 138, 0.1) 30%, 
+    rgba(251, 146, 60, 0.08) 50%, 
+    transparent 70%
+  );
+  border-radius: 50%;
+  z-index: 2;
+  animation: sunshineRotate 30s linear infinite;
+}
+
+/* Sleek Subheadline */
+.laundry-subheadline-sleek {
+  font-family: 'Inter', 'Poppins', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #4b5563;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Modern Launch Button */
+.laundry-launch-button {
+  position: relative;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  box-shadow: 
+    0 4px 15px rgba(99, 102, 241, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(0);
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.laundry-button-text {
+  position: relative;
+  z-index: 10;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none; /* Allow mouse events to pass through */
+}
+
+.laundry-button-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #ea580c 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 5;
+  pointer-events: none; /* Allow mouse events to pass through */
+}
+
+.laundry-button-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+  border-radius: 50px 50px 0 0;
+  z-index: 8;
+  pointer-events: none; /* Allow mouse events to pass through */
+}
+
+.laundry-launch-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(99, 102, 241, 0.4),
+    0 4px 15px rgba(139, 92, 246, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+}
+
+.laundry-launch-button:hover .laundry-button-gradient {
+  opacity: 1;
+}
+
+.laundry-launch-button:hover .laundry-button-text {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.laundry-launch-button:active {
+  transform: translateY(-1px);
+}
+
+@keyframes laundryGlowPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes sunshineRotate {
+  0% { transform: translateX(-50%) rotate(0deg); }
+  100% { transform: translateX(-50%) rotate(360deg); }
+}
+
+@keyframes gentleSunbeams {
+  0%, 100% { opacity: 0.8; transform: translateX(0) translateY(0); }
+  50% { opacity: 1; transform: translateX(10px) translateY(-5px); }
+}
+
+@keyframes organicFlow {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  33% { transform: scale(1.05) rotate(2deg); }
+  66% { transform: scale(0.95) rotate(-1deg); }
+}
+
+/* === CLEAN MINIMALIST SAAS LANDING PAGE === */
+
+/* Pure White Background with Clean Grid */
+.clean-white-background {
+  background: #ffffff;
+}
+
+/* Very Large-Scale Static Grid */
+.clean-static-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(229, 231, 235, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(229, 231, 235, 0.35) 1px, transparent 1px);
+  background-size: 120px 120px;
+  z-index: 1;
+}
+
+/* Subtle Quilt Pattern Around Content */
+.subtle-quilt-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(251, 146, 60, 0.02) 15%, transparent 15%),
+    radial-gradient(circle at 70% 20%, rgba(251, 191, 36, 0.01) 10%, transparent 10%),
+    radial-gradient(circle at 40% 70%, rgba(251, 146, 60, 0.015) 12%, transparent 12%),
+    radial-gradient(circle at 80% 80%, rgba(251, 191, 36, 0.008) 8%, transparent 8%);
+  z-index: 2;
+}
+
+/* Content Area Background Transition */
+.content-area-transition {
+  position: absolute;
+  top: 30%;
+  left: 25%;
+  right: 25%;
+  bottom: 30%;
+  background: rgba(251, 146, 60, 0);
+  border-radius: 20px;
+  transition: background-color 0.7s ease;
+  z-index: 3;
+}
+
+/* Breathing Particle Dots */
+.breathing-particles-container {
+  pointer-events: none;
+}
+
+.breathing-particle-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: rgba(17, 24, 39, 0.95);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: breathingPulse 4s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(17, 24, 39, 0.4), 0 0 4px rgba(17, 24, 39, 0.6);
+  border: 1px solid rgba(17, 24, 39, 0.8);
+}
+
+@keyframes breathingPulse {
+  0%, 100% { 
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0.5;
+  }
+}
+
+/* Clean Futuristic Title */
+.clean-title-futuristic {
+  position: relative;
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 5rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.title-main-clean {
+  position: relative;
+  z-index: 5;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.6));
+}
+
+.title-glow-clean {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: blur(20px);
+  opacity: 0.7;
+  animation: cleanGlowPulse 4s ease-in-out infinite;
+}
+
+/* Clean Sun Halo Effect */
+.sun-halo-clean {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 40%, transparent 70%);
+  border-radius: 50%;
+  z-index: 1;
+  animation: cleanHaloRotate 25s linear infinite;
+}
+
+/* Designer Subtitle */
+.clean-subtitle-designer {
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+/* Clean Launch Button */
+.clean-launch-button {
+  background: #fff;
+  color: #222;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 1.1rem 2.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: 
+    background 0.35s cubic-bezier(0.4,0,0.2,1),
+    color 0.25s cubic-bezier(0.4,0,0.2,1),
+    transform 0.25s cubic-bezier(0.4,0,0.2,1),
+    box-shadow 0.25s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+  outline: none;
+  display: inline-block;
+}
+.clean-launch-button:hover, .clean-launch-button:focus {
+  background: linear-gradient(135deg, #ffb347 0%, #ff7f32 100%);
+  color: #fff;
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(255, 140, 0, 0.13);
+}
+
+.clean-button-text {
+  position: relative;
+  z-index: 3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.clean-button-shadow {
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(135deg, #d97706 0%, #92400e 100%);
+  border-radius: 0 0 12px 12px;
+  z-index: 1;
+  transition: height 0.3s ease;
+}
+
+.clean-button-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, transparent 100%);
+  border-radius: 12px 12px 0 0;
+  z-index: 2;
+}
+
+.clean-launch-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 35px rgba(245, 158, 11, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.clean-launch-button:hover .clean-button-shadow {
+  height: 7px;
+}
+
+.clean-launch-button:active {
+  transform: translateY(0);
+}
+
+.clean-launch-button:active .clean-button-shadow {
+  height: 3px;
+}
+
+@keyframes cleanGlowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes cleanHaloRotate {
+  0% { transform: translateX(-50%) rotate(0deg); }
+  100% { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* Prominent Sign In Button */
+.prominent-signin-button {
+  position: relative;
+  background: rgba(17, 24, 39, 0.9);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 12px rgba(17, 24, 39, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.signin-button-text {
+  position: relative;
+  z-index: 3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.signin-button-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+  border-radius: 8px 8px 0 0;
+  z-index: 2;
+}
+
+.prominent-signin-button:hover {
+  background: rgba(17, 24, 39, 1);
+  border-color: rgba(17, 24, 39, 0.9);
+  box-shadow: 
+    0 6px 16px rgba(17, 24, 39, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.prominent-signin-button:active {
+  transform: translateY(0);
+}
+
+/* Laundry Service Hover Effects */
+.laundry-launch-container:has(.laundry-launch-button:hover) .laundry-content-transition {
+  background-color: rgba(251, 191, 36, 0.12);
+}
+
+/* Fallback for browsers without :has() support */
+@supports not selector(:has(*)) {
+  .laundry-launch-container:hover .laundry-content-transition {
+    background-color: rgba(251, 191, 36, 0.12);
+  }
+}
+
+/* === UNIFIED SAAS LANDING PAGE === */
+
+/* Seamless Horizontal Gradient Background */
+.unified-gradient-background {
+  background: linear-gradient(90deg, 
+    #8B8680 0%,           /* Cement grey */
+    #9B9691 25%,          /* Slightly lighter */
+    #B5B2AD 50%,          /* Medium grey */
+    #D1CFC9 75%,          /* Light grey */
+    #F7F7F5 100%          /* Off-white */
+  );
+  transition: all 0.8s ease;
+}
+
+/* Unified Quilt Texture Across Entire Background */
+.quilt-texture-unified {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%), 
+    linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.02) 75%), 
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.02) 75%);
+  background-size: 60px 60px, 60px 60px, 60px 60px, 60px 60px;
+  background-position: 0 0, 0 30px, 30px -30px, -30px 0px;
+  opacity: 0.8;
+  transition: opacity 0.8s ease;
+}
+
+/* Unified Amber Overlay for Hover */
+.amber-overlay-unified {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, 
+    #f59e0b 0%,           /* Deep amber */
+    #fbbf24 25%,          /* Medium amber */
+    #fcd34d 50%,          /* Light amber */
+    #fef3c7 75%,          /* Very light amber */
+    #fffbeb 100%          /* Off-white amber */
+  );
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  z-index: 2;
+}
+
+/* Modern Futuristic Title */
+.saas-title-futuristic {
+  position: relative;
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.title-main-saas {
+  position: relative;
+  z-index: 3;
+  background: linear-gradient(135deg, #fb923c 0%, #fbbf24 50%, #f97316 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(251, 146, 60, 0.6));
+}
+
+.title-glow-saas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(135deg, #fb923c 0%, #fbbf24 50%, #f97316 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: blur(15px);
+  opacity: 0.7;
+  animation: saasGlowPulse 3s ease-in-out infinite;
+}
+
+/* Abstract Sun Halo Effect */
+.sun-halo-effect {
+  position: absolute;
+  top: -20px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.15) 0%, rgba(251, 191, 36, 0.1) 30%, transparent 70%);
+  border-radius: 50%;
+  z-index: 1;
+  animation: sunHaloRotate 20s linear infinite;
+}
+
+.sun-halo-effect::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 50%);
+  border-radius: 50%;
+  animation: sunHaloRotate 15s linear infinite reverse;
+}
+
+/* Clean Professional Subtitle */
+.saas-subtitle-clean {
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: #374151;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+/* 3D Launch Button */
+.saas-launch-button {
+  position: relative;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  color: white;
+  padding: 1rem 2.5rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: 'Inter', var(--font-geist-sans), 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 12px rgba(251, 146, 60, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(0);
+}
+
+.button-text-3d {
+  position: relative;
+  z-index: 3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.button-shadow-3d {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+  border-radius: 0 0 8px 8px;
+  z-index: 1;
+  transition: height 0.2s ease;
+}
+
+.button-highlight-3d {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  border-radius: 8px 8px 0 0;
+  z-index: 2;
+}
+
+.saas-launch-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 6px 16px rgba(251, 146, 60, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.saas-launch-button:hover .button-shadow-3d {
+  height: 6px;
+}
+
+.saas-launch-button:active {
+  transform: translateY(1px);
+}
+
+.saas-launch-button:active .button-shadow-3d {
+  height: 2px;
+}
+
+/* Launch Button Hover Effects - Unified System */
+.saas-launch-button:hover ~ * .amber-overlay-unified,
+.launch-interaction-container:has(.saas-launch-button:hover) .amber-overlay-unified {
+  opacity: 0.75;
+}
+
+.saas-launch-button:hover ~ * .particle-color-transition,
+.launch-interaction-container:has(.saas-launch-button:hover) .particle-color-transition {
+  background: rgba(34, 197, 94, 0.9) !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+}
+
+.saas-launch-button:hover ~ * .prominent-particle-dot,
+.launch-interaction-container:has(.saas-launch-button:hover) .prominent-particle-dot {
+  background: rgba(34, 197, 94, 0.9) !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+}
+
+/* Enhanced quilt texture on hover - Unified */
+.launch-interaction-container:has(.saas-launch-button:hover) .quilt-texture-unified {
+  opacity: 0.4;
+  transition: opacity 0.8s ease;
+}
+
+/* Fallback for browsers without :has() support */
+@supports not selector(:has(*)) {
+  .saas-launch-button:hover {
+    /* Trigger custom event for JS fallback if needed */
+  }
+  
+  /* Alternative hover effect using adjacent selectors - Unified */
+  .launch-interaction-container:hover .amber-overlay-unified {
+    opacity: 0.75;
+  }
+  
+  .launch-interaction-container:hover .particle-color-transition,
+  .launch-interaction-container:hover .prominent-particle-dot {
+    background: rgba(34, 197, 94, 0.9) !important;
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+  }
+}
+
+/* Smooth animation timing - Unified */
+.unified-gradient-background,
+.amber-overlay-unified,
+.particle-color-transition,
+.prominent-particle-dot {
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure smooth color transitions for all particle variations */
+.prominent-particle-dot {
+  transition: background-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.prominent-particle-dot:nth-child(3n) {
+  transition: background-color 0.7s ease, box-shadow 0.7s ease;
+}
+
+.prominent-particle-dot:nth-child(4n) {
+  transition: background-color 0.8s ease, box-shadow 0.8s ease;
+}
+
+.prominent-particle-dot:nth-child(5n) {
+  transition: background-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+/* Mite Color Transition for Clean Design */
+.mite-color-transition {
+  transition: background-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.breathing-particle-dot:nth-child(odd) {
+  animation-duration: 3.5s;
+}
+
+.breathing-particle-dot:nth-child(even) {
+  animation-duration: 4.5s;
+}
+
+.breathing-particle-dot:nth-child(3n) {
+  animation-duration: 5s;
+}
+
+/* Launch Button Hover Effects - Clean Design */
+.clean-launch-container:has(.clean-launch-button:hover) .content-area-transition {
+  background-color: rgba(251, 146, 60, 0.15);
+}
+
+.clean-launch-container:has(.clean-launch-button:hover) .mite-color-transition {
+  background: rgba(34, 197, 94, 0.95) !important;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.7), 0 0 8px rgba(34, 197, 94, 0.9) !important;
+  border-color: rgba(34, 197, 94, 0.8) !important;
+}
+
+/* Fallback for browsers without :has() support */
+@supports not selector(:has(*)) {
+  .clean-launch-container:hover .content-area-transition {
+    background-color: rgba(251, 146, 60, 0.15);
+  }
+  
+  .clean-launch-container:hover .mite-color-transition {
+    background: rgba(34, 197, 94, 0.95) !important;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.7), 0 0 8px rgba(34, 197, 94, 0.9) !important;
+    border-color: rgba(34, 197, 94, 0.8) !important;
+  }
+}
+
+.grid-particle-dot:nth-child(3n).particle-color-transition {
+  transition: background-color 0.7s ease, box-shadow 0.7s ease;
+}
+
+.grid-particle-dot:nth-child(4n).particle-color-transition {
+  transition: background-color 0.8s ease, box-shadow 0.8s ease;
+}
+
+.grid-particle-dot:nth-child(5n).particle-color-transition {
+  transition: background-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+/* Unified Grid System Across Entire Canvas */
+.unified-grid-system {
+  z-index: 5;
+}
+
+.prominent-grid-lines {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(45, 55, 72, 0.25) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(45, 55, 72, 0.25) 2px, transparent 2px);
+  background-size: 50px 50px;
+  animation: prominentGridShift 25s linear infinite;
+}
+
+.grid-fade-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, 
+    rgba(248, 250, 252, 0.95) 0%, 
+    rgba(248, 250, 252, 0.7) 20%, 
+    rgba(248, 250, 252, 0.3) 40%, 
+    transparent 60%
+  );
+  filter: blur(1px);
+}
+
+/* Animations */
+@keyframes saasGlowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes sunHaloRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes prominentGridShift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+@keyframes gridShift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(40px, 40px); }
+}
+
+@keyframes prominentParticlePulse {
+  0%, 100% { 
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+@keyframes prominentParticleFade {
+  0%, 60% { opacity: 0.6; }
+  80% { opacity: 0.9; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes particlePulse {
+  0%, 100% { 
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.4;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes particleFade {
+  0%, 60% { opacity: 0.15; }
+  80% { opacity: 0.3; }
+  100% { opacity: 0.15; }
+}
+
+/* Interactive Launch Button System */
+.launch-interaction-container {
+  transition: all 0.6s ease;
+}
+
+/* Amber Background Transition */
+.amber-overlay-transition {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  z-index: 1;
+}
+
+.launch-bg-transition {
+  transition: all 0.8s ease;
+}
+
+/* Grid Particle System */
+.grid-particles-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Prominent Particle Dots */
+.unified-particles-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.prominent-particle-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(30, 41, 59, 0.4);
+  animation: prominentParticlePulse 7s ease-in-out infinite, prominentParticleFade 9s ease-in-out infinite;
+  transform: translate(-50%, -50%);
+}
+
+.grid-particle-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: rgba(45, 55, 72, 0.2);
+  border-radius: 50%;
+  animation: particlePulse 6s ease-in-out infinite, particleFade 8s ease-in-out infinite;
+  transform: translate(-50%, -50%);
+}
+
+.particle-color-transition {
+  transition: background-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.grid-particle-dot:nth-child(3n) {
+  animation-duration: 7s, 9s;
+  background: rgba(45, 55, 72, 0.15);
+}
+
+.grid-particle-dot:nth-child(4n) {
+  animation-duration: 8s, 10s;
+  background: rgba(45, 55, 72, 0.25);
+  width: 2px;
+  height: 2px;
+}
+
+.grid-particle-dot:nth-child(5n) {
+  animation-duration: 5s, 7s;
+  background: rgba(45, 55, 72, 0.18);
+  width: 4px;
+  height: 4px;
+}
+
+/* === IMMERSIVE ATMOSPHERIC BACKGROUND === */
+.atmospheric-grid-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ethereal-grid-lines {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(173, 216, 230, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(173, 216, 230, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 40px 40px, 40px 40px;
+  animation: etherealFlow 20s linear infinite;
+}
+
+.atmospheric-animation-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.atmospheric-point {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  animation: atmosphericTransformation 8s ease-in-out infinite;
+}
+
+.atmospheric-dust-mite {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(100, 100, 100, 0.3);
+  opacity: 1;
+  transition: opacity 2s ease-in-out;
+}
+
+.atmospheric-health-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(251, 146, 60, 0.6);
+  opacity: 0;
+  transition: opacity 2s ease-in-out;
+  filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.4));
+}
+
+.atmospheric-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ambient-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(251, 191, 36, 0.4);
+  border-radius: 50%;
+  opacity: 0;
+  animation: ambientFloat 12s ease-in-out infinite;
+}
+
+.ambient-particle:nth-child(1) {
+  top: 20%;
+  left: 20%;
+  animation-delay: 0s;
+}
+
+.ambient-particle:nth-child(2) {
+  top: 80%;
+  left: 80%;
+  animation-delay: 4s;
+}
+
+.ambient-particle:nth-child(3) {
+  top: 50%;
+  left: 10%;
+  animation-delay: 8s;
+}
+
+@keyframes etherealFlow {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-120px, -120px); }
+}
+
+@keyframes atmosphericTransformation {
+  0%, 45% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(0.8) rotate(180deg);
+  }
+  55% {
+    transform: scale(0.5) rotate(360deg);
+  }
+  60%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.atmospheric-point:nth-child(odd) .atmospheric-dust-mite {
+  animation: dustMiteFadeOut 8s ease-in-out infinite;
+}
+
+.atmospheric-point:nth-child(odd) .atmospheric-health-icon {
+  animation: healthIconFadeIn 8s ease-in-out infinite;
+}
+
+.atmospheric-point:nth-child(even) .atmospheric-dust-mite {
+  animation: dustMiteFadeOut 8s ease-in-out infinite;
+  animation-delay: 4s;
+}
+
+.atmospheric-point:nth-child(even) .atmospheric-health-icon {
+  animation: healthIconFadeIn 8s ease-in-out infinite;
+  animation-delay: 4s;
+}
+
+@keyframes dustMiteFadeOut {
+  0%, 45% { opacity: 1; }
+  50%, 60% { opacity: 0; }
+  61%, 100% { opacity: 1; }
+}
+
+@keyframes healthIconFadeIn {
+  0%, 55% { opacity: 0; }
+  60%, 85% { opacity: 1; }
+  86%, 100% { opacity: 0; }
+}
+
+@keyframes ambientFloat {
+  0%, 30% { opacity: 0; transform: translateY(0px) scale(1); }
+  35% { opacity: 0.6; transform: translateY(-15px) scale(1.2); }
+  65% { opacity: 0.8; transform: translateY(-30px) scale(1); }
+  85% { opacity: 0.2; transform: translateY(-45px) scale(0.5); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.2); }
+}
+
+/* === IMMERSIVE CENTERED TITLE === */
+.sunspec-title-immersive {
+  position: relative;
+  font-family: 'Inter', var(--font-geist-sans), 'Montserrat', 'Segoe UI', Arial, sans-serif;
+  font-size: 8rem;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.title-main-immersive {
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(135deg, #fb923c 0%, #fbbf24 50%, #f97316 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 60px rgba(251, 146, 60, 0.9)) drop-shadow(0 0 30px rgba(251, 191, 36, 0.7));
+}
+
+.title-glow-immersive {
+  position: absolute;
+  top: -15px;
+  left: -15px;
+  right: -15px;
+  bottom: -15px;
+  z-index: 2;
+  background: linear-gradient(135deg, #fb923c 0%, #fbbf24 50%, #f97316 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: blur(40px);
+  opacity: 0.8;
+  animation: titleGlowPulse 5s ease-in-out infinite;
+  transform: scale(1.2);
+}
+
+.title-halo-immersive {
+  position: absolute;
+  top: -30px;
+  left: -30px;
+  right: -30px;
+  bottom: -30px;
+  z-index: 1;
+  background: linear-gradient(135deg, #fb923c 0%, #fbbf24 50%, #f97316 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: titleHaloPulse 7s ease-in-out infinite;
+  transform: scale(1.5);
+}
+
+@keyframes titleGlowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1.15); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+@keyframes titleHaloPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1.4); }
+  50% { opacity: 0.6; transform: scale(1.6); }
+}
+
+/* === IMMERSIVE SLOGAN === */
+.sunspec-slogan-immersive {
+  font-family: 'Inter', var(--font-geist-sans), 'Montserrat', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.6;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+  animation: sloganFloat 6s ease-in-out infinite;
+}
+
+@keyframes sloganFloat {
+  0%, 100% { transform: translateY(0px); opacity: 0.95; }
+  50% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* === IMMERSIVE LAUNCH BUTTON === */
+.cta-button-immersive {
+  position: relative;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
+  color: white;
+  padding: 1.5rem 3.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(251, 146, 60, 0.5);
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-family: 'Inter', var(--font-geist-sans), 'Montserrat', 'Segoe UI', Arial, sans-serif;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  box-shadow: 
+    0 25px 50px rgba(251, 146, 60, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    inset 2px 0 4px rgba(255, 255, 255, 0.15),
+    inset -2px 0 4px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px);
+}
+
+.button-text-immersive {
+  position: relative;
+  z-index: 10;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.button-glass-immersive {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 75%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 40%, rgba(251, 146, 60, 0.1) 70%, transparent 100%);
+  border-radius: 8px 8px 0 0;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+}
+
+.button-neon-outline-immersive {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #00ffff, #0080ff, #00ffff);
+  border-radius: 10px;
+  z-index: -1;
+  opacity: 0;
+  filter: blur(1px);
+  transition: opacity 0.4s ease;
+}
+
+.button-glow-immersive {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  background: linear-gradient(135deg, #fb923c, #fbbf24, #f97316);
+  border-radius: 14px;
+  z-index: -2;
+  opacity: 0;
+  filter: blur(15px);
+  transition: opacity 0.4s ease;
+}
+
+.cta-button-immersive:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 35px 70px rgba(251, 146, 60, 0.5),
+    inset 0 3px 6px rgba(255, 255, 255, 0.5),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.4),
+    inset 3px 0 6px rgba(255, 255, 255, 0.25),
+    inset -3px 0 6px rgba(0, 0, 0, 0.25);
+  border-color: rgba(251, 146, 60, 0.7);
+}
+
+.cta-button-immersive:hover .button-neon-outline-immersive {
+  opacity: 0.7;
+  animation: immersiveNeonPulse 2s ease-in-out infinite;
+}
+
+.cta-button-immersive:hover .button-glow-immersive {
+  opacity: 0.9;
+  animation: immersiveGlowPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes immersiveNeonPulse {
+  0%, 100% { opacity: 0.5; filter: blur(1px); }
+  50% { opacity: 0.9; filter: blur(2px); }
+}
+
+@keyframes immersiveGlowPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
 /* === ENHANCED ANIMATION GRID === */
+/* Legacy grid styles - keeping for compatibility */
 .grid-container {
   position: relative;
   width: 40rem;
@@ -297,9 +1981,10 @@ body {
   width: 100%;
   height: 100%;
   padding: 2rem;
-  background: linear-gradient(45deg, transparent 49%, rgba(251, 146, 60, 0.1) 50%, transparent 51%),
-              linear-gradient(-45deg, transparent 49%, rgba(251, 146, 60, 0.1) 50%, transparent 51%);
+  background: linear-gradient(45deg, transparent 49%, rgba(173, 216, 230, 0.08) 50%, transparent 51%),
+              linear-gradient(-45deg, transparent 49%, rgba(255, 255, 255, 0.06) 50%, transparent 51%);
   background-size: 20px 20px;
+  box-shadow: inset 0 0 100px rgba(173, 216, 230, 0.05);
 }
 
 .grid-cell-enhanced {
@@ -311,14 +1996,16 @@ body {
   justify-content: center;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(173, 216, 230, 0.12);
   transition: all 0.3s ease;
+  box-shadow: 0 0 8px rgba(173, 216, 230, 0.08);
 }
 
 .grid-cell-enhanced:hover {
-  background: rgba(251, 146, 60, 0.05);
-  border-color: rgba(251, 146, 60, 0.3);
+  background: rgba(173, 216, 230, 0.08);
+  border-color: rgba(173, 216, 230, 0.25);
   transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(173, 216, 230, 0.15);
 }
 
 .dust-mite-icon-enhanced,
@@ -452,69 +2139,65 @@ body {
   }
 }
 
-/* Responsive Design */
+/* Responsive Design for SunSpec Mite Theme */
 @media (max-width: 1024px) {
-  .grid-container {
-    width: 32rem;
-    height: 32rem;
-  }
-  
-  .sunspec-title-enhanced {
+  .laundry-title-prominent {
     font-size: 4.5rem;
   }
   
-  .sunspec-slogan-enhanced {
-    font-size: 1.4rem;
+  .laundry-subheadline-sleek {
+    font-size: 1.3rem;
   }
   
-  .cta-button-premium {
-    padding: 1.25rem 2.5rem;
-    font-size: 1.1rem;
+  .laundry-launch-button {
+    padding: 1.2rem 3rem;
+    font-size: 1.2rem;
+  }
+  
+  .mite-particle {
+    width: 6px;
+    height: 6px;
+  }
+  
+  /* Optimize grid for tablets */
+  .moving-grid-background {
+    background-size: 60px 60px;
+  }
+  
+  /* Reduce particle count on smaller screens */
+  .mite-particles-container {
+    opacity: 0.8;
   }
 }
 
 @media (max-width: 768px) {
-  main {
-    flex-direction: column;
-  }
-  
-  main > div:first-child {
-    width: 100%;
-    padding: 2rem;
-    text-align: center;
-    min-height: 60vh;
-  }
-  
-  main > div:last-child {
-    width: 100%;
-    min-height: 40vh;
-  }
-  
-  .grid-container {
-    width: 24rem;
-    height: 24rem;
-  }
-  
-  .dust-mite-grid-enhanced {
-    gap: 0.5rem;
-    padding: 1rem;
-  }
-  
-  .sunspec-title-enhanced {
+  .laundry-title-prominent {
     font-size: 3.5rem;
   }
   
-  .sunspec-slogan-enhanced {
+  .laundry-subheadline-sleek {
     font-size: 1.2rem;
   }
   
-  .cta-button-premium {
-    padding: 1rem 2rem;
-    font-size: 1rem;
+  .laundry-launch-button {
+    padding: 1.1rem 2.5rem;
+    font-size: 1.1rem;
   }
   
-  .transparent-header .header-content {
-    padding: 0 2rem;
+  .mite-particle {
+    width: 5px;
+    height: 5px;
+  }
+  
+  /* Optimize grid for mobile */
+  .moving-grid-background {
+    background-size: 40px 40px;
+    opacity: 0.6;
+  }
+  
+  /* Further reduce particle density on mobile */
+  .mite-particles-container {
+    opacity: 0.6;
   }
 }
 

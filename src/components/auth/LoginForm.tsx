@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { authService } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,6 +20,8 @@ export default function LoginForm() {
     
     if (error) {
       setError(error.message)
+    } else {
+      router.push('/dashboard')
     }
     
     setLoading(false)
