@@ -495,6 +495,29 @@ export default function Dashboard() {
     setDuvetHistory([])
   }
 
+  // Utility function to check if current time is within optimal drying window
+  const isCurrentTimeOptimal = (weatherAnalysis: WeatherAnalysisResult | null): boolean => {
+    if (!weatherAnalysis || !weatherAnalysis.isOptimalForSunDrying || weatherAnalysis.optimalWindows.length === 0) {
+      return false
+    }
+
+    const now = new Date()
+    const currentTime = now.getTime()
+
+    // Check if current time falls within any optimal window with sufficient remaining time
+    const currentWindow = weatherAnalysis.optimalWindows.find(window => {
+      const startTime = new Date(window.startTime).getTime()
+      const endTime = new Date(window.endTime).getTime()
+      const minimumDryingTime = 2 * 60 * 60 * 1000 // 2 hours in milliseconds
+      
+      return currentTime >= startTime && 
+             currentTime <= endTime && 
+             (endTime - currentTime) >= minimumDryingTime
+    })
+
+    return !!currentWindow
+  }
+
   // Utility functions for duvet cards
   const getDaysSinceLastDry = (lastClean: string | null): number | null => {
     if (!lastClean) return null
@@ -1594,12 +1617,21 @@ export default function Dashboard() {
                         Cancel
                       </button>
                       {weatherAnalysis.isOptimalForSunDrying ? (
-                        <button
-                          onClick={() => setSunDryStep(2)}
-                          className="flex-1 px-8 py-4 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-all duration-200 text-lg"
-                        >
-                          Start Drying
-                        </button>
+                        isCurrentTimeOptimal(weatherAnalysis) ? (
+                          <button
+                            onClick={() => setSunDryStep(2)}
+                            className="flex-1 px-8 py-4 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-all duration-200 text-lg"
+                          >
+                            Start Drying
+                          </button>
+                        ) : (
+                          <button
+                            onClick={closeSunDryModal}
+                            className="flex-1 px-8 py-4 bg-amber-100 text-amber-700 rounded-lg font-light cursor-not-allowed text-lg"
+                          >
+                            Wait for Optimal Time
+                          </button>
+                        )
                       ) : (
                         <button
                           onClick={closeSunDryModal}
