@@ -15,14 +15,14 @@ export default function Logo() {
       {/* Logo image */}
       <Image 
         src="/logo.png" 
-        alt="Acarid Bloom Logo" 
+        alt="MiteSnap Logo" 
         width={80} 
         height={80}
         className="mb-4"
       />
       
-      {/* Website name - Acarid Bloom only */}
-      <span className="brand-name-simple">Acarid Bloom</span>
+      {/* Website name - MiteSnap only */}
+      <span className="brand-name-simple">MiteSnap</span>
     </div>
   )
 }

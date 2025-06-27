@@ -33,12 +33,12 @@ export default function Header() {
         <div className="flex items-center cursor-pointer" onClick={handleLogoClick}>
           <Image 
             src="/logo.png" 
-            alt="Acarid Bloom Logo" 
+            alt="MiteSnap Logo" 
             width={40} 
             height={40}
             className="mr-3"
           />
-          <span className="text-xl font-bold text-black">Acarid Bloom xxxx</span>
+          <span className="text-xl font-bold text-black">MiteSnap</span>
         </div>
         <div className="flex items-center space-x-4">
           {/* Mock Mode Toggle */}

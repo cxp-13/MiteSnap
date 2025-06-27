@@ -8,6 +8,9 @@ import { analyzeDuvet } from '@/lib/ai-analysis'
 import { createDuvet, getUserDuvets, type Duvet } from '@/lib/database'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import { useMockUser } from '@/context/MockUserContext'
+import { getWeatherForecast, analyzeWeatherForSunDrying, type WeatherAnalysisResult } from '@/lib/weather-analysis'
+import { analyzeSunDryingEffectiveness, calculateBasicSunDryingReduction, type SunDryingAnalysisResult } from '@/lib/sun-drying-ai'
+import { createSunDryRecord, updateSunDryRecord, updateDuvetMiteScore, getDuvetSunDryHistory, getCurrentSunDryingStatus, type CleanHistoryRecord } from '@/lib/clean-history'
 
 export default function Dashboard() {
   const { user, isLoaded, isSignedIn } = useUnifiedUser()
@@ -36,6 +39,57 @@ export default function Dashboard() {
 
   const [duvets, setDuvets] = useState<Duvet[]>([])
   const [isLoadingDuvets, setIsLoadingDuvets] = useState(false)
+  const [duvetSunDryingStatus, setDuvetSunDryingStatus] = useState<Record<string, CleanHistoryRecord | null>>({})
+
+  // Sun-drying modal states
+  const [showSunDryModal, setShowSunDryModal] = useState(false)
+  const [sunDryStep, setSunDryStep] = useState<1 | 2 | 3>(1)
+  const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
+  const [weatherAnalysis, setWeatherAnalysis] = useState<WeatherAnalysisResult | null>(null)
+  const [isLoadingWeatherAnalysis, setIsLoadingWeatherAnalysis] = useState(false)
+  const [sunDryPhoto, setSunDryPhoto] = useState<File | null>(null)
+  const [sunDryPhotoPreview, setSunDryPhotoPreview] = useState<string | null>(null)
+  const [isUploadingSunDryPhoto, setIsUploadingSunDryPhoto] = useState(false)
+  const [isSunDryAnalyzing, setIsSunDryAnalyzing] = useState(false)
+  const [sunDryAnalysisResult, setSunDryAnalysisResult] = useState<SunDryingAnalysisResult | null>(null)
+  const [, setSunDryRecord] = useState<CleanHistoryRecord | null>(null)
+
+  // Duvet details page states
+  const [showDuvetDetails, setShowDuvetDetails] = useState(false)
+  const [selectedDuvetForDetails, setSelectedDuvetForDetails] = useState<Duvet | null>(null)
+  const [duvetHistory, setDuvetHistory] = useState<CleanHistoryRecord[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+
+  // Sun dry handler
+  const handleSunDry = (duvetId: string) => {
+    const duvet = duvets.find(d => d.id === duvetId)
+    if (duvet) {
+      setSelectedDuvet(duvet)
+      setShowSunDryModal(true)
+      setSunDryStep(1)
+      // Start weather analysis immediately
+      getCurrentLocationForSunDrying()
+    }
+  }
+
+  // Load sun-drying status for all duvets
+  const loadDuvetsSunDryingStatus = useCallback(async (duvets: Duvet[]) => {
+    const statusMap: Record<string, CleanHistoryRecord | null> = {}
+    
+    await Promise.all(
+      duvets.map(async (duvet) => {
+        try {
+          const status = await getCurrentSunDryingStatus(duvet.id)
+          statusMap[duvet.id] = status
+        } catch (error) {
+          console.error(`Error loading sun-drying status for duvet ${duvet.id}:`, error)
+          statusMap[duvet.id] = null
+        }
+      })
+    )
+    
+    setDuvetSunDryingStatus(statusMap)
+  }, [])
 
   // Load user's duvets from database
   const loadDuvets = useCallback(async () => {
@@ -45,12 +99,14 @@ export default function Dashboard() {
     try {
       const userDuvets = await getUserDuvets(user.id)
       setDuvets(userDuvets)
+      // Load sun-drying status for all duvets
+      await loadDuvetsSunDryingStatus(userDuvets)
     } catch (error) {
       console.error('Error loading duvets:', error)
     } finally {
       setIsLoadingDuvets(false)
     }
-  }, [user?.id])
+  }, [user?.id, loadDuvetsSunDryingStatus])
 
   // Load duvets when user is available
   useEffect(() => {
@@ -231,6 +287,236 @@ export default function Dashboard() {
     }
   }
 
+  // Sun-drying specific functions
+  const getCurrentLocationForSunDrying = () => {
+    setIsLoadingWeatherAnalysis(true)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+          await analyzeSunDryingWeather(latitude, longitude)
+        },
+        (error) => {
+          console.error('Error getting location for sun-drying:', error)
+          setIsLoadingWeatherAnalysis(false)
+          // Use default location for demo
+          analyzeSunDryingWeather(40.7128, -74.0060)
+        }
+      )
+    } else {
+      // Use default location for demo
+      analyzeSunDryingWeather(40.7128, -74.0060)
+    }
+  }
+
+  const analyzeSunDryingWeather = async (latitude: number, longitude: number) => {
+    try {
+      const weatherData = await getWeatherForecast(latitude, longitude)
+      if (weatherData) {
+        const analysis = analyzeWeatherForSunDrying(weatherData)
+        setWeatherAnalysis(analysis)
+      } else {
+        // Fallback analysis for demo
+        setWeatherAnalysis({
+          isOptimalForSunDrying: false,
+          optimalWindows: [],
+          reason: 'Unable to fetch weather data, please try again',
+          overallConditions: {
+            averageTemperature: 20,
+            averageHumidity: 70,
+            rainHours: 6,
+            totalHours: 12
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Error analyzing sun-drying weather:', error)
+      setWeatherAnalysis({
+        isOptimalForSunDrying: false,
+        optimalWindows: [],
+        reason: 'Weather analysis failed, please try again',
+        overallConditions: {
+          averageTemperature: 20,
+          averageHumidity: 70,
+          rainHours: 6,
+          totalHours: 12
+        }
+      })
+    } finally {
+      setIsLoadingWeatherAnalysis(false)
+    }
+  }
+
+  const handleSunDryPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSunDryPhoto(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setSunDryPhotoPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSubmitSunDrying = async () => {
+    if (!selectedDuvet || !user?.id || !sunDryPhoto || !weatherAnalysis) {
+      alert('Missing required information, please try again')
+      return
+    }
+
+    try {
+      // Upload photo
+      setIsUploadingSunDryPhoto(true)
+      const uploadResult = await uploadDuvetImage(sunDryPhoto, user.id)
+      setIsUploadingSunDryPhoto(false)
+      
+      if (!uploadResult) {
+        alert('Photo upload failed')
+        return
+      }
+      
+      // AI Analysis (for preview only)
+      setIsSunDryAnalyzing(true)
+      setSunDryStep(3)
+      
+      let analysisResult: SunDryingAnalysisResult | null = null
+      
+      if (weatherAnalysis.optimalWindows.length > 0) {
+        // Calculate duration based on the optimal time window
+        const optimalWindow = weatherAnalysis.optimalWindows[0]
+        const startTime = new Date(optimalWindow.startTime)
+        const endTime = new Date(optimalWindow.endTime)
+        const calculatedDuration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)) // Convert to hours
+        
+        // Use AI analysis with the best weather window
+        analysisResult = await analyzeSunDryingEffectiveness(
+          uploadResult.url,
+          selectedDuvet.mite_score,
+          optimalWindow,
+          calculatedDuration
+        )
+      }
+      
+      // Fallback to basic calculation if AI fails
+      if (!analysisResult && weatherAnalysis.optimalWindows.length > 0) {
+        const optimalWindow = weatherAnalysis.optimalWindows[0]
+        const startTime = new Date(optimalWindow.startTime)
+        const endTime = new Date(optimalWindow.endTime)
+        const calculatedDuration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60))
+        
+        analysisResult = calculateBasicSunDryingReduction(
+          selectedDuvet.mite_score,
+          optimalWindow,
+          calculatedDuration
+        )
+      }
+      
+      if (analysisResult) {
+        setSunDryAnalysisResult(analysisResult)
+      } else {
+        alert('Analysis failed, please try again')
+      }
+    } catch (error) {
+      console.error('Error processing sun-drying:', error)
+      alert('Processing failed, please try again')
+    } finally {
+      setIsSunDryAnalyzing(false)
+    }
+  }
+
+  // Handle when user confirms they did the sun-drying (clicks "Got It")
+  const handleConfirmSunDrying = async () => {
+    if (!selectedDuvet || !user?.id || !sunDryAnalysisResult) {
+      alert('Missing required information')
+      return
+    }
+
+    try {
+      // Create sun dry record
+      const record = await createSunDryRecord(
+        selectedDuvet.id,
+        user.id,
+        selectedDuvet.mite_score
+      )
+      
+      if (!record) {
+        alert('Failed to create sun-drying record')
+        return
+      }
+      
+      // Update database records
+      await updateSunDryRecord(record.id, sunDryAnalysisResult.finalMiteScore)
+      await updateDuvetMiteScore(selectedDuvet.id, sunDryAnalysisResult.finalMiteScore)
+      
+      // Refresh duvets list
+      await loadDuvets()
+      
+      // Close modal
+      closeSunDryModal()
+    } catch (error) {
+      console.error('Error confirming sun-drying:', error)
+      alert('Failed to save sun-drying record')
+    }
+  }
+
+  const closeSunDryModal = () => {
+    setShowSunDryModal(false)
+    setSunDryStep(1)
+    setSelectedDuvet(null)
+    setWeatherAnalysis(null)
+    setSunDryPhoto(null)
+    setSunDryPhotoPreview(null)
+    setSunDryAnalysisResult(null)
+    setSunDryRecord(null)
+  }
+
+  // Duvet details page handlers
+  const handleDuvetCardClick = async (duvet: Duvet) => {
+    setSelectedDuvetForDetails(duvet)
+    setShowDuvetDetails(true)
+    
+    // Load duvet history
+    setIsLoadingHistory(true)
+    try {
+      const history = await getDuvetSunDryHistory(duvet.id)
+      setDuvetHistory(history)
+    } catch (error) {
+      console.error('Error loading duvet history:', error)
+      setDuvetHistory([])
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
+
+  const closeDuvetDetails = () => {
+    setShowDuvetDetails(false)
+    setSelectedDuvetForDetails(null)
+    setDuvetHistory([])
+  }
+
+  // Utility functions for duvet cards
+  const getDaysSinceLastDry = (lastClean: string | null): number | null => {
+    if (!lastClean) return null
+    const lastCleanDate = new Date(lastClean)
+    const today = new Date()
+    const diffTime = Math.abs(today.getTime() - lastCleanDate.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
+
+  const getMiteRiskColor = (score: number): string => {
+    if (score <= 30) return 'bg-green-100 text-green-800'
+    if (score <= 60) return 'bg-yellow-100 text-yellow-800'
+    return 'bg-red-100 text-red-800'
+  }
+
+  const getMiteRiskBarColor = (score: number): string => {
+    if (score <= 30) return 'bg-green-500'
+    if (score <= 60) return 'bg-yellow-500'
+    return 'bg-red-500'
+  }
+
   const handleSubmitNewDuvet = async () => {
     if (!selectedPhoto) {
       alert('Please upload a photo of your duvet.')
@@ -388,18 +674,23 @@ export default function Dashboard() {
           <div className="flex items-center space-x-3">
             <Image 
               src="/logo.png" 
-              alt="Acarid Bloom Logo" 
+              alt="MiteSnap Logo" 
               width={32} 
               height={32}
             />
-            <h1 className="text-xl font-semibold">Acarid Bloom</h1>
+            <h1 className="text-xl font-semibold">MiteSnap</h1>
           </div>
         </div>
         
         <nav className="flex-1 px-4 py-6">
           <div className="space-y-2">
             <button
-              onClick={() => setActiveTab('duvets')}
+              onClick={() => {
+                setActiveTab('duvets')
+                if (showDuvetDetails) {
+                  closeDuvetDetails()
+                }
+              }}
               className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                 activeTab === 'duvets'
                   ? 'bg-gray-800 text-white'
@@ -430,11 +721,11 @@ export default function Dashboard() {
             <div className="flex items-center space-x-3">
               <Image 
                 src="/logo.png" 
-                alt="Acarid Bloom Logo" 
+                alt="MiteSnap Logo" 
                 width={24} 
                 height={24}
               />
-              <span className="text-lg font-semibold text-black">Acarid Bloom</span>
+              <span className="text-lg font-semibold text-black">MiteSnap</span>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
@@ -462,7 +753,7 @@ export default function Dashboard() {
         {/* Content Area */}
         <main className="flex-1 p-6">
           <div className="max-w-6xl mx-auto">
-            {activeTab === 'duvets' && (
+            {activeTab === 'duvets' && !showDuvetDetails && (
               <div className="bg-white">
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="text-2xl font-bold text-black">My Duvets</h2>
@@ -484,72 +775,256 @@ export default function Dashboard() {
                       No duvets yet. Add your first duvet to get started!
                     </div>
                   ) : (
-                    duvets.map((duvet) => (
-                      <div
-                        key={duvet.id}
-                        className="bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-black hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                      >
-                        <div className="space-y-4">
-                          {/* Duvet Image */}
-                          <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
-                            <img 
-                              src={duvet.image_url} 
+                    duvets.map((duvet) => {
+                      const daysSinceLastDry = getDaysSinceLastDry(duvet.last_clean)
+                      const showUrgency = daysSinceLastDry && daysSinceLastDry > 14
+                      const sunDryingStatus = duvetSunDryingStatus[duvet.id]
+                      const isCurrentlySunDrying = sunDryingStatus !== null
+                      
+                      // Calculate remaining time if sun drying
+                      let remainingTime = ''
+                      if (isCurrentlySunDrying && sunDryingStatus?.start_time) {
+                        const startTime = new Date(sunDryingStatus.start_time)
+                        const now = new Date()
+                        const elapsedHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+                        const totalDryingTime = 6 // Assume 6 hours total drying time
+                        const remainingHours = Math.max(0, totalDryingTime - elapsedHours)
+                        
+                        if (remainingHours > 1) {
+                          remainingTime = `${Math.ceil(remainingHours)}h remaining`
+                        } else if (remainingHours > 0) {
+                          remainingTime = `${Math.ceil(remainingHours * 60)}min remaining`
+                        } else {
+                          remainingTime = 'Almost done!'
+                        }
+                      }
+                      
+                      return (
+                        <div
+                          key={duvet.id}
+                          className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+                          onClick={() => handleDuvetCardClick(duvet)}
+                        >
+                          {/* Duvet Photo */}
+                          <div className="aspect-video w-full bg-gray-100 overflow-hidden">
+                            <Image
+                              src={duvet.image_url}
                               alt={duvet.name}
+                              width={300}
+                              height={200}
                               className="w-full h-full object-cover"
                             />
                           </div>
                           
-                          <div>
-                            <h3 className="text-xl font-semibold text-black mb-2 group-hover:text-gray-800">
-                              {duvet.name}
-                            </h3>
-                            <p className="text-sm text-gray-600">Material: {duvet.material}</p>
-                          </div>
-                          
-                          <div className="border-t border-gray-100 pt-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-sm font-medium text-gray-700">Mite Risk Status</span>
-                              <span className={`text-lg ${getRiskColor(duvet.mite_score)}`}>
-                                {getRiskIcon(duvet.mite_score)}
-                              </span>
+                          <div className="p-6 space-y-6">
+                            {/* Duvet Name - Prominent */}
+                            <div>
+                              <h3 className="text-xl font-semibold text-gray-900 tracking-tight">
+                                {duvet.name}
+                              </h3>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className={`text-lg font-semibold ${getRiskColor(duvet.mite_score)}`}>
-                                {getMiteRiskLevel(duvet.mite_score)}
-                              </span>
-                              <span className="text-sm text-gray-500">
-                                {duvet.mite_score}/100
-                              </span>
-                            </div>
-                          </div>
-                        
-                        <div className="border-t border-gray-100 pt-4">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-gray-700">Last Cleaned</p>
-                            {duvet.last_clean ? (
-                              <>
-                                <p className="text-base text-black">
-                                  {new Date(duvet.last_clean).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
+
+                            {/* Days Since Last Dry - Only show if > 14 days */}
+                            {showUrgency && (
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <p className="text-sm font-medium text-red-700 mb-1">Days Since Last Dry</p>
+                                <p className="text-3xl font-bold text-red-600">
+                                  {daysSinceLastDry}
                                 </p>
-                                <p className="text-sm text-gray-500">
-                                  {new Date(duvet.last_clean).toLocaleTimeString('en-US', {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </p>
-                              </>
-                            ) : (
-                              <p className="text-base text-gray-500 italic">Never cleaned</p>
+                              </div>
                             )}
+
+                            {/* Mite Level - Color-coded with progress bar */}
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <p className="text-sm font-medium text-gray-700">Mite Level</p>
+                                <div className={`px-3 py-1 rounded-full text-sm font-semibold ${getMiteRiskColor(duvet.mite_score)}`}>
+                                  {duvet.mite_score}
+                                </div>
+                              </div>
+                              
+                              {/* Progress Bar */}
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all duration-300 ${getMiteRiskBarColor(duvet.mite_score)}`}
+                                  style={{ width: `${duvet.mite_score}%` }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            {/* Sun Dry Button or Status */}
+                            <div className="pt-2">
+                              {isCurrentlySunDrying ? (
+                                <div className="w-full bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                                  <div className="flex items-center justify-center space-x-2 mb-2">
+                                    <span className="text-yellow-600">☀️</span>
+                                    <span className="text-yellow-800 font-semibold">Currently Sun Drying</span>
+                                  </div>
+                                  <p className="text-sm text-yellow-700 font-medium">{remainingTime}</p>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleSunDry(duvet.id)
+                                  }}
+                                  className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold py-3 px-4 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md"
+                                >
+                                  <span>☀️</span>
+                                  <span>Sun Dry</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Duvet Details Page */}
+            {activeTab === 'duvets' && showDuvetDetails && selectedDuvetForDetails && (
+              <div className="bg-white">
+                {/* Header with Back Button */}
+                <div className="flex items-center mb-8">
+                  <button
+                    onClick={closeDuvetDetails}
+                    className="mr-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+                  >
+                    <span className="text-lg">←</span>
+                    <span className="font-medium">Back</span>
+                  </button>
+                  <h2 className="text-2xl font-bold text-black">{selectedDuvetForDetails.name}</h2>
+                </div>
+
+                {/* Duvet Overview Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                  {/* Duvet Image */}
+                  <div className="lg:col-span-1">
+                    <div className="w-full h-64 bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={selectedDuvetForDetails.image_url}
+                        alt={selectedDuvetForDetails.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Duvet Info */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Basic Info */}
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-lg font-semibold text-black mb-2">Material</h3>
+                        <p className="text-gray-600">{selectedDuvetForDetails.material}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-black mb-2">Current Mite Score</h3>
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl font-bold text-red-500">{selectedDuvetForDetails.mite_score}</span>
+                          <span className="text-gray-500">/100</span>
                         </div>
                       </div>
                     </div>
-                  ))
+
+                    {/* Last Cleaned */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-black mb-2">Last Cleaned</h3>
+                      {selectedDuvetForDetails.last_clean ? (
+                        <p className="text-gray-600">
+                          {new Date(selectedDuvetForDetails.last_clean).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      ) : (
+                        <p className="text-gray-500 italic">Never cleaned</p>
+                      )}
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-black mb-3">Quick Actions</h3>
+                      <button
+                        onClick={() => handleSunDry(selectedDuvetForDetails.id)}
+                        className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                      >
+                        <span>☀️</span>
+                        <span>Sun Dry</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sun-Drying History Section */}
+                <div>
+                  <h3 className="text-xl font-bold text-black mb-6">Sun-Drying History</h3>
+                  {isLoadingHistory ? (
+                    <div className="text-center py-8 text-gray-500">
+                      Loading history...
+                    </div>
+                  ) : duvetHistory.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-4xl mb-4">☀️</div>
+                      <p>No sun-drying sessions yet.</p>
+                      <p className="text-sm mt-2">Start your first sun-drying session to see history here!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {duvetHistory.map((record) => (
+                        <div
+                          key={record.id}
+                          className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-6"
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                            {/* Date and Time */}
+                            <div>
+                              <p className="text-lg font-semibold text-slate-800">
+                                {new Date(record.created_at).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-sm text-slate-600">
+                                {record.start_time && record.end_time
+                                  ? `${new Date(record.start_time).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })} - ${new Date(record.end_time).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}`
+                                  : 'Time not recorded'
+                                }
+                              </p>
+                            </div>
+
+                            {/* Score Change */}
+                            <div className="flex items-center space-x-6">
+                              <div className="text-center">
+                                <p className="text-sm text-slate-500 uppercase tracking-wide">Before</p>
+                                <p className="text-xl font-bold text-red-400">{record.before_mite_score}</p>
+                              </div>
+                              <div className="text-slate-400">→</div>
+                              <div className="text-center">
+                                <p className="text-sm text-slate-500 uppercase tracking-wide">After</p>
+                                <p className="text-xl font-bold text-green-500">{record.after_mite_score}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm text-slate-500 uppercase tracking-wide">Reduction</p>
+                                <p className="text-xl font-bold text-green-600">
+                                  -{(record.before_mite_score || 0) - (record.after_mite_score || 0)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1003,6 +1478,308 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Sun-Drying Modal */}
+      {showSunDryModal && selectedDuvet && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-12 w-full mx-6 shadow-2xl max-w-xl">
+            <div className="flex justify-between items-start mb-12">
+              <h3 className="text-2xl font-light text-black tracking-tight">
+                Sun Dry - {selectedDuvet.name}
+              </h3>
+              <button
+                onClick={closeSunDryModal}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-thin ml-6 mt-1"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Step 1: Minimalist Best Drying Time Display */}
+            {sunDryStep === 1 && (
+              <div className="space-y-12">
+                {isLoadingWeatherAnalysis ? (
+                  <div className="flex flex-col items-center justify-center py-24">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mb-8"></div>
+                    <p className="text-gray-500 font-light text-lg">Analyzing conditions...</p>
+                  </div>
+                ) : weatherAnalysis ? (
+                  <div className="space-y-12">
+                    {weatherAnalysis.isOptimalForSunDrying && weatherAnalysis.optimalWindows.length > 0 ? (
+                      <div className="text-center py-16 space-y-8">
+                        {/* Best Drying Time - Single Focus Element */}
+                        <div className="space-y-6">
+                          <h4 className="text-gray-500 font-light text-base uppercase tracking-[0.2em] mb-8">BEST DRYING TIME (NEXT 12 HOURS)</h4>
+                          <div className="text-7xl font-extralight text-black tracking-tight leading-none">
+                            {(() => {
+                              const now = new Date()
+                              const currentTime = now.getTime()
+                              let optimalWindow = weatherAnalysis.optimalWindows[0]
+                              
+                              // Find the first window that starts after current time
+                              const futureWindow = weatherAnalysis.optimalWindows.find(window => {
+                                const windowStartTime = new Date(window.startTime).getTime()
+                                return windowStartTime > currentTime
+                              })
+                              
+                              if (futureWindow) {
+                                optimalWindow = futureWindow
+                              } else {
+                                // If no future window today, create a fallback within daylight hours
+                                const currentHour = now.getHours()
+                                let adjustedStart: Date
+                                
+                                if (currentHour < 7) {
+                                  // Before sunrise, start at 7:00 AM
+                                  adjustedStart = new Date(now)
+                                  adjustedStart.setHours(7, 0, 0, 0)
+                                } else if (currentHour >= 16) {
+                                  // Too late for sun-drying today, suggest tomorrow at 7:00 AM
+                                  adjustedStart = new Date(now)
+                                  adjustedStart.setDate(adjustedStart.getDate() + 1)
+                                  adjustedStart.setHours(7, 0, 0, 0)
+                                } else {
+                                  // Current time is within daylight, start 30 minutes from now
+                                  adjustedStart = new Date(currentTime + 30 * 60 * 1000)
+                                }
+                                
+                                const adjustedEnd = new Date(adjustedStart.getTime() + 3 * 60 * 60 * 1000) // 3 hour window
+                                // Ensure end time doesn't go past sunset (7 PM)
+                                const maxEnd = new Date(adjustedStart)
+                                maxEnd.setHours(19, 0, 0, 0)
+                                const finalEnd = adjustedEnd > maxEnd ? maxEnd : adjustedEnd
+                                
+                                const startHour = adjustedStart.getHours().toString().padStart(2, '0')
+                                const startMin = adjustedStart.getMinutes().toString().padStart(2, '0')
+                                const endHour = finalEnd.getHours().toString().padStart(2, '0')
+                                const endMin = finalEnd.getMinutes().toString().padStart(2, '0')
+                                return `${startHour}:${startMin} – ${endHour}:${endMin}`
+                              }
+                              
+                              const startTime = new Date(optimalWindow.startTime)
+                              const endTime = new Date(optimalWindow.endTime)
+                              const startHour = startTime.getHours().toString().padStart(2, '0')
+                              const startMin = startTime.getMinutes().toString().padStart(2, '0')
+                              const endHour = endTime.getHours().toString().padStart(2, '0')
+                              const endMin = endTime.getMinutes().toString().padStart(2, '0')
+                              return `${startHour}:${startMin} – ${endHour}:${endMin}`
+                            })()
+                          }
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-16 space-y-8">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                          <span className="text-3xl text-gray-400">☁️</span>
+                        </div>
+                        <div className="space-y-4">
+                          <h4 className="text-2xl font-light text-gray-800">Conditions Not Suitable</h4>
+                          <p className="text-gray-500 font-light max-w-sm mx-auto leading-relaxed text-lg">
+                            {weatherAnalysis.reason}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex space-x-6 pt-8">
+                      <button
+                        onClick={closeSunDryModal}
+                        className="flex-1 px-8 py-4 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-all duration-200 font-light text-lg"
+                      >
+                        Cancel
+                      </button>
+                      {weatherAnalysis.isOptimalForSunDrying ? (
+                        <button
+                          onClick={() => setSunDryStep(2)}
+                          className="flex-1 px-8 py-4 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-all duration-200 text-lg"
+                        >
+                          Start Drying
+                        </button>
+                      ) : (
+                        <button
+                          onClick={closeSunDryModal}
+                          className="flex-1 px-8 py-4 bg-gray-200 text-gray-400 rounded-lg font-light cursor-not-allowed text-lg"
+                        >
+                          Not Available
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-16 space-y-6">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                      <span className="text-2xl text-red-400">⚠️</span>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-slate-600 font-light">Weather data unavailable</p>
+                      <button
+                        onClick={getCurrentLocationForSunDrying}
+                        className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Photo Upload */}
+            {sunDryStep === 2 && (
+              <div className="space-y-8">
+                <div className="text-center space-y-4">
+                  <h4 className="text-2xl font-light text-slate-800">
+                    Upload Drying Photo
+                  </h4>
+                  <p className="text-slate-600 font-light max-w-md mx-auto leading-relaxed">
+                    Take a photo of your duvet being sun-dried. AI will analyze the drying effectiveness.
+                  </p>
+                </div>
+
+                <label htmlFor="sunDryPhotoInput" className="block cursor-pointer">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 bg-gray-50 hover:bg-gray-100 transition-all duration-200">
+                    {sunDryPhotoPreview ? (
+                      <div className="text-center space-y-4">
+                        <img
+                          src={sunDryPhotoPreview}
+                          alt="Sun-drying preview"
+                          className="max-w-full h-48 object-contain mx-auto rounded-lg"
+                        />
+                        <p className="text-sm text-gray-500 font-light">Click to change photo</p>
+                      </div>
+                    ) : (
+                      <div className="text-center space-y-6">
+                        <div className="text-6xl text-gray-400">📸</div>
+                        <div className="space-y-3">
+                          <p className="text-xl font-light text-gray-700">Upload Drying Photo</p>
+                          <p className="text-sm text-gray-500 font-light">Click here to select photo • JPG, PNG formats</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSunDryPhotoUpload}
+                    className="hidden"
+                    id="sunDryPhotoInput"
+                  />
+                </label>
+
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => setSunDryStep(1)}
+                    className="flex-1 px-6 py-3 border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all duration-200 font-light"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleSubmitSunDrying}
+                    disabled={!sunDryPhoto || isUploadingSunDryPhoto}
+                    className="flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 disabled:bg-slate-300 text-white rounded-2xl font-medium transition-all duration-200"
+                  >
+                    {isUploadingSunDryPhoto ? 'Uploading...' : 'Start Analysis'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: AI Analysis Results */}
+            {sunDryStep === 3 && (
+              <div className="space-y-8">
+                {isSunDryAnalyzing ? (
+                  <div className="text-center py-16 space-y-6">
+                    <div className="flex items-center justify-center mb-6">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+                    </div>
+                    <div className="space-y-3">
+                      <h4 className="text-2xl font-light text-slate-800">
+                        AI Analyzing Drying Results...
+                      </h4>
+                      <p className="text-slate-600 font-light">
+                        Analyzing photo quality, weather conditions, and mite reduction effectiveness
+                      </p>
+                    </div>
+                  </div>
+                ) : sunDryAnalysisResult ? (
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <h4 className="text-2xl font-light text-slate-800 mb-4">
+                        Predicted Sun Drying Results
+                      </h4>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-3xl p-6 border border-green-100">
+                      <div className="text-center mb-6">
+                        <div className="text-4xl mb-4">☀️</div>
+                        <h5 className="text-xl font-light text-slate-800">
+                          Expected Mite Risk Reduction
+                        </h5>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6 mb-6">
+                        <div className="text-center space-y-2">
+                          <div className="text-3xl font-light text-red-400">
+                            {selectedDuvet.mite_score}
+                          </div>
+                          <div className="text-sm text-slate-500 uppercase tracking-wide font-light">Before</div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <div className="text-3xl font-light text-green-500">
+                            {sunDryAnalysisResult.finalMiteScore}
+                          </div>
+                          <div className="text-sm text-slate-500 uppercase tracking-wide font-light">Predicted</div>
+                        </div>
+                      </div>
+
+                      <div className="text-center mb-6">
+                        <div className="text-lg font-light text-slate-700">
+                          Expected reduction: <span className="text-green-600 font-medium">
+                            {sunDryAnalysisResult.miteScoreReduction} points
+                          </span>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        onClick={handleConfirmSunDrying}
+                        className="w-full px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        Got it!
+                      </button>
+                      <button
+                        onClick={closeSunDryModal}
+                        className="w-full px-6 py-3 border border-slate-200 text-slate-500 rounded-2xl font-light hover:bg-slate-50 transition-all duration-200"
+                      >
+                        Maybe next time
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-16 space-y-6">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                      <span className="text-2xl text-red-400">⚠️</span>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-slate-600 font-light">Analysis failed, please try again</p>
+                      <button
+                        onClick={closeSunDryModal}
+                        className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
