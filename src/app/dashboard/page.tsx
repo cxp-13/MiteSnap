@@ -5,7 +5,7 @@ import { UserButton } from '@clerk/nextjs'
 import Image from 'next/image'
 import { uploadDuvetImage } from '@/lib/storage'
 import { analyzeDuvet } from '@/lib/ai-analysis'
-import { createDuvet, getUserDuvets, type Duvet } from '@/lib/database'
+import { createDuvet, getUserDuvets, type Duvet, getUserAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress, type Address, createOrder, getUserOrders, getNearbyOrders, updateOrderStatus, deleteOrder, type Order } from '@/lib/database'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import { useMockUser } from '@/context/MockUserContext'
 import { getWeatherForecast, analyzeWeatherForSunDrying, type WeatherAnalysisResult } from '@/lib/weather-analysis'
@@ -15,7 +15,7 @@ import { createSunDryRecord, updateSunDryRecord, updateDuvetMiteScore, getDuvetS
 export default function Dashboard() {
   const { user, isLoaded, isSignedIn } = useUnifiedUser()
   const { isMockMode, signOut } = useMockUser()
-  const [activeTab, setActiveTab] = useState<'duvets' | 'orders'>('duvets')
+  const [activeTab, setActiveTab] = useState<'duvets' | 'orders' | 'addresses'>('duvets')
   const [showNewDuvetModal, setShowNewDuvetModal] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -40,6 +40,31 @@ export default function Dashboard() {
   const [duvets, setDuvets] = useState<Duvet[]>([])
   const [isLoadingDuvets, setIsLoadingDuvets] = useState(false)
   const [duvetSunDryingStatus, setDuvetSunDryingStatus] = useState<Record<string, CleanHistoryRecord | null>>({})
+
+  // Address states
+  const [addresses, setAddresses] = useState<Address[]>([])
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
+  const [showNewAddressModal, setShowNewAddressModal] = useState(false)
+  const [showEditAddressModal, setShowEditAddressModal] = useState(false)
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null)
+  const [addressForm, setAddressForm] = useState({
+    apartment: '',
+    unit: '',
+    fullAddress: '',
+    isDefault: false
+  })
+
+  // Help drying service states
+  const [showHelpDryingModal, setShowHelpDryingModal] = useState(false)
+  const [helpDryingStep, setHelpDryingStep] = useState<1 | 2 | 3 | 4>(1)
+  const [selectedDuvetForHelp, setSelectedDuvetForHelp] = useState<Duvet | null>(null)
+  const [helpDryingPhoto, setHelpDryingPhoto] = useState<File | null>(null)
+  const [helpDryingPhotoPreview, setHelpDryingPhotoPreview] = useState<string | null>(null)
+  const [selectedAddressForOrder, setSelectedAddressForOrder] = useState<Address | null>(null)
+  const [isUploadingHelpPhoto, setIsUploadingHelpPhoto] = useState(false)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [nearbyOrders, setNearbyOrders] = useState<Order[]>([])
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false)
 
   // Sun-drying modal states
   const [showSunDryModal, setShowSunDryModal] = useState(false)
@@ -69,6 +94,16 @@ export default function Dashboard() {
       setSunDryStep(1)
       // Start weather analysis immediately
       getCurrentLocationForSunDrying()
+    }
+  }
+
+  // Help drying handler
+  const handleHelpDrying = (duvetId: string) => {
+    const duvet = duvets.find(d => d.id === duvetId)
+    if (duvet) {
+      setSelectedDuvetForHelp(duvet)
+      setShowHelpDryingModal(true)
+      setHelpDryingStep(1)
     }
   }
 
@@ -114,6 +149,54 @@ export default function Dashboard() {
       loadDuvets()
     }
   }, [user?.id, loadDuvets])
+
+  // Load user's addresses from database
+  const loadAddresses = useCallback(async () => {
+    if (!user?.id) return
+    
+    setIsLoadingAddresses(true)
+    try {
+      const userAddresses = await getUserAddresses(user.id)
+      setAddresses(userAddresses)
+    } catch (error) {
+      console.error('Error loading addresses:', error)
+    } finally {
+      setIsLoadingAddresses(false)
+    }
+  }, [user?.id])
+
+  // Load addresses when user is available
+  useEffect(() => {
+    if (user?.id) {
+      loadAddresses()
+    }
+  }, [user?.id, loadAddresses])
+
+  // Load user's orders from database
+  const loadOrders = useCallback(async () => {
+    if (!user?.id) return
+    
+    setIsLoadingOrders(true)
+    try {
+      const [userOrders, nearbyOrdersList] = await Promise.all([
+        getUserOrders(user.id),
+        getNearbyOrders(user.id)
+      ])
+      setOrders(userOrders)
+      setNearbyOrders(nearbyOrdersList)
+    } catch (error) {
+      console.error('Error loading orders:', error)
+    } finally {
+      setIsLoadingOrders(false)
+    }
+  }, [user?.id])
+
+  // Load orders when user is available
+  useEffect(() => {
+    if (user?.id) {
+      loadOrders()
+    }
+  }, [user?.id, loadOrders])
 
   const getMiteRiskLevel = (score: number) => {
     if (score < 30) return 'Low Risk'
@@ -689,6 +772,121 @@ export default function Dashboard() {
     )
   }
 
+  // Help drying handlers
+  const handleHelpDryingPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setHelpDryingPhoto(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setHelpDryingPhotoPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleCloseHelpDryingModal = () => {
+    setShowHelpDryingModal(false)
+    setSelectedDuvetForHelp(null)
+    setHelpDryingStep(1)
+    setHelpDryingPhoto(null)
+    setHelpDryingPhotoPreview(null)
+    setSelectedAddressForOrder(null)
+  }
+
+  const handleCreateServiceOrder = async () => {
+    if (!user?.id || !selectedDuvetForHelp || !helpDryingPhoto || !selectedAddressForOrder) return
+
+    setIsUploadingHelpPhoto(true)
+    try {
+      // Upload photo to Supabase storage
+      const photoUrl = await uploadDuvetImage(helpDryingPhoto, `help-drying-${selectedDuvetForHelp.id}`)
+      
+      if (!photoUrl) {
+        alert('Failed to upload photo. Please try again.')
+        return
+      }
+
+      // Create the service order
+      const order = await createOrder(
+        user.id,
+        selectedDuvetForHelp.id,
+        selectedAddressForOrder.id,
+        photoUrl
+      )
+
+      if (order) {
+        alert('Service request created successfully! Others can now see your request in Nearby Orders.')
+        handleCloseHelpDryingModal()
+        await loadOrders()
+      } else {
+        alert('Failed to create service request. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error creating service order:', error)
+      alert('Failed to create service request. Please try again.')
+    } finally {
+      setIsUploadingHelpPhoto(false)
+    }
+  }
+
+  // Address handlers
+  const handleCreateAddress = async () => {
+    if (!user?.id) return
+
+    const newAddress = await createAddress(
+      addressForm.apartment || null,
+      addressForm.unit || null,
+      addressForm.fullAddress || null,
+      addressForm.isDefault,
+      user.id,
+      location?.longitude || null,
+      location?.latitude || null
+    )
+
+    if (newAddress) {
+      setShowNewAddressModal(false)
+      setAddressForm({ apartment: '', unit: '', fullAddress: '', isDefault: false })
+      setLocation(null)
+      await loadAddresses()
+    } else {
+      alert('Failed to create address. Please try again.')
+    }
+  }
+
+  const handleUpdateAddress = async () => {
+    if (!user?.id || !selectedAddress) return
+
+    const updatedAddress = await updateAddress(
+      selectedAddress.id,
+      addressForm.apartment || null,
+      addressForm.unit || null,
+      addressForm.fullAddress || null,
+      addressForm.isDefault,
+      user.id,
+      location?.longitude || null,
+      location?.latitude || null
+    )
+
+    if (updatedAddress) {
+      setShowEditAddressModal(false)
+      setSelectedAddress(null)
+      setAddressForm({ apartment: '', unit: '', fullAddress: '', isDefault: false })
+      setLocation(null)
+      await loadAddresses()
+    } else {
+      alert('Failed to update address. Please try again.')
+    }
+  }
+
+  const handleCloseAddressModal = () => {
+    setShowNewAddressModal(false)
+    setShowEditAddressModal(false)
+    setSelectedAddress(null)
+    setAddressForm({ apartment: '', unit: '', fullAddress: '', isDefault: false })
+    setLocation(null)
+  }
+
   return (
     <div className="min-h-screen bg-white flex">
       {/* Sidebar */}
@@ -721,6 +919,16 @@ export default function Dashboard() {
               }`}
             >
               My Duvets
+            </button>
+            <button
+              onClick={() => setActiveTab('addresses')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'addresses'
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-300 hover:bg-gray-900 hover:text-white'
+              }`}
+            >
+              My Addresses
             </button>
             <button
               onClick={() => setActiveTab('orders')}
@@ -886,16 +1094,28 @@ export default function Dashboard() {
                                   <p className="text-sm text-yellow-700 font-medium">{remainingTime}</p>
                                 </div>
                               ) : (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleSunDry(duvet.id)
-                                  }}
-                                  className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold py-3 px-4 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md"
-                                >
-                                  <span>☀️</span>
-                                  <span>Sun Dry</span>
-                                </button>
+                                <div className="space-y-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleSunDry(duvet.id)
+                                    }}
+                                    className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold py-3 px-4 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md"
+                                  >
+                                    <span>☀️</span>
+                                    <span>Sun Dry</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleHelpDrying(duvet.id)
+                                    }}
+                                    className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold py-3 px-4 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md"
+                                  >
+                                    <span>🤝</span>
+                                    <span>Request Help Drying</span>
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1055,10 +1275,270 @@ export default function Dashboard() {
             
             {activeTab === 'orders' && (
               <div className="bg-white">
-                <h2 className="text-2xl font-bold text-black mb-6">View Nearby Orders</h2>
-                <div className="bg-gray-50 rounded-lg p-8 text-center">
-                  <p className="text-gray-500">Content will be displayed here</p>
+                <h2 className="text-2xl font-bold text-black mb-6">Service Orders</h2>
+                
+                {isLoadingOrders ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {/* My Service Requests */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">My Service Requests</h3>
+                      {orders.length === 0 ? (
+                        <div className="bg-gray-50 rounded-lg p-6 text-center">
+                          <p className="text-gray-500">No service requests yet</p>
+                          <p className="text-sm text-gray-400 mt-1">Use the "Request Help Drying" button on your duvets to create your first service request</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {orders.map((order) => {
+                            const duvet = duvets.find(d => d.id === order.quilt_id)
+                            const address = addresses.find(a => a.id === order.address_id)
+                            return (
+                              <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    order.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
+                                    order.status === 'in_progress' ? 'bg-purple-100 text-purple-800' :
+                                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}>
+                                    {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                                  </span>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(order.created_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-gray-900">{duvet?.name || 'Unknown Duvet'}</h4>
+                                  <p className="text-sm text-gray-600">Material: {duvet?.material || 'Unknown'}</p>
+                                  {address && (
+                                    <p className="text-sm text-gray-600">
+                                      📍 {address.full_address}
+                                    </p>
+                                  )}
+                                  {order.placed_photo && (
+                                    <img
+                                      src={order.placed_photo}
+                                      alt="Duvet protection"
+                                      className="w-full h-24 object-cover rounded mt-2"
+                                    />
+                                  )}
+                                </div>
+
+                                <div className="mt-4 flex space-x-2">
+                                  {order.status === 'pending' && (
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm('Are you sure you want to cancel this service request?')) {
+                                          const success = await deleteOrder(order.id)
+                                          if (success) {
+                                            await loadOrders()
+                                          }
+                                        }
+                                      }}
+                                      className="flex-1 px-3 py-2 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  )}
+                                  {order.status === 'accepted' && (
+                                    <div className="text-sm text-blue-600 font-medium">
+                                      Accepted by helper
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Nearby Orders */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Help Others (Nearby Orders)</h3>
+                      {nearbyOrders.length === 0 ? (
+                        <div className="bg-gray-50 rounded-lg p-6 text-center">
+                          <p className="text-gray-500">No nearby service requests available</p>
+                          <p className="text-sm text-gray-400 mt-1">Check back later for opportunities to help others</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {nearbyOrders.map((order) => {
+                            const address = addresses.find(a => a.id === order.address_id)
+                            return (
+                              <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Available
+                                  </span>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(order.created_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-gray-900">Duvet Drying Service</h4>
+                                  <p className="text-sm text-gray-600">Help someone dry their duvet</p>
+                                  {address && (
+                                    <p className="text-sm text-gray-600">
+                                      📍 {address.full_address}
+                                    </p>
+                                  )}
+                                  {order.placed_photo && (
+                                    <img
+                                      src={order.placed_photo}
+                                      alt="Duvet protection"
+                                      className="w-full h-24 object-cover rounded mt-2"
+                                    />
+                                  )}
+                                </div>
+
+                                <div className="mt-4">
+                                  <button
+                                    onClick={async () => {
+                                      if (user?.id && confirm('Do you want to accept this service request?')) {
+                                        const success = await updateOrderStatus(order.id, 'accepted', user.id)
+                                        if (success) {
+                                          await loadOrders()
+                                          alert('Service request accepted! The requester will be notified.')
+                                        }
+                                      }
+                                    }}
+                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                                  >
+                                    Accept Service
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'addresses' && (
+              <div className="bg-white">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-2xl font-bold text-black">My Addresses</h2>
+                  <button
+                    onClick={() => setShowNewAddressModal(true)}
+                    className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                  >
+                    + Add New Address
+                  </button>
                 </div>
+
+                {isLoadingAddresses ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+                  </div>
+                ) : addresses.length === 0 ? (
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <div className="mb-4">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No addresses yet</h3>
+                    <p className="text-gray-500 mb-6">Add your first address to get started</p>
+                    <button
+                      onClick={() => setShowNewAddressModal(true)}
+                      className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                    >
+                      Add New Address
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {addresses.map((address) => (
+                      <div
+                        key={address.id}
+                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow"
+                      >
+                        {address.is_default && (
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Default
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-2 mb-4">
+                          {address.apartment && (
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Apartment:</span> {address.apartment}
+                            </p>
+                          )}
+                          {address.unit && (
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Unit:</span> {address.unit}
+                            </p>
+                          )}
+                          {address.full_address && (
+                            <p className="text-sm text-gray-900">{address.full_address}</p>
+                          )}
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedAddress(address)
+                              setAddressForm({
+                                apartment: address.apartment || '',
+                                unit: address.unit || '',
+                                fullAddress: address.full_address || '',
+                                isDefault: address.is_default || false
+                              })
+                              setShowEditAddressModal(true)
+                            }}
+                            className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          {!address.is_default && (
+                            <button
+                              onClick={async () => {
+                                if (user?.id) {
+                                  const success = await setDefaultAddress(address.id, user.id)
+                                  if (success) {
+                                    loadAddresses()
+                                  }
+                                }
+                              }}
+                              className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              Set Default
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (confirm('Are you sure you want to delete this address?')) {
+                                const success = await deleteAddress(address.id)
+                                if (success) {
+                                  loadAddresses()
+                                }
+                              }
+                            }}
+                            className="px-4 py-2 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1812,6 +2292,469 @@ export default function Dashboard() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* New Address Modal */}
+      {showNewAddressModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Add New Address</h3>
+              <button
+                onClick={handleCloseAddressModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Apartment/Building Name
+                </label>
+                <input
+                  type="text"
+                  value={addressForm.apartment}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, apartment: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Sunshine Apartments"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Unit/Room Number
+                </label>
+                <input
+                  type="text"
+                  value={addressForm.unit}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, unit: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Unit 4B"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={addressForm.fullAddress}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, fullAddress: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="e.g., 123 Main Street, Anytown, ST 12345"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isDefault"
+                  checked={addressForm.isDefault}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, isDefault: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="isDefault" className="ml-2 text-sm font-medium text-gray-700">
+                  Set as default address
+                </label>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={handleCloseAddressModal}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAddress}
+                disabled={!addressForm.fullAddress}
+                className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Add Address
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Address Modal */}
+      {showEditAddressModal && selectedAddress && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Edit Address</h3>
+              <button
+                onClick={handleCloseAddressModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Apartment/Building Name
+                </label>
+                <input
+                  type="text"
+                  value={addressForm.apartment}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, apartment: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Sunshine Apartments"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Unit/Room Number
+                </label>
+                <input
+                  type="text"
+                  value={addressForm.unit}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, unit: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Unit 4B"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={addressForm.fullAddress}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, fullAddress: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="e.g., 123 Main Street, Anytown, ST 12345"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="editIsDefault"
+                  checked={addressForm.isDefault}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, isDefault: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="editIsDefault" className="ml-2 text-sm font-medium text-gray-700">
+                  Set as default address
+                </label>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={handleCloseAddressModal}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateAddress}
+                disabled={!addressForm.fullAddress}
+                className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Update Address
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Help Drying Service Modal */}
+      {showHelpDryingModal && selectedDuvetForHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-semibold text-gray-900">Request Help Drying Service</h3>
+                <button
+                  onClick={handleCloseHelpDryingModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Step 1: Tutorial - Protection */}
+              {helpDryingStep === 1 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="mb-6">
+                      <div className="w-20 h-20 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                        <span className="text-3xl">🛡️</span>
+                      </div>
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">Step 1: Protect Your Duvet</h4>
+                      <p className="text-gray-600">Before requesting help, please prepare your duvet properly</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 rounded-lg p-6 space-y-4">
+                    <h5 className="font-semibold text-blue-900 mb-3">Instructions:</h5>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">1</span>
+                        <p className="text-blue-800">Place your duvet in a clean dust-proof bag or box</p>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">2</span>
+                        <p className="text-blue-800">Make sure the container is sealed and protected from dust</p>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">3</span>
+                        <p className="text-blue-800">Label the container with your name and contact information</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setHelpDryingStep(2)}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                    >
+                      Continue to Photo
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Photo Upload */}
+              {helpDryingStep === 2 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="mb-6">
+                      <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
+                        <span className="text-3xl">📸</span>
+                      </div>
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">Step 2: Take a Photo</h4>
+                      <p className="text-gray-600">Take a clear photo of your duvet in its protective container</p>
+                    </div>
+                  </div>
+
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    {helpDryingPhotoPreview ? (
+                      <div className="space-y-4">
+                        <img
+                          src={helpDryingPhotoPreview}
+                          alt="Protected duvet"
+                          className="max-w-full h-48 object-cover mx-auto rounded-lg"
+                        />
+                        <button
+                          onClick={() => {
+                            setHelpDryingPhoto(null)
+                            setHelpDryingPhotoPreview(null)
+                          }}
+                          className="text-red-600 hover:text-red-700 font-medium"
+                        >
+                          Remove Photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <p className="text-gray-600 mb-4">Take a photo of your protected duvet</p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleHelpDryingPhotoUpload}
+                          className="hidden"
+                          id="help-photo-upload"
+                        />
+                        <label
+                          htmlFor="help-photo-upload"
+                          className="cursor-pointer bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                        >
+                          Choose Photo
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => setHelpDryingStep(1)}
+                      className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-semibold"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => setHelpDryingStep(3)}
+                      disabled={!helpDryingPhoto}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Continue to Address
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Address Selection */}
+              {helpDryingStep === 3 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="mb-6">
+                      <div className="w-20 h-20 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                        <span className="text-3xl">📍</span>
+                      </div>
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">Step 3: Select Pickup Address</h4>
+                      <p className="text-gray-600">Choose where the helper should pick up your duvet</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {addresses.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 mb-4">No saved addresses found</p>
+                        <button
+                          onClick={() => setShowNewAddressModal(true)}
+                          className="text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Add New Address
+                        </button>
+                      </div>
+                    ) : (
+                      addresses.map((address) => (
+                        <div
+                          key={address.id}
+                          onClick={() => setSelectedAddressForOrder(address)}
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                            selectedAddressForOrder?.id === address.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              {address.apartment && (
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-medium">Apartment:</span> {address.apartment}
+                                </p>
+                              )}
+                              {address.unit && (
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-medium">Unit:</span> {address.unit}
+                                </p>
+                              )}
+                              <p className="text-gray-900">{address.full_address}</p>
+                            </div>
+                            {address.is_default && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => setHelpDryingStep(2)}
+                      className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-semibold"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => setHelpDryingStep(4)}
+                      disabled={!selectedAddressForOrder}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Review Request
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Confirmation */}
+              {helpDryingStep === 4 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="mb-6">
+                      <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
+                        <span className="text-3xl">✅</span>
+                      </div>
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">Step 4: Confirm Request</h4>
+                      <p className="text-gray-600">Review your service request details</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                    <div>
+                      <h5 className="font-semibold text-gray-900 mb-2">Duvet Information</h5>
+                      <p className="text-gray-700">{selectedDuvetForHelp.name}</p>
+                      <p className="text-sm text-gray-600">Material: {selectedDuvetForHelp.material}</p>
+                    </div>
+                    
+                    {selectedAddressForOrder && (
+                      <div>
+                        <h5 className="font-semibold text-gray-900 mb-2">Pickup Address</h5>
+                        <p className="text-gray-700">{selectedAddressForOrder.full_address}</p>
+                        {selectedAddressForOrder.apartment && (
+                          <p className="text-sm text-gray-600">Apartment: {selectedAddressForOrder.apartment}</p>
+                        )}
+                        {selectedAddressForOrder.unit && (
+                          <p className="text-sm text-gray-600">Unit: {selectedAddressForOrder.unit}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {helpDryingPhotoPreview && (
+                      <div>
+                        <h5 className="font-semibold text-gray-900 mb-2">Photo</h5>
+                        <img
+                          src={helpDryingPhotoPreview}
+                          alt="Protected duvet"
+                          className="w-32 h-32 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => setHelpDryingStep(3)}
+                      className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-semibold"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleCreateServiceOrder}
+                      disabled={isUploadingHelpPhoto}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                    >
+                      {isUploadingHelpPhoto ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Creating Request...</span>
+                        </>
+                      ) : (
+                        <span>Create Service Request</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
