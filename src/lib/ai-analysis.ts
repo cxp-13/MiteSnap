@@ -12,15 +12,16 @@ interface AnalysisResult {
 
 export async function analyzeDuvet(
   imageUrl: string,
-  temperature: number,
-  humidity: number
+  temperature: number = 25,
+  humidity: number = 50
 ): Promise<AnalysisResult | null> {
   try {
+    console.log('Starting AI analysis with:', { imageUrl, temperature, humidity })
     const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SILICONFLOW_API_KEY}`
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SILICONFLOW_API_KEY || 'sk-test-key'}`
       },
       body: JSON.stringify({
         model: "Qwen/Qwen2.5-VL-72B-Instruct",
@@ -43,7 +44,21 @@ export async function analyzeDuvet(
             role: "user",
             content: [
               {
-                text: `I have uploaded a photo of my quilt. Here is my current environmental information: * Temperature: ${temperature}℃ * Humidity: ${humidity}% Please help me analyze the quilt based on the image and the environmental conditions. Your tasks: 1. Identify the quilt's material (e.g., cotton, polyester, down, soybean fiber, or unknown) based on the photo. 2. Estimate the quilt's thickness (thin, medium, or thick) according to its appearance. 3. Combine this with the temperature and humidity to calculate the dust mite risk score, from 0 to 100. Higher means higher risk of dust mite growth. 4. Return a structured JSON result that includes the material, risk score, and reasons for the risk. 【Risk Scoring Rules】 (for your internal calculation only — do not mention scores, points, or formulas in the reasons): * Humidity: * ≥75% → +40 * 60–74% → +20 * <60% → +0 * Temperature: * 20–30℃ → +20 * Otherwise → +5 * Material: * Cotton, soybean fiber, bamboo fiber → +20 * Polyester, synthetic fiber → +10 * Down, silk → +5 * Thickness (visually estimated): * Thick → +15 * Medium → +8 * Thin → +0 * Label: * If the label includes "anti-mite" or "antibacterial" → reduce risk by -20 【Output format】: \`\`\`json { "material_detected": "cotton/polyester/down/soybean fiber/unknown", "risk_score": 0-100, "reasons": [ "Brief reason 1", "Brief reason 2", ... ] } \`\`\``,
+                text: `Analyze this duvet/quilt photo. Environment: Temperature ${temperature}°C, Humidity ${humidity}%.
+
+Tasks:
+1. Identify material (cotton, polyester, down, soybean fiber, or unknown)
+2. Calculate dust mite risk score 0-100 based on material and environment
+3. Provide reasons for the risk assessment
+
+Return JSON format:
+\`\`\`json
+{
+  "material_detected": "material_name",
+  "risk_score": 0-100,
+  "reasons": ["reason1", "reason2"]
+}
+\`\`\``,
                 type: "text"
               },
               {
@@ -60,7 +75,9 @@ export async function analyzeDuvet(
     })
 
     if (!response.ok) {
+      const errorText = await response.text()
       console.error('API request failed:', response.status, response.statusText)
+      console.error('Error details:', errorText)
       return null
     }
 

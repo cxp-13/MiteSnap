@@ -7,19 +7,29 @@ export interface Duvet {
   mite_score: number
   image_url: string
   user_id: string
+  address_id: string | null
   last_clean: string | null
 }
 
 export interface Address {
   id: string
-  apartment: string | null
-  unit: string | null
-  full_address: string | null
   is_default: boolean | null
   user_id: string
   longitude: number | null
   latitude: number | null
+  country: string | null
+  state: string | null
+  city: string | null
+  district: string | null
+  road: string | null
+  house_number: string | null
+  neighbourhood: string | null
+  address_line: string | null
   created_at: string
+  // Legacy fields for backward compatibility
+  apartment?: string | null
+  unit?: string | null
+  full_address?: string | null
 }
 
 export interface Order {
@@ -35,12 +45,14 @@ export interface Order {
 }
 
 export async function createDuvet(
+  userId: string,
   name: string,
   material: string,
   miteScore: number,
+  cleaningHistory: string,
+  thickness: string,
   imageUrl: string,
-  userId: string,
-  lastClean?: string | null
+  addressId?: string | null
 ): Promise<Duvet | null> {
   try {
     const { data, error } = await supabase
@@ -51,7 +63,8 @@ export async function createDuvet(
         mite_score: miteScore,
         image_url: imageUrl,
         user_id: userId,
-        last_clean: lastClean || null
+        address_id: addressId || null,
+        last_clean: null
       })
       .select()
       .single()
@@ -89,16 +102,27 @@ export async function getUserDuvets(userId: string): Promise<Duvet[]> {
 }
 
 export async function createAddress(
-  apartment: string | null,
-  unit: string | null,
-  fullAddress: string | null,
-  isDefault: boolean,
-  userId: string,
-  longitude?: number | null,
-  latitude?: number | null
+  addressData: {
+    country?: string | null
+    state?: string | null
+    city?: string | null
+    district?: string | null
+    road?: string | null
+    house_number?: string | null
+    neighbourhood?: string | null
+    address_line?: string | null
+    longitude?: number | null
+    latitude?: number | null
+    is_default?: boolean
+    // Legacy support
+    apartment?: string | null
+    unit?: string | null
+    full_address?: string | null
+  },
+  userId: string
 ): Promise<Address | null> {
   try {
-    if (isDefault) {
+    if (addressData.is_default) {
       await supabase
         .from('addresses')
         .update({ is_default: false })
@@ -108,13 +132,18 @@ export async function createAddress(
     const { data, error } = await supabase
       .from('addresses')
       .insert({
-        apartment,
-        unit,
-        full_address: fullAddress,
-        is_default: isDefault,
         user_id: userId,
-        longitude: longitude || null,
-        latitude: latitude || null
+        is_default: addressData.is_default || false,
+        longitude: addressData.longitude || null,
+        latitude: addressData.latitude || null,
+        country: addressData.country || null,
+        state: addressData.state || null,
+        city: addressData.city || null,
+        district: addressData.district || null,
+        road: addressData.road || null,
+        house_number: addressData.house_number || null,
+        neighbourhood: addressData.neighbourhood || null,
+        address_line: addressData.address_line || null
       })
       .select()
       .single()
@@ -154,32 +183,51 @@ export async function getUserAddresses(userId: string): Promise<Address[]> {
 
 export async function updateAddress(
   id: string,
-  apartment: string | null,
-  unit: string | null,
-  fullAddress: string | null,
-  isDefault: boolean,
-  userId: string,
-  longitude?: number | null,
-  latitude?: number | null
+  addressData: {
+    country?: string | null
+    state?: string | null
+    city?: string | null
+    district?: string | null
+    road?: string | null
+    house_number?: string | null
+    neighbourhood?: string | null
+    address_line?: string | null
+    longitude?: number | null
+    latitude?: number | null
+    is_default?: boolean
+    // Legacy support
+    apartment?: string | null
+    unit?: string | null
+    full_address?: string | null
+  },
+  userId: string
 ): Promise<Address | null> {
   try {
-    if (isDefault) {
+    if (addressData.is_default) {
       await supabase
         .from('addresses')
         .update({ is_default: false })
         .eq('user_id', userId)
     }
 
+    const updateData: any = {}
+    
+    // New structure fields
+    if (addressData.country !== undefined) updateData.country = addressData.country
+    if (addressData.state !== undefined) updateData.state = addressData.state
+    if (addressData.city !== undefined) updateData.city = addressData.city
+    if (addressData.district !== undefined) updateData.district = addressData.district
+    if (addressData.road !== undefined) updateData.road = addressData.road
+    if (addressData.house_number !== undefined) updateData.house_number = addressData.house_number
+    if (addressData.neighbourhood !== undefined) updateData.neighbourhood = addressData.neighbourhood
+    if (addressData.address_line !== undefined) updateData.address_line = addressData.address_line
+    if (addressData.longitude !== undefined) updateData.longitude = addressData.longitude
+    if (addressData.latitude !== undefined) updateData.latitude = addressData.latitude
+    if (addressData.is_default !== undefined) updateData.is_default = addressData.is_default
+
     const { data, error } = await supabase
       .from('addresses')
-      .update({
-        apartment,
-        unit,
-        full_address: fullAddress,
-        is_default: isDefault,
-        longitude: longitude || null,
-        latitude: latitude || null
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
@@ -217,15 +265,18 @@ export async function deleteAddress(id: string): Promise<boolean> {
 
 export async function setDefaultAddress(id: string, userId: string): Promise<boolean> {
   try {
+    // First, set all user's addresses to non-default
     await supabase
       .from('addresses')
       .update({ is_default: false })
       .eq('user_id', userId)
 
+    // Then set the specific address as default (with user_id constraint for security)
     const { error } = await supabase
       .from('addresses')
       .update({ is_default: true })
       .eq('id', id)
+      .eq('user_id', userId)
 
     if (error) {
       console.error('Error setting default address:', error)

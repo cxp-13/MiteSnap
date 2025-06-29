@@ -157,10 +157,17 @@ export async function updateDuvetMiteScore(duvetId: string, newMiteScore: number
 
 export async function getCurrentSunDryingStatus(duvetId: string): Promise<CleanHistoryRecord | null> {
   try {
+    // Check if duvetId is a valid number
+    const numericId = parseInt(duvetId)
+    if (isNaN(numericId)) {
+      console.warn('Invalid duvet ID for clean history lookup:', duvetId)
+      return null
+    }
+
     const { data, error } = await supabase
       .from('clean_history')
       .select('*')
-      .eq('quilt_id', parseInt(duvetId))
+      .eq('quilt_id', numericId)
       .eq('is_self', true)
       .is('end_time', null)
       .order('created_at', { ascending: false })
