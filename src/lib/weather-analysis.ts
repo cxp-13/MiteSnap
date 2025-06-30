@@ -113,17 +113,17 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
   for (let i = 0; i < intervals.length; i++) {
     const interval = intervals[i]
     const isGoodCondition = (
-      interval.values.temperature >= 15 &&
-      interval.values.humidity <= 80 &&
-      interval.values.precipitationProbability <= 20 &&
+      interval.values.temperature >= 12 &&
+      interval.values.humidity <= 85 &&
+      interval.values.precipitationProbability <= 30 &&
       isWithinDaylightHours(interval.startTime)
     )
 
     if (isGoodCondition) {
       currentWindow.push(interval)
     } else {
-      // End of good conditions - save window if it's at least 2 intervals (1 hour)
-      if (currentWindow.length >= 2) {
+      // End of good conditions - save window if it's at least 1 interval (30 minutes)
+      if (currentWindow.length >= 1) {
         const windowStart = currentWindow[0]
         const windowEnd = currentWindow[currentWindow.length - 1]
         const avgTemp = currentWindow.reduce((sum, w) => sum + w.values.temperature, 0) / currentWindow.length
@@ -135,9 +135,9 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
         
         // Calculate suitability score (0-100)
         let score = 0
-        score += Math.min(avgTemp - 15, 15) * 2 // Temperature bonus (max 30 points)
-        score += Math.max(80 - avgHumidity, 0) * 0.5 // Humidity bonus (max 40 points)
-        score += Math.max(20 - avgPrecip, 0) * 1.5 // No rain bonus (max 30 points)
+        score += Math.min(avgTemp - 12, 18) * 1.5 // Temperature bonus (max 27 points)
+        score += Math.max(85 - avgHumidity, 0) * 0.6 // Humidity bonus (max 51 points)
+        score += Math.max(30 - avgPrecip, 0) * 0.7 // No rain bonus (max 21 points)
         
         optimalWindows.push({
           startTime: windowStart.startTime,
@@ -153,7 +153,7 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
   }
 
   // Check final window
-  if (currentWindow.length >= 2) {
+  if (currentWindow.length >= 1) {
     const windowStart = currentWindow[0]
     const windowEnd = currentWindow[currentWindow.length - 1]
     const avgTemp = currentWindow.reduce((sum, w) => sum + w.values.temperature, 0) / currentWindow.length
@@ -164,9 +164,9 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
     const endTime = new Date(new Date(windowEnd.startTime).getTime() + 30 * 60 * 1000).toISOString()
     
     let score = 0
-    score += Math.min(avgTemp - 15, 15) * 2
-    score += Math.max(80 - avgHumidity, 0) * 0.5
-    score += Math.max(20 - avgPrecip, 0) * 1.5
+    score += Math.min(avgTemp - 12, 18) * 1.5
+    score += Math.max(85 - avgHumidity, 0) * 0.6
+    score += Math.max(30 - avgPrecip, 0) * 0.7
     
     optimalWindows.push({
       startTime: windowStart.startTime,
@@ -182,18 +182,18 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
   optimalWindows.sort((a, b) => b.suitabilityScore - a.suitabilityScore)
 
   // Determine if conditions are suitable overall
-  const isOptimalForSunDrying = optimalWindows.length > 0 && optimalWindows[0].suitabilityScore >= 40
+  const isOptimalForSunDrying = optimalWindows.length > 0 && optimalWindows[0].suitabilityScore >= 25
 
   // Generate reason message
   let reason = ''
   if (rainHours > totalHours * 0.6) {
     reason = 'High precipitation probability in the next 12 hours, not suitable for drying'
-  } else if (averageTemperature < 15) {
+  } else if (averageTemperature < 12) {
     reason = 'Temperature too low for effective drying'
-  } else if (averageHumidity > 85) {
+  } else if (averageHumidity > 90) {
     reason = 'Humidity too high for optimal drying conditions'
   } else if (optimalWindows.length === 0) {
-    reason = 'No suitable continuous 1-hour periods found'
+    reason = 'No suitable continuous 30-minute periods found'
   } else {
     const bestWindow = optimalWindows[0]
     const startTime = new Date(bestWindow.startTime)

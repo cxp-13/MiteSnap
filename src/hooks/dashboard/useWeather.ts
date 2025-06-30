@@ -50,33 +50,35 @@ export function useWeather() {
     }
   }, [])
 
-  // Submit sun drying analysis
-  const handleSubmitSunDrying = useCallback(async (duvetId: string, userId: string) => {
-    if (!sunDryPhoto || !location) return
+  // Submit sun drying analysis (Step 2: Photo upload and AI analysis only)
+  const handleSubmitSunDrying = useCallback(async (duvetId: string, userId: string, currentMiteScore: number) => {
+    if (!sunDryPhoto || !location || !weatherAnalysis) return
 
     setIsUploadingSunDryPhoto(true)
     try {
       // Upload photo
-      const photoUrl = await uploadDuvetImage(sunDryPhoto, userId, 'sun-dry')
+      const photo = await uploadDuvetImage(sunDryPhoto, userId, 'sun-dry')
+      
+      // Get the best weather window from the analysis
+      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
+      if (!bestWeatherWindow) {
+        throw new Error('No optimal weather window available for analysis')
+      }
+      
+      // Calculate sun drying duration (default to 3 hours if not specified)
+      const sunDryingDuration = 3 // hours - could be made configurable
       
       // Analyze sun drying effectiveness
       setIsLoadingSunDryingAnalysis(true)
-      const analysis = await analyzeSunDryingEffectiveness(photoUrl, weatherAnalysis)
+      const analysis = await analyzeSunDryingEffectiveness(
+        photo!.url, 
+        currentMiteScore, 
+        bestWeatherWindow, 
+        sunDryingDuration
+      )
       setSunDryingAnalysis(analysis)
       
-      // Create sun dry record
-      await createSunDryRecord(duvetId, userId, {
-        placed_photo: photoUrl,
-        weather_conditions: weatherAnalysis || undefined,
-        analysis_result: analysis
-      })
-      
-      // Update duvet mite score if analysis shows improvement
-      if (analysis.effectiveness > 0.7) {
-        const miteReduction = Math.min(20, analysis.effectiveness * 30)
-        await updateDuvetMiteScore(duvetId, -miteReduction)
-      }
-      
+      // Move to step 3 to show results and confirmation
       setSunDryStep(3)
     } catch (error) {
       console.error('Error submitting sun drying:', error)
@@ -96,6 +98,29 @@ export function useWeather() {
     setWeatherAnalysis(null)
     setSunDryingAnalysis(null)
   }, [])
+
+  // Confirm and start sun drying (Step 3: Create record and update duvet)
+  const handleConfirmSunDrying = useCallback(async (duvetId: string, userId: string, currentMiteScore: number) => {
+    if (!sunDryingAnalysis) return
+
+    try {
+      // Create sun dry record with correct parameters
+      await createSunDryRecord(duvetId, userId, currentMiteScore)
+      
+      // Update duvet mite score if analysis shows improvement
+      if (sunDryingAnalysis.effectivenessScore > 70) {
+        await updateDuvetMiteScore(duvetId, sunDryingAnalysis.finalMiteScore)
+      }
+      
+      // Close modal and indicate success
+      closeSunDryModal()
+      return true
+    } catch (error) {
+      console.error('Error confirming sun drying:', error)
+      alert('Failed to start sun drying. Please try again.')
+      return false
+    }
+  }, [sunDryingAnalysis, closeSunDryModal])
 
   return {
     // Location & Weather State
@@ -123,6 +148,7 @@ export function useWeather() {
     analyzeWeatherForDrying,
     handleSunDryPhotoUpload,
     handleSubmitSunDrying,
+    handleConfirmSunDrying,
     closeSunDryModal,
     setShowSunDryModal,
     setSunDryStep

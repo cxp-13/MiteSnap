@@ -21,32 +21,25 @@ export async function analyzeSunDryingEffectiveness(
   sunDryingDuration: number // in hours
 ): Promise<SunDryingAnalysisResult | null> {
   try {
-    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SILICONFLOW_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "Qwen/Qwen2.5-VL-72B-Instruct",
-        stream: false,
-        max_tokens: 512,
-        enable_thinking: true,
-        thinking_budget: 4096,
-        min_p: 0.05,
-        temperature: 0.7,
-        top_p: 0.7,
-        top_k: 50,
-        frequency_penalty: 0.5,
-        n: 1,
-        stop: [],
-        response_format: {
-          type: "text"
-        },
-        messages: [
-          {
-            role: "user",
-            content: [
+    const apiKey = process.env.NEXT_PUBLIC_SILICONFLOW_API_KEY
+    if (!apiKey) {
+      console.error('SiliconFlow API key is not set')
+      return null
+    }
+
+    console.log("imageUrl", imageUrl)
+    console.log("beforeMiteScore", beforeMiteScore)
+    console.log("weatherConditions", JSON.stringify(weatherConditions,null, 2))
+    console.log("sunDryingDuration", sunDryingDuration)
+
+    const requestBody = {
+      model: "Qwen/Qwen2.5-VL-72B-Instruct",
+      max_tokens: 512,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "user",
+          content: [
               {
                 text: `I have sun-dried my duvet and uploaded a photo of it. Please analyze the effectiveness of the sun-drying process based on the image and environmental conditions.
 
@@ -99,12 +92,25 @@ Provide a mite score reduction between 10-40 points based on the combined effect
             ]
           }
         ]
-      })
+    }
+
+    // console.log('Sending request to SiliconFlow:', JSON.stringify(requestBody, null, 2)) // Remove in production
+
+    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(requestBody)
     })
 
     if (!response.ok) {
+      const errorText = await response.text()
       console.error('Sun-drying AI analysis failed:', response.status, response.statusText)
-      return null
+      console.error('Error response:', errorText)
+      console.log('Falling back to basic analysis')
+      return calculateBasicSunDryingReduction(beforeMiteScore, weatherConditions, sunDryingDuration)
     }
 
     const data = await response.json()
@@ -137,7 +143,8 @@ Provide a mite score reduction between 10-40 points based on the combined effect
     }
   } catch (error) {
     console.error('Error analyzing sun-drying effectiveness:', error)
-    return null
+    console.log('Falling back to basic analysis due to error')
+    return calculateBasicSunDryingReduction(beforeMiteScore, weatherConditions, sunDryingDuration)
   }
 }
 

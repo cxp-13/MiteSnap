@@ -7,6 +7,7 @@ interface DuvetCardProps {
   duvet: Duvet
   sunDryingStatus: CleanHistoryRecord | null
   onSunDryingService: (duvet: Duvet) => void
+  onDuvetClick?: (duvet: Duvet) => void
 }
 
 const getMiteRiskLevel = (score: number) => {
@@ -22,57 +23,47 @@ const getRiskColor = (score: number) => {
 }
 
 const isCurrentTimeOptimal = (sunDryingStatus: CleanHistoryRecord | null): boolean => {
-  if (!sunDryingStatus?.weatherAnalysis?.isOptimalForSunDrying || 
-      !sunDryingStatus.weatherAnalysis.optimalWindows.length) {
-    return false
-  }
-
-  const now = new Date()
-  const currentHour = now.getHours()
-  
-  return sunDryingStatus.weatherAnalysis.optimalWindows.some(window => {
-    const startHour = parseInt(window.start.split(':')[0])
-    const endHour = parseInt(window.end.split(':')[0])
-    return currentHour >= startHour && currentHour < endHour
-  })
+  // Simplified check - just return false for now since weatherAnalysis is not available
+  return false
 }
 
-const getNextOptimalTime = (sunDryingStatus: CleanHistoryRecord | null): string | null => {
-  if (!sunDryingStatus?.weatherAnalysis?.isOptimalForSunDrying || 
-      !sunDryingStatus.weatherAnalysis.optimalWindows.length) {
-    return null
-  }
-
+const getRemainingTime = (startTime: string): string => {
+  const start = new Date(startTime)
   const now = new Date()
-  const currentTime = now.getTime()
+  const estimatedDuration = 4 * 60 * 60 * 1000 // 4 hours in milliseconds
+  const endTime = new Date(start.getTime() + estimatedDuration)
   
-  const futureWindow = sunDryingStatus.weatherAnalysis.optimalWindows.find(window => {
-    const windowStartTime = new Date(window.startTime).getTime()
-    return windowStartTime > currentTime
-  })
+  if (now >= endTime) {
+    return "Completed"
+  }
   
-  const optimalWindow = futureWindow || sunDryingStatus.weatherAnalysis.optimalWindows[0]
+  const remaining = endTime.getTime() - now.getTime()
+  const hours = Math.floor(remaining / (1000 * 60 * 60))
+  const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
   
-  return new Date(optimalWindow.startTime).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  })
+  if (hours > 0) {
+    return `${hours}h ${minutes}m remaining`
+  } else {
+    return `${minutes}m remaining`
+  }
 }
 
 export default function DuvetCard({ 
   duvet, 
   sunDryingStatus, 
-  onSunDryingService
+  onSunDryingService,
+  onDuvetClick
 }: DuvetCardProps) {
   const colors = getRiskColor(duvet.mite_score)
   const riskLevel = getMiteRiskLevel(duvet.mite_score)
   const isOptimalTime = isCurrentTimeOptimal(sunDryingStatus)
   const isSunriseTime = isCurrentTimeWithinSunrise()
-  const nextOptimalTime = getNextOptimalTime(sunDryingStatus)
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow">
+    <div 
+      className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={() => onDuvetClick?.(duvet)}
+    >
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
           <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden">
@@ -97,30 +88,51 @@ export default function DuvetCard({
 
         {/* Sun Drying Status */}
         {sunDryingStatus && (
-          <div className={`rounded-lg p-4 ${isOptimalTime ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`font-medium ${isOptimalTime ? 'text-green-800' : 'text-gray-700'}`}>
-                  {isOptimalTime ? '☀️ Optimal drying time!' : '🌤️ Sun drying in progress'}
+          <div className={`rounded-lg p-4 ${isOptimalTime ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+            <div className="space-y-2">
+              <p className={`font-medium ${isOptimalTime ? 'text-green-800' : 'text-blue-800'}`}>
+                {isOptimalTime ? '☀️ Optimal drying time!' : '🌤️ Sun drying in progress'}
+              </p>
+              
+              <div className="space-y-1 text-sm">
+                <p className="text-gray-600">
+                  <span className="font-medium">Started:</span> {sunDryingStatus.start_time ? new Date(sunDryingStatus.start_time).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  }) : 'Unknown'}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Started: {new Date(sunDryingStatus.start_time).toLocaleDateString()}
-                </p>
-                {nextOptimalTime && (
-                  <p className="text-sm text-blue-600 mt-1 font-medium">
-                    Next optimal: {nextOptimalTime}
+                
+                {sunDryingStatus.end_time ? (
+                  <p className="text-gray-600">
+                    <span className="font-medium">Ended:</span> {new Date(sunDryingStatus.end_time).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
                   </p>
-                )}
+                ) : sunDryingStatus.start_time ? (
+                  <p className="text-blue-600 font-medium">
+                    {getRemainingTime(sunDryingStatus.start_time)}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
         )}
 
         {/* Action Buttons */}
-        {isSunriseTime && (
+        {isSunriseTime && !sunDryingStatus && (
           <div>
             <button
-              onClick={() => onSunDryingService(duvet)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSunDryingService(duvet)
+              }}
               className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
             >
               <span>🤖</span>

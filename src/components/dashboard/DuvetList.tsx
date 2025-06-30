@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import DuvetCard from './DuvetCard'
+import DuvetHistoryModal from './DuvetHistoryModal'
 import { Duvet, CleanHistoryRecord } from './shared/types'
 
 interface DuvetListProps {
@@ -14,6 +16,18 @@ export default function DuvetList({
   isLoading,
   onSunDryingService
 }: DuvetListProps) {
+  const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+
+  const handleDuvetClick = (duvet: Duvet) => {
+    setSelectedDuvet(duvet)
+    setShowHistoryModal(true)
+  }
+
+  const handleCloseHistory = () => {
+    setShowHistoryModal(false)
+    setSelectedDuvet(null)
+  }
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -44,9 +58,19 @@ export default function DuvetList({
               duvet={duvet}
               sunDryingStatus={duvetSunDryingStatus[duvet.id] || null}
               onSunDryingService={onSunDryingService}
+              onDuvetClick={handleDuvetClick}
             />
           ))}
         </div>
+      )}
+
+      {/* History Modal */}
+      {selectedDuvet && (
+        <DuvetHistoryModal
+          duvet={selectedDuvet}
+          isOpen={showHistoryModal}
+          onClose={handleCloseHistory}
+        />
       )}
     </div>
   )

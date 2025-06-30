@@ -1,10 +1,10 @@
 import { supabase } from './supabase'
 
-export async function uploadDuvetImage(file: File, userId: string): Promise<{ url: string; path: string } | null> {
+export async function uploadDuvetImage(file: File, userId: string, folderName: string): Promise<{ url: string; path: string } | null> {
   try {
     const fileExt = file.name.split('.').pop()
     const fileName = `${userId}-${Date.now()}.${fileExt}`
-    const filePath = `duvets/${fileName}`
+    const filePath = `${folderName}/${fileName}`
 
     const { data, error } = await supabase.storage
       .from('images')

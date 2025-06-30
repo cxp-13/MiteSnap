@@ -39,7 +39,7 @@ export function useDuvets(userId: string | undefined) {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1)
 
-  // Load duvets
+  // Load duvets only
   const loadDuvets = useCallback(async () => {
     if (!userId) return
     
@@ -47,25 +47,35 @@ export function useDuvets(userId: string | undefined) {
     try {
       const userDuvets = await getUserDuvets(userId)
       setDuvets(userDuvets)
-      
-      // Load sun-drying status for each duvet
-      const statusPromises = userDuvets.map(async (duvet) => {
-        const status = await getCurrentSunDryingStatus(duvet.id)
-        return { duvetId: duvet.id, status }
-      })
-      
-      const statusResults = await Promise.all(statusPromises)
-      const statusMap: Record<string, CleanHistoryRecord | null> = {}
-      statusResults.forEach(({ duvetId, status }) => {
-        statusMap[duvetId] = status
-      })
-      setDuvetSunDryingStatus(statusMap)
     } catch (error) {
       console.error('Error loading duvets:', error)
     } finally {
       setIsLoadingDuvets(false)
     }
   }, [userId])
+
+  // Load sun-drying status for specific duvet or all duvets
+  const refreshSunDryingStatus = useCallback(async (duvetIds?: string[]) => {
+    if (!userId) return
+    
+    const targetDuvets = duvetIds || duvets.map(d => d.id)
+    
+    try {
+      const statusPromises = targetDuvets.map(async (duvetId) => {
+        const status = await getCurrentSunDryingStatus(duvetId)
+        return { duvetId, status }
+      })
+      
+      const statusResults = await Promise.all(statusPromises)
+      const statusMap: Record<string, CleanHistoryRecord | null> = { ...duvetSunDryingStatus }
+      statusResults.forEach(({ duvetId, status }) => {
+        statusMap[duvetId] = status
+      })
+      setDuvetSunDryingStatus(statusMap)
+    } catch (error) {
+      console.error('Error refreshing sun drying status:', error)
+    }
+  }, [userId, duvets, duvetSunDryingStatus])
 
   // Load duvets on mount and when userId changes
   useEffect(() => {
@@ -95,7 +105,7 @@ export function useDuvets(userId: string | undefined) {
       
       // Step 1: Upload image
       setStepCompleted([false, false, false])
-      const uploadResult = await uploadDuvetImage(selectedPhoto, userId)
+      const uploadResult = await uploadDuvetImage(selectedPhoto, userId, 'duvets')
       if (!uploadResult) {
         throw new Error('Failed to upload image')
       }
@@ -199,6 +209,7 @@ export function useDuvets(userId: string | undefined) {
     
     // Actions
     loadDuvets,
+    refreshSunDryingStatus,
     handlePhotoUpload,
     handleStartAnalysis,
     handleCreateDuvet,
