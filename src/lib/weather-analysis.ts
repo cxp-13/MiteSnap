@@ -66,12 +66,16 @@ export async function getWeatherForecast(latitude: number, longitude: number): P
       })
     })
 
+
+
     if (!response.ok) {
       console.error('Weather API request failed:', response.status, response.statusText)
       return null
     }
 
     const data = await response.json()
+
+    console.log(data)
     return data
   } catch (error) {
     console.error('Error fetching weather forecast:', error)
@@ -84,6 +88,13 @@ function isWithinDaylightHours(timeString: string): boolean {
   const date = new Date(timeString)
   const hour = date.getHours()
   return hour >= SUNRISE_HOUR && hour < SUNSET_HOUR
+}
+
+// Function to check if current time is within sunrise hours (for AI drying button visibility)
+export function isCurrentTimeWithinSunrise(): boolean {
+  const now = new Date()
+  const currentHour = now.getHours()
+  return currentHour >= SUNRISE_HOUR && currentHour < SUNSET_HOUR
 }
 
 export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): WeatherAnalysisResult {

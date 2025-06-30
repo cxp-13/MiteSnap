@@ -1,9 +1,9 @@
 import { supabase } from './supabase'
 
 export interface CleanHistoryRecord {
-  id: number
+  id: string
   created_at: string
-  quilt_id: number
+  quilt_id: string
   user_id: string
   start_time: string | null
   end_time: string | null
@@ -21,7 +21,7 @@ export async function createSunDryRecord(
     const { data, error } = await supabase
       .from('clean_history')
       .insert({
-        quilt_id: parseInt(quiltId),
+        quilt_id: quiltId,
         user_id: userId,
         start_time: new Date().toISOString(),
         is_self: true,
@@ -43,7 +43,7 @@ export async function createSunDryRecord(
 }
 
 export async function updateSunDryRecord(
-  recordId: number,
+  recordId: string,
   afterMiteScore: number
 ): Promise<CleanHistoryRecord | null> {
   try {
@@ -96,7 +96,7 @@ export async function getDuvetSunDryHistory(duvetId: string): Promise<CleanHisto
     const { data, error } = await supabase
       .from('clean_history')
       .select('*')
-      .eq('quilt_id', parseInt(duvetId))
+      .eq('quilt_id', duvetId)
       .eq('is_self', true)
       .order('created_at', { ascending: false })
 
@@ -157,17 +157,10 @@ export async function updateDuvetMiteScore(duvetId: string, newMiteScore: number
 
 export async function getCurrentSunDryingStatus(duvetId: string): Promise<CleanHistoryRecord | null> {
   try {
-    // Check if duvetId is a valid number
-    const numericId = parseInt(duvetId)
-    if (isNaN(numericId)) {
-      console.warn('Invalid duvet ID for clean history lookup:', duvetId)
-      return null
-    }
-
     const { data, error } = await supabase
       .from('clean_history')
       .select('*')
-      .eq('quilt_id', numericId)
+      .eq('quilt_id', duvetId)
       .eq('is_self', true)
       .is('end_time', null)
       .order('created_at', { ascending: false })
@@ -176,7 +169,7 @@ export async function getCurrentSunDryingStatus(duvetId: string): Promise<CleanH
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No records found - duvet is not currently sun-drying
+        // No records found - duvet is not currently sun-drying (this is normal, not an error)
         return null
       }
       console.error('Error fetching current sun drying status:', error)

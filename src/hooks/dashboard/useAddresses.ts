@@ -31,7 +31,7 @@ export function useAddresses(userId: string | undefined) {
     if (!userId) return
 
     try {
-      const success = await createAddress(userId, addressData)
+      const success = await createAddress(addressData, userId)
       if (success) {
         await loadAddresses()
       } else {

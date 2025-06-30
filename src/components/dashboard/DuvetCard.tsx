@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import CircularProgress from './shared/CircularProgress'
 import { Duvet, CleanHistoryRecord } from './shared/types'
+import { isCurrentTimeWithinSunrise } from '@/lib/weather-analysis'
 
 interface DuvetCardProps {
   duvet: Duvet
@@ -36,6 +37,29 @@ const isCurrentTimeOptimal = (sunDryingStatus: CleanHistoryRecord | null): boole
   })
 }
 
+const getNextOptimalTime = (sunDryingStatus: CleanHistoryRecord | null): string | null => {
+  if (!sunDryingStatus?.weatherAnalysis?.isOptimalForSunDrying || 
+      !sunDryingStatus.weatherAnalysis.optimalWindows.length) {
+    return null
+  }
+
+  const now = new Date()
+  const currentTime = now.getTime()
+  
+  const futureWindow = sunDryingStatus.weatherAnalysis.optimalWindows.find(window => {
+    const windowStartTime = new Date(window.startTime).getTime()
+    return windowStartTime > currentTime
+  })
+  
+  const optimalWindow = futureWindow || sunDryingStatus.weatherAnalysis.optimalWindows[0]
+  
+  return new Date(optimalWindow.startTime).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+}
+
 export default function DuvetCard({ 
   duvet, 
   sunDryingStatus, 
@@ -44,6 +68,8 @@ export default function DuvetCard({
   const colors = getRiskColor(duvet.mite_score)
   const riskLevel = getMiteRiskLevel(duvet.mite_score)
   const isOptimalTime = isCurrentTimeOptimal(sunDryingStatus)
+  const isSunriseTime = isCurrentTimeWithinSunrise()
+  const nextOptimalTime = getNextOptimalTime(sunDryingStatus)
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow">
@@ -80,21 +106,28 @@ export default function DuvetCard({
                 <p className="text-sm text-gray-600 mt-1">
                   Started: {new Date(sunDryingStatus.start_time).toLocaleDateString()}
                 </p>
+                {nextOptimalTime && (
+                  <p className="text-sm text-blue-600 mt-1 font-medium">
+                    Next optimal: {nextOptimalTime}
+                  </p>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div>
-          <button
-            onClick={() => onSunDryingService(duvet)}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
-          >
-            <span>🤝</span>
-            <span>Help Drying</span>
-          </button>
-        </div>
+        {isSunriseTime && (
+          <div>
+            <button
+              onClick={() => onSunDryingService(duvet)}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+            >
+              <span>🤖</span>
+              <span>One-click AI Blanket Drying</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
