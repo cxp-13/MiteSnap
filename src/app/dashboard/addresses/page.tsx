@@ -1,23 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import { useMockUser } from '@/context/MockUserContext'
+import Sidebar from '@/components/dashboard/Sidebar'
+import Header from '@/components/dashboard/Header'
+import AddressesPage from '../components/AddressesPage'
 
-export default function Dashboard() {
+export default function AddressesRoute() {
   const { user, isLoaded, isSignedIn } = useUnifiedUser()
-  const { isMockMode } = useMockUser()
-  const router = useRouter()
-
-  // Redirect to duvets page once user is loaded
-  useEffect(() => {
-    if (isLoaded) {
-      if ((isSignedIn && user?.id) || isMockMode) {
-        router.replace('/dashboard/duvets')
-      }
-    }
-  }, [isLoaded, isSignedIn, user?.id, isMockMode, router])
+  const { isMockMode, signOut } = useMockUser()
 
   // Loading state
   if (!isLoaded) {
@@ -52,10 +43,25 @@ export default function Dashboard() {
     )
   }
 
-  // This should not render as useEffect will redirect
+  const userId = user.id
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <Header user={user} isMockMode={isMockMode} signOut={signOut} />
+
+        {/* Page Content */}
+        <main className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto">
+            <AddressesPage userId={userId} />
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

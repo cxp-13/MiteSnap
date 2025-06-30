@@ -1,14 +1,21 @@
+'use client'
+
 import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
-interface SidebarProps {
-  activeTab: 'duvets' | 'orders' | 'addresses'
-  onTabChange: (tab: 'duvets' | 'orders' | 'addresses') => void
-}
+export default function Sidebar() {
+  const pathname = usePathname()
 
-export default function Sidebar({ 
-  activeTab, 
-  onTabChange
-}: SidebarProps) {
+  // Determine active tab from URL path
+  const getActiveTab = () => {
+    if (pathname.includes('/dashboard/addresses')) return 'addresses'
+    if (pathname.includes('/dashboard/orders')) return 'orders'
+    return 'duvets'
+  }
+
+  const currentActiveTab = getActiveTab()
+
   return (
     <div className="w-64 bg-black text-white flex flex-col">
       <div className="p-6 border-b border-gray-800">
@@ -25,36 +32,36 @@ export default function Sidebar({
       
       <nav className="flex-1 px-4 py-6">
         <div className="space-y-2">
-          <button
-            onClick={() => onTabChange('duvets')}
-            className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-              activeTab === 'duvets'
+          <Link
+            href="/dashboard/duvets"
+            className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
+              currentActiveTab === 'duvets'
                 ? 'bg-gray-800 text-white'
                 : 'text-gray-300 hover:bg-gray-900 hover:text-white'
             }`}
           >
             My Duvets
-          </button>
-          <button
-            onClick={() => onTabChange('addresses')}
-            className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-              activeTab === 'addresses'
+          </Link>
+          <Link
+            href="/dashboard/addresses"
+            className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
+              currentActiveTab === 'addresses'
                 ? 'bg-gray-800 text-white'
                 : 'text-gray-300 hover:bg-gray-900 hover:text-white'
             }`}
           >
             My Addresses
-          </button>
-          <button
-            onClick={() => onTabChange('orders')}
-            className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-              activeTab === 'orders'
+          </Link>
+          <Link
+            href="/dashboard/orders"
+            className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
+              currentActiveTab === 'orders'
                 ? 'bg-gray-800 text-white'
                 : 'text-gray-300 hover:bg-gray-900 hover:text-white'
             }`}
           >
             View Nearby Orders
-          </button>
+          </Link>
         </div>
       </nav>
     </div>

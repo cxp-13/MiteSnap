@@ -28,8 +28,6 @@ interface NewDuvetModalProps {
   onAddressChange: (addressId: string | null) => void
   onStepChange: (step: 1 | 2 | 3 | 4) => void
   onAddNewAddress: () => void
-  showAddressPrompt?: boolean
-  onCloseAddressPrompt?: () => void
 }
 
 export default function NewDuvetModal({
@@ -56,9 +54,7 @@ export default function NewDuvetModal({
   onThicknessChange,
   onAddressChange,
   onStepChange,
-  onAddNewAddress,
-  showAddressPrompt = false,
-  onCloseAddressPrompt
+  onAddNewAddress
 }: NewDuvetModalProps) {
   if (!isOpen) return null
 
@@ -73,46 +69,7 @@ export default function NewDuvetModal({
   }
 
   return (
-    <>
-      {/* Address Prompt Modal */}
-      {showAddressPrompt && (
-        <div className="fixed inset-0 flex items-center justify-center z-[60] bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl p-8 w-full mx-4 shadow-2xl max-w-md">
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
-                <span className="text-2xl">📍</span>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-gray-900">Add Address First</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  You need at least one address to create a duvet. This helps us provide location-based services like sun-drying recommendations.
-                </p>
-              </div>
-
-              <div className="flex flex-col space-y-3">
-                <button
-                  onClick={onAddNewAddress}
-                  className="w-full px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <span>📍</span>
-                  <span>Add My Address</span>
-                </button>
-                
-                <button
-                  onClick={onCloseAddressPrompt}
-                  className="w-full px-6 py-2 text-gray-500 hover:text-gray-700 transition-colors font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Modal */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+    <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className={`bg-gray-50 rounded-2xl p-10 w-full mx-4 shadow-2xl ${currentStep === 4 ? 'max-w-7xl' : 'max-w-4xl'}`}>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold text-black">Add New Duvet</h3>
@@ -394,31 +351,22 @@ export default function NewDuvetModal({
                           </button>
                         </div>
                       ) : (
-                        <div className="space-y-1">
-                          <select
-                            value={selectedAddressId || ''}
-                            onChange={(e) => onAddressChange(e.target.value || null)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium text-sm"
-                            required
-                          >
-                            <option value="">Select an address</option>
-                            {addresses.map((address) => (
-                              <option key={address.id} value={address.id}>
-                                {address.is_default && '🏠 '}
-                                {address.address_line || 
-                                 `${address.house_number || ''} ${address.road || ''}, ${address.city || ''}`.trim()}
-                                {address.is_default && ' (Default)'}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={onAddNewAddress}
-                            className="w-full px-2 py-1.5 border border-blue-200 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center space-x-1 text-xs"
-                          >
-                            <span>➕</span>
-                            <span>Add New Address</span>
-                          </button>
-                        </div>
+                        <select
+                          value={selectedAddressId || ''}
+                          onChange={(e) => onAddressChange(e.target.value || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium text-sm"
+                          required
+                        >
+                          <option value="">Select an address</option>
+                          {addresses.map((address) => (
+                            <option key={address.id} value={address.id}>
+                              {address.is_default && '🏠 '}
+                              {address.address_line || 
+                               `${address.house_number || ''} ${address.road || ''}, ${address.city || ''}`.trim()}
+                              {address.is_default && ' (Default)'}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </div>
                   </div>
@@ -462,7 +410,6 @@ export default function NewDuvetModal({
           </div>
         )}
         </div>
-      </div>
-    </>
+    </div>
   )
 }

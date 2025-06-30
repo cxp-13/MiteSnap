@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { type Duvet } from '@/lib/database'
 import { useDuvets } from '@/hooks/dashboard/useDuvets'
 import { useWeather } from '@/hooks/dashboard/useWeather'
@@ -14,6 +15,7 @@ interface DuvetsPageProps {
 }
 
 export default function DuvetsPage({ userId }: DuvetsPageProps) {
+  const router = useRouter()
   const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
   const [showAddressPrompt, setShowAddressPrompt] = useState(false)
   
@@ -63,6 +65,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
   const { addresses, getDefaultAddress } = addressesHook
   const { handleCreateOrder } = ordersHook
+
 
   // Handle sun drying service request
   const handleSunDryingService = async (duvet: Duvet) => {
@@ -131,9 +134,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const handleAddNewAddress = () => {
     setShowAddressPrompt(false)
     handleCloseModal()
-    // This would ideally trigger a callback to switch to addresses tab
-    // For now, we'll show a more user-friendly message
-    console.log('Navigate to addresses tab')
+    router.push('/dashboard/addresses')
   }
 
   // Handle closing address prompt
@@ -159,6 +160,43 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         onSunDryingService={handleSunDryingService}
         duvetSunDryingStatus={duvetSunDryingStatus}
       />
+
+      {/* Address Prompt Modal */}
+      {showAddressPrompt && (
+        <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl p-8 w-full mx-4 shadow-2xl max-w-md">
+            <div className="text-center space-y-6">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                <span className="text-2xl">📍</span>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-gray-900">Add Address First</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  You need at least one address to create a duvet. This helps us provide location-based services like sun-drying recommendations.
+                </p>
+              </div>
+
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={handleAddNewAddress}
+                  className="w-full px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <span>📍</span>
+                  <span>Add My Address</span>
+                </button>
+                
+                <button
+                  onClick={handleCloseAddressPrompt}
+                  className="w-full px-6 py-2 text-gray-500 hover:text-gray-700 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Duvet Modal */}
       {showNewDuvetModal && (
@@ -187,14 +225,12 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
           onAddressChange={setSelectedAddressId}
           onStepChange={setCurrentStep}
           onAddNewAddress={handleAddNewAddress}
-          showAddressPrompt={showAddressPrompt}
-          onCloseAddressPrompt={handleCloseAddressPrompt}
         />
       )}
 
       {/* Sun-Drying Modal */}
       {showSunDryModal && selectedDuvet && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-12 w-full mx-6 shadow-2xl max-w-xl">
             <div className="flex justify-between items-start mb-12">
               <h3 className="text-2xl font-light text-black tracking-tight">
@@ -279,19 +315,13 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                         </p>
                       </div>
                       
-                      {/* Two Option Buttons */}
-                      <div className="flex flex-col space-y-4">
+                      {/* Single Button */}
+                      <div className="flex justify-center">
                         <button
                           onClick={handleDryItMyself}
                           className="px-12 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
                         >
-                          Dry it myself
-                        </button>
-                        <button
-                          onClick={handleRequestHelp}
-                          className="px-12 py-4 bg-gray-400 hover:bg-gray-500 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
-                        >
-                          Have someone else dry it
+                          I got it
                         </button>
                       </div>
                     </div>
