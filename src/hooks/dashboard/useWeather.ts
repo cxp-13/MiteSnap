@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react'
 import { getWeatherForecast, analyzeWeatherForSunDrying, type WeatherAnalysisResult } from '@/lib/weather-analysis'
-import { analyzeSunDryingEffectiveness, type SunDryingAnalysisResult } from '@/lib/sun-drying-ai'
-import { createSunDryRecord, updateDuvetMiteScore } from '@/lib/clean-history'
-import { uploadDuvetImage } from '@/lib/storage'
+import { calculateBasicSunDryingReduction, type SunDryingAnalysisResult } from '@/lib/sun-drying-ai'
+import { createSunDryRecord } from '@/lib/clean-history'
 
 export function useWeather() {
   const [location, setLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null)
@@ -16,10 +15,7 @@ export function useWeather() {
 
   // Sun drying modal state
   const [showSunDryModal, setShowSunDryModal] = useState(false)
-  const [sunDryStep, setSunDryStep] = useState<1 | 2 | 3>(1)
-  const [sunDryPhoto, setSunDryPhoto] = useState<File | null>(null)
-  const [sunDryPhotoPreview, setSunDryPhotoPreview] = useState<string | null>(null)
-  const [isUploadingSunDryPhoto, setIsUploadingSunDryPhoto] = useState(false)
+  const [sunDryStep, setSunDryStep] = useState<1 | 2>(1)
 
   // Analyze weather for sun drying
   const analyzeWeatherForDrying = useCallback(async (latitude: number, longitude: number) => {
@@ -37,80 +33,73 @@ export function useWeather() {
     }
   }, [])
 
-  // Handle sun dry photo upload
-  const handleSunDryPhotoUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setSunDryPhoto(file)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setSunDryPhotoPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }, [])
 
-  // Submit sun drying analysis (Step 2: Photo upload and AI analysis only)
-  const handleSubmitSunDrying = useCallback(async (duvetId: string, userId: string, currentMiteScore: number) => {
-    if (!sunDryPhoto || !location || !weatherAnalysis) return
-
-    setIsUploadingSunDryPhoto(true)
-    try {
-      // Upload photo
-      const photo = await uploadDuvetImage(sunDryPhoto, userId, 'sun-dry')
-      
-      // Get the best weather window from the analysis
-      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
-      if (!bestWeatherWindow) {
-        throw new Error('No optimal weather window available for analysis')
-      }
-      
-      // Calculate sun drying duration (default to 3 hours if not specified)
-      const sunDryingDuration = 3 // hours - could be made configurable
-      
-      // Analyze sun drying effectiveness
-      setIsLoadingSunDryingAnalysis(true)
-      const analysis = await analyzeSunDryingEffectiveness(
-        photo!.url, 
-        currentMiteScore, 
-        bestWeatherWindow, 
-        sunDryingDuration
-      )
-      setSunDryingAnalysis(analysis)
-      
-      // Move to step 3 to show results and confirmation
-      setSunDryStep(3)
-    } catch (error) {
-      console.error('Error submitting sun drying:', error)
-      alert('Failed to submit sun drying. Please try again.')
-    } finally {
-      setIsUploadingSunDryPhoto(false)
-      setIsLoadingSunDryingAnalysis(false)
-    }
-  }, [sunDryPhoto, location, weatherAnalysis])
 
   // Close sun dry modal
   const closeSunDryModal = useCallback(() => {
     setShowSunDryModal(false)
     setSunDryStep(1)
-    setSunDryPhoto(null)
-    setSunDryPhotoPreview(null)
     setWeatherAnalysis(null)
     setSunDryingAnalysis(null)
   }, [])
 
-  // Confirm and start sun drying (Step 3: Create record and update duvet)
-  const handleConfirmSunDrying = useCallback(async (duvetId: string, userId: string, currentMiteScore: number) => {
-    if (!sunDryingAnalysis) return
+  // Start AI analysis (don't create record yet)
+  const handleStartAIAnalysis = useCallback(async (currentMiteScore: number) => {
+    if (!weatherAnalysis || !weatherAnalysis.optimalWindows.length) {
+      alert('Weather analysis not available')
+      return false
+    }
 
     try {
-      // Create sun dry record with correct parameters
-      await createSunDryRecord(duvetId, userId, currentMiteScore)
+      setIsLoadingSunDryingAnalysis(true)
       
-      // Update duvet mite score if analysis shows improvement
-      if (sunDryingAnalysis.effectivenessScore > 70) {
-        await updateDuvetMiteScore(duvetId, sunDryingAnalysis.finalMiteScore)
-      }
+      // Get the best weather window
+      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
+      
+      // Calculate actual drying duration from the optimal window
+      const startTime = new Date(bestWeatherWindow.startTime)
+      const endTime = new Date(bestWeatherWindow.endTime)
+      const durationInHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+      
+      // Run AI analysis without photo (using weather-based analysis)
+      const analysis = calculateBasicSunDryingReduction(
+        currentMiteScore,
+        bestWeatherWindow,
+        durationInHours
+      )
+      
+      setSunDryingAnalysis(analysis)
+      setSunDryStep(2) // Move to results step
+      return true
+    } catch (error) {
+      console.error('Error analyzing sun drying:', error)
+      alert('Failed to analyze sun drying. Please try again.')
+      return false
+    } finally {
+      setIsLoadingSunDryingAnalysis(false)
+    }
+  }, [weatherAnalysis])
+
+  // Confirm and start sun drying (after showing results)
+  const handleConfirmSunDrying = useCallback(async (duvetId: string, userId: string, currentMiteScore: number) => {
+    if (!weatherAnalysis || !weatherAnalysis.optimalWindows.length || !sunDryingAnalysis) {
+      alert('Weather analysis or prediction not available')
+      return false
+    }
+
+    try {
+      // Get the best weather window
+      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
+      
+      // Create sun dry record with optimal time window and predicted mite score
+      await createSunDryRecord(
+        duvetId, 
+        userId, 
+        currentMiteScore,
+        bestWeatherWindow.startTime,
+        bestWeatherWindow.endTime,
+        sunDryingAnalysis.finalMiteScore
+      )
       
       // Close modal and indicate success
       closeSunDryModal()
@@ -120,7 +109,7 @@ export function useWeather() {
       alert('Failed to start sun drying. Please try again.')
       return false
     }
-  }, [sunDryingAnalysis, closeSunDryModal])
+  }, [weatherAnalysis, sunDryingAnalysis, closeSunDryModal])
 
   return {
     // Location & Weather State
@@ -136,9 +125,6 @@ export function useWeather() {
     // Sun Drying Modal State
     showSunDryModal,
     sunDryStep,
-    sunDryPhoto,
-    sunDryPhotoPreview,
-    isUploadingSunDryPhoto,
     
     // Actions
     setLocation,
@@ -146,8 +132,7 @@ export function useWeather() {
     setWeather,
     setIsLoadingWeather,
     analyzeWeatherForDrying,
-    handleSunDryPhotoUpload,
-    handleSubmitSunDrying,
+    handleStartAIAnalysis,
     handleConfirmSunDrying,
     closeSunDryModal,
     setShowSunDryModal,

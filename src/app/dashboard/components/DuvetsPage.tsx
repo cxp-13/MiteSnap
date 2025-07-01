@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { type Duvet } from '@/lib/database'
 import { useDuvets } from '@/hooks/dashboard/useDuvets'
 import { useWeather } from '@/hooks/dashboard/useWeather'
@@ -60,18 +59,15 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const {
     weatherAnalysis,
     isLoadingWeatherAnalysis,
+    sunDryingAnalysis,
+    isLoadingSunDryingAnalysis,
     showSunDryModal,
     sunDryStep,
-    sunDryPhoto,
-    sunDryPhotoPreview,
-    sunDryingAnalysis,
-    isUploadingSunDryPhoto,
     analyzeWeatherForDrying,
     closeSunDryModal,
     setShowSunDryModal,
     setSunDryStep,
-    handleSunDryPhotoUpload,
-    handleSubmitSunDrying,
+    handleStartAIAnalysis,
     handleConfirmSunDrying
   } = weatherHook
 
@@ -102,8 +98,11 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
 
   // Handle "Dry it myself" option
-  const handleDryItMyself = () => {
-    setSunDryStep(2) // Move to photo upload step
+  const handleDryItMyself = async () => {
+    if (!selectedDuvet) return
+    
+    // Start AI analysis which will move to step 2 to show results
+    await handleStartAIAnalysis(selectedDuvet.mite_score || 50)
   }
 
   // Handle "Have someone else dry it" option
@@ -312,9 +311,17 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                       <div className="flex flex-col space-y-4">
                         <button
                           onClick={handleDryItMyself}
-                          className="px-12 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                          disabled={isLoadingSunDryingAnalysis}
+                          className="px-12 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg flex items-center justify-center"
                         >
-                          Dry it myself
+                          {isLoadingSunDryingAnalysis ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                              Analyzing...
+                            </>
+                          ) : (
+                            'Dry it myself'
+                          )}
                         </button>
                         <button
                           onClick={handleRequestHelp}
@@ -356,105 +363,56 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                 </div>
               )}
 
-              {sunDryStep === 2 && (
-                <div className="text-center py-16 space-y-8">
-                  <div className="space-y-4">
-                    <h4 className="text-2xl font-semibold text-black">Upload Photo</h4>
-                    <p className="text-gray-600">Please take a photo of your duvet placed for sun drying</p>
+              {sunDryStep === 2 && sunDryingAnalysis && selectedDuvet && (
+                <div className="py-8 space-y-4">
+                  <div className="text-center space-y-4">
+                    <h4 className="text-2xl font-semibold text-black">AI Analysis Results</h4>
+                    <p className="text-gray-600">Based on weather conditions and current mite score</p>
                   </div>
-                  
-                  <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-black transition-colors cursor-pointer">
-                    {sunDryPhotoPreview ? (
-                      <div className="space-y-4">
-                        <Image 
-                          src={sunDryPhotoPreview} 
-                          alt="Sun drying preview" 
-                          width={200}
-                          height={200}
-                          className="max-h-48 mx-auto rounded-xl shadow-md object-contain"
-                        />
-                        <p className="text-base text-green-600 font-medium">Photo uploaded successfully</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="text-6xl text-gray-400">📷</div>
-                        <div>
-                          <p className="text-xl text-gray-600 font-medium">Click to upload a photo</p>
-                          <p className="text-sm text-gray-500 mt-2">JPG, PNG or HEIC format</p>
+
+                  <div className="bg-gray-50 rounded-xl p-6 space-y-6">
+                    <div className="space-y-3">
+                      <h5 className="font-semibold text-gray-900">Predicted Mite Index Change</h5>
+                      <div className="flex items-center justify-center space-x-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-800">
+                            {selectedDuvet.mite_score || 50}
+                          </div>
+                          <div className="text-sm text-gray-500">Current</div>
+                        </div>
+                        <div className="text-gray-500 text-2xl">→</div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-green-600">
+                            {sunDryingAnalysis.finalMiteScore}
+                          </div>
+                          <div className="text-sm text-gray-500">Predicted</div>
                         </div>
                       </div>
+                      <div className="text-center">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          -{sunDryingAnalysis.miteScoreReduction} points reduction
+                        </span>
+                      </div>
+                    </div>
+
+                    {sunDryingAnalysis.analysisReasons && sunDryingAnalysis.analysisReasons.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="font-semibold text-gray-900">Analysis Summary</h5>
+                        <ul className="space-y-2">
+                          {sunDryingAnalysis.analysisReasons.map((reason, index) => (
+                            <li key={index} className="text-gray-700 flex items-start">
+                              <span className="text-blue-500 mr-2 font-medium">•</span>
+                              <span className="flex-1">{reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleSunDryPhotoUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
                   </div>
 
                   <div className="flex justify-center space-x-4">
                     <button
                       onClick={() => setSunDryStep(1)}
-                      className="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
-                    >
-                      Back
-                    </button>
-                    <button
-                      onClick={() => selectedDuvet && handleSubmitSunDrying(selectedDuvet.id, selectedDuvet.user_id, selectedDuvet.mite_score || 50)}
-                      disabled={!sunDryPhoto || isUploadingSunDryPhoto}
-                      className="px-8 py-3 bg-blue-500 text-white rounded-xl font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
-                    >
-                      {isUploadingSunDryPhoto ? 'Uploading...' : 'Submit'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {sunDryStep === 3 && (
-                <div className="py-8 space-y-4">
-                  <div className="text-center space-y-4">
-                    <h4 className="text-2xl font-semibold text-black">AI Analysis Results</h4>
-                    <p className="text-gray-600">Review the analysis and confirm to start sun drying</p>
-                  </div>
-
-                  {sunDryingAnalysis ? (
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-                      <div className="space-y-3">
-                        <h5 className="font-semibold text-gray-900">Mite Index Change</h5>
-                        <div className="flex items-center space-x-3">
-                          <span className="text-lg font-bold text-gray-800">
-                            {selectedDuvet?.mite_score || 50}
-                          </span>
-                          <span className="text-gray-500">→</span>
-                          <span className="text-2xl font-bold text-green-600">
-                            {sunDryingAnalysis.finalMiteScore}
-                          </span>
-                        </div>
-                      </div>
-
-                      {sunDryingAnalysis.analysisReasons && sunDryingAnalysis.analysisReasons.length > 0 && (
-                        <div className="space-y-3">
-                          <h5 className="font-semibold text-gray-900">Analysis Results</h5>
-                          <ul className="space-y-2">
-                            {sunDryingAnalysis.analysisReasons.map((rec, index) => (
-                              <li key={index} className="text-gray-700 flex items-start">
-                                <span className="text-blue-500 mr-2 font-medium">•</span>
-                                <span className="flex-1">{rec}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No analysis results available</p>
-                    </div>
-                  )}
-
-                  <div className="flex justify-center space-x-4">
-                    <button
-                      onClick={() => setSunDryStep(2)}
                       className="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
                     >
                       Back
@@ -474,14 +432,14 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                           }
                         }
                       }}
-                      disabled={!sunDryingAnalysis}
-                      className="px-8 py-3 bg-green-500 text-white rounded-xl font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+                      className="px-8 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-colors"
                     >
-                      Confirm & Start Sun Drying
+                      Start Sun Drying
                     </button>
                   </div>
                 </div>
               )}
+
             </div>
           </div>
         </div>
