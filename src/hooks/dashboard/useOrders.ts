@@ -1,10 +1,26 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createOrder, getUserOrders, getNearbyOrders, updateOrderStatus, deleteOrder, type Order } from '@/lib/database'
+import { createOrder, getUserOrders, getNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet } from '@/lib/database'
+import { getCurrentPosition } from '@/lib/geolocation'
 
 export function useOrders(userId: string | undefined) {
   const [orders, setOrders] = useState<Order[]>([])
-  const [nearbyOrders, setNearbyOrders] = useState<Order[]>([])
+  const [nearbyOrders, setNearbyOrders] = useState<OrderWithDuvet[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(false)
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+
+  // Get user location
+  const getUserLocation = useCallback(async () => {
+    try {
+      const position = await getCurrentPosition({ timeout: 5000 })
+      setUserLocation({
+        latitude: position.latitude,
+        longitude: position.longitude
+      })
+    } catch (error) {
+      console.warn('Could not get user location:', error)
+      // Location will remain null, which is fine - we'll show all orders without filtering
+    }
+  }, [])
 
   // Load user's orders
   const loadOrders = useCallback(async () => {
@@ -12,9 +28,12 @@ export function useOrders(userId: string | undefined) {
     
     setIsLoadingOrders(true)
     try {
+      // Check and cancel expired orders first
+      await checkAndCancelExpiredOrders()
+      
       const [userOrders, nearby] = await Promise.all([
         getUserOrders(userId),
-        getNearbyOrders(userId)
+        getNearbyOrders(userId, userLocation || undefined)
       ])
       
       setOrders(userOrders)
@@ -24,9 +43,14 @@ export function useOrders(userId: string | undefined) {
     } finally {
       setIsLoadingOrders(false)
     }
-  }, [userId])
+  }, [userId, userLocation])
 
-  // Load orders on mount and when userId changes
+  // Get user location on mount
+  useEffect(() => {
+    getUserLocation()
+  }, [getUserLocation])
+
+  // Load orders on mount and when userId/location changes
   useEffect(() => {
     loadOrders()
   }, [loadOrders])
@@ -35,14 +59,14 @@ export function useOrders(userId: string | undefined) {
   const handleCreateOrder = useCallback(async (
     duvetId: string,
     addressId: string,
-    serviceType: string,
-    placedPhoto?: string
+    placedPhoto: string | null,
+    deadline?: string | null
   ) => {
     if (!userId) return false
 
     try {
-      const success = await createOrder(userId, duvetId, addressId, serviceType, placedPhoto)
-      if (success) {
+      const order = await createOrder(userId, duvetId, addressId, placedPhoto, deadline)
+      if (order) {
         await loadOrders()
         return true
       }
@@ -56,12 +80,32 @@ export function useOrders(userId: string | undefined) {
   // Update order status
   const handleUpdateOrderStatus = useCallback(async (
     orderId: string,
-    status: string,
+    status: Order['status'],
     helperId?: string
   ) => {
     try {
+      // Find the order to get the duvet ID
+      const order = [...orders, ...nearbyOrders].find(o => o.id === orderId)
+      
       const success = await updateOrderStatus(orderId, status, helperId)
-      if (success) {
+      if (success && order) {
+        // Update duvet status based on order status
+        let duvetStatus: string | null = null
+        switch (status) {
+          case 'accepted':
+            duvetStatus = 'help_drying'
+            break
+          case 'completed':
+          case 'cancelled':
+            duvetStatus = null
+            break
+          // 'pending' and 'in_progress' don't change duvet status
+        }
+        
+        if (duvetStatus !== undefined) {
+          await updateDuvetStatus(order.quilt_id, duvetStatus as 'help_drying' | null)
+        }
+        
         await loadOrders()
         return true
       }
@@ -70,7 +114,7 @@ export function useOrders(userId: string | undefined) {
       console.error('Error updating order status:', error)
       return false
     }
-  }, [loadOrders])
+  }, [loadOrders, orders, nearbyOrders])
 
   // Delete order
   const handleDeleteOrder = useCallback(async (orderId: string) => {
@@ -79,8 +123,16 @@ export function useOrders(userId: string | undefined) {
     }
 
     try {
+      // Find the order to get the duvet ID
+      const order = [...orders, ...nearbyOrders].find(o => o.id === orderId)
+      
       const success = await deleteOrder(orderId)
       if (success) {
+        // Reset duvet status when order is deleted
+        if (order) {
+          await updateDuvetStatus(order.quilt_id, null)
+        }
+        
         await loadOrders()
         return true
       }
@@ -89,7 +141,19 @@ export function useOrders(userId: string | undefined) {
       console.error('Error deleting order:', error)
       return false
     }
-  }, [loadOrders])
+  }, [loadOrders, orders, nearbyOrders])
+
+  // Check if duvet has pending order
+  const getPendingOrder = useCallback(async (duvetId: string) => {
+    if (!userId) return null
+    
+    try {
+      return await getPendingOrderForDuvet(duvetId, userId)
+    } catch (error) {
+      console.error('Error checking pending order:', error)
+      return null
+    }
+  }, [userId])
 
   // Accept a nearby order
   const handleAcceptOrder = useCallback(async (orderId: string) => {
@@ -124,6 +188,7 @@ export function useOrders(userId: string | undefined) {
     handleCreateOrder,
     handleUpdateOrderStatus,
     handleDeleteOrder,
-    handleAcceptOrder
+    handleAcceptOrder,
+    getPendingOrder
   }
 }

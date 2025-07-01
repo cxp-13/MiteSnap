@@ -125,7 +125,7 @@ export default function DuvetHistoryModal({ duvet, isOpen, onClose }: DuvetHisto
                         
                         <div>
                           <p className="text-gray-600">
-                            <span className="font-medium">Duration:</span> {formatDuration(record.start_time, record.end_time)}
+                            <span className="font-medium">Duration:</span> {record.start_time ? formatDuration(record.start_time, record.end_time) : 'N/A'}
                           </p>
                           {record.before_mite_score && record.after_mite_score && (
                             <p className="text-gray-600">

@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { type Duvet } from '@/lib/database'
+import { type Duvet, updateDuvetStatus } from '@/lib/database'
 import { useDuvets } from '@/hooks/dashboard/useDuvets'
 import { useWeather } from '@/hooks/dashboard/useWeather'
 import { useAddresses } from '@/hooks/dashboard/useAddresses'
 import { useOrders } from '@/hooks/dashboard/useOrders'
+import { uploadDuvetImage } from '@/lib/storage'
 import DuvetList from '@/components/dashboard/DuvetList'
 import NewDuvetModal from '@/components/dashboard/modals/NewDuvetModal'
+import OrderRequestModal from '@/components/dashboard/modals/OrderRequestModal'
 
 interface DuvetsPageProps {
   userId: string
@@ -18,6 +20,13 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const router = useRouter()
   const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
   const [showAddressPrompt, setShowAddressPrompt] = useState(false)
+  
+  // Order request modal state
+  const [showOrderRequestModal, setShowOrderRequestModal] = useState(false)
+  const [orderRequestStep, setOrderRequestStep] = useState<1 | 2 | 3>(1)
+  const [orderPhoto, setOrderPhoto] = useState<File | null>(null)
+  const [orderPhotoPreview, setOrderPhotoPreview] = useState<string | null>(null)
+  const [isUploadingOrderPhoto, setIsUploadingOrderPhoto] = useState(false)
   
   // Custom hooks
   const duvetsHook = useDuvets(userId)
@@ -65,6 +74,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     sunDryStep,
     analyzeWeatherForDrying,
     closeSunDryModal,
+    closeSunDryModalUIOnly,
     setShowSunDryModal,
     setSunDryStep,
     handleStartAIAnalysis,
@@ -73,6 +83,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
   const { addresses, getDefaultAddress } = addressesHook
   const { handleCreateOrder } = ordersHook
+
 
 
   // Handle sun drying service request
@@ -101,6 +112,13 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const handleDryItMyself = async () => {
     if (!selectedDuvet) return
     
+    // Check if weather conditions are optimal
+    if (!weatherAnalysis?.isOptimalForSunDrying) {
+      // If conditions are not optimal, close the modal
+      closeSunDryModal()
+      return
+    }
+    
     // Start AI analysis which will move to step 2 to show results
     await handleStartAIAnalysis(selectedDuvet.mite_score || 50)
   }
@@ -115,21 +133,16 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       return
     }
 
-    try {
-      const success = await handleCreateOrder(
-        selectedDuvet.id,
-        defaultAddress.id,
-        'sun_drying'
-      )
-      
-      if (success) {
-        closeSunDryModal()
-        alert('Sun drying service request created successfully!')
-      }
-    } catch (error) {
-      console.error('Error creating sun drying order:', error)
-      alert('Failed to create service request. Please try again.')
+    // Check if weather analysis is available
+    if (!weatherAnalysis) {
+      alert('Weather analysis is not available. Please try again or contact support.')
+      return
     }
+
+    // Close sun dry modal UI only (preserve weather data for order creation)
+    closeSunDryModalUIOnly()
+    setShowOrderRequestModal(true)
+    setOrderRequestStep(1)
   }
 
   // Handle opening new duvet modal with address check
@@ -151,6 +164,106 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   // Handle closing address prompt
   const handleCloseAddressPrompt = () => {
     setShowAddressPrompt(false)
+  }
+
+  // Order request modal handlers
+  const handleOrderPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setOrderPhoto(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setOrderPhotoPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleCreateOrderRequest = async () => {
+    if (!selectedDuvet || !orderPhoto) return
+
+    const defaultAddress = getDefaultAddress()
+    if (!defaultAddress) {
+      alert('Please set a default address first')
+      return
+    }
+
+    try {
+      setIsUploadingOrderPhoto(true)
+
+      // Upload photo
+      const uploadResult = await uploadDuvetImage(orderPhoto, userId, 'order-placement')
+      if (!uploadResult) {
+        throw new Error('Failed to upload photo')
+      }
+
+      // Check if weather analysis is still available
+      if (!weatherAnalysis) {
+        throw new Error('Weather analysis is no longer available. Please try again.')
+      }
+
+      // Calculate deadline (30 minutes before optimal start time)
+      const deadline = weatherAnalysis.optimalWindows.length > 0
+        ? new Date(new Date(weatherAnalysis.optimalWindows[0].startTime).getTime() - 30 * 60 * 1000).toISOString()
+        : null
+
+      console.log('Order creation debug:')
+      console.log('- Weather analysis:', weatherAnalysis)
+      console.log('- Optimal windows:', weatherAnalysis.optimalWindows)
+      console.log('- Calculated deadline:', deadline)
+
+      if (!deadline) {
+        console.warn('No optimal windows found, order will be created without deadline')
+      }
+
+      // Create order
+      const success = await handleCreateOrder(
+        selectedDuvet.id,
+        defaultAddress.id,
+        uploadResult.url,
+        deadline
+      )
+
+      if (success) {
+        // Update duvet status to waiting for pickup
+        await updateDuvetStatus(selectedDuvet.id, 'waiting_pickup')
+        
+        setOrderRequestStep(3)
+        // Clear weather data after successful order creation
+        setTimeout(() => {
+          closeSunDryModal()
+        }, 2000) // Give user time to see success message
+      } else {
+        throw new Error('Failed to create order')
+      }
+    } catch (error) {
+      console.error('Error creating order request:', error)
+      alert('Failed to create service request. Please try again.')
+    } finally {
+      setIsUploadingOrderPhoto(false)
+    }
+  }
+
+  const handleCloseOrderRequestModal = () => {
+    setShowOrderRequestModal(false)
+    setOrderRequestStep(1)
+    setOrderPhoto(null)
+    setOrderPhotoPreview(null)
+    setSelectedDuvet(null)
+    // Clear weather data when completely done with the process
+    closeSunDryModal()
+  }
+
+  const handleOrderNextStep = () => {
+    if (orderRequestStep < 3) {
+      setOrderRequestStep((prev) => (prev + 1) as 1 | 2 | 3)
+    }
+  }
+
+  const handleOrderPrevStep = () => {
+    if (orderRequestStep > 1) {
+      setOrderRequestStep((prev) => (prev - 1) as 1 | 2 | 3)
+    }
   }
 
   return (
@@ -444,6 +557,39 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
           </div>
         </div>
       )}
+
+      {/* Order Request Modal */}
+      <OrderRequestModal
+        isOpen={showOrderRequestModal}
+        onClose={handleCloseOrderRequestModal}
+        duvet={selectedDuvet}
+        currentStep={orderRequestStep}
+        selectedPhoto={orderPhoto}
+        photoPreview={orderPhotoPreview}
+        isUploadingPhoto={isUploadingOrderPhoto}
+        onPhotoUpload={handleOrderPhotoUpload}
+        onCreateOrder={handleCreateOrderRequest}
+        onNextStep={handleOrderNextStep}
+        onPrevStep={handleOrderPrevStep}
+        optimalTimeText={
+          weatherAnalysis && weatherAnalysis.optimalWindows.length > 0
+            ? (() => {
+                const window = weatherAnalysis.optimalWindows[0]
+                const startTime = new Date(window.startTime).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })
+                const endTime = new Date(window.endTime).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })
+                return `${startTime} - ${endTime}`
+              })()
+            : undefined
+        }
+      />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { updateDuvetStatus } from './database'
 
 export interface CleanHistoryRecord {
   id: string
@@ -218,32 +219,41 @@ export async function checkAndCompleteExpiredSunDrying(duvetId: string): Promise
     }
 
     const now = new Date()
+    const startTime = new Date(currentRecord.start_time)
     const endTime = new Date(currentRecord.end_time)
     
-    // If we're past the scheduled end time and have predicted mite score, update the duvet
-    if (now >= endTime && currentRecord.after_mite_score !== null) {
-      // Get current duvet to check if it already has the updated mite score
-      const { data: duvet, error } = await supabase
-        .from('quilts')
-        .select('mite_score, last_clean')
-        .eq('id', duvetId)
-        .single()
-        
-      if (error || !duvet) {
-        console.error('Error fetching duvet for mite score check:', error)
-        return false
-      }
+    // Get current duvet to check status
+    const { data: duvet, error } = await supabase
+      .from('quilts')
+      .select('mite_score, last_clean, status')
+      .eq('id', duvetId)
+      .single()
+      
+    if (error || !duvet) {
+      console.error('Error fetching duvet for status check:', error)
+      return false
+    }
+    
+    // Handle status transitions based on time
+    if (now >= startTime && now < endTime && duvet.status === 'waiting_optimal_time') {
+      // Transition to self_drying when optimal window starts
+      console.log(`Starting self-drying for duvet ${duvetId}`)
+      await updateDuvetStatus(duvetId, 'self_drying')
+      return true
+    } else if (now >= endTime && duvet.status === 'self_drying' && currentRecord.after_mite_score !== null) {
+      // Complete drying and update mite score when window ends
+      console.log(`Completing self-drying for duvet ${duvetId}`)
       
       // Only update if the duvet's mite score is different from the predicted score
-      // This prevents repeated updates
       if (duvet.mite_score !== currentRecord.after_mite_score) {
         console.log(`Updating duvet ${duvetId} mite score from ${duvet.mite_score} to ${currentRecord.after_mite_score}`)
-        
-        // Update the duvet's mite score to the predicted value
         await updateDuvetMiteScore(duvetId, currentRecord.after_mite_score)
-        
-        return true
       }
+      
+      // Reset status to null (normal state)
+      await updateDuvetStatus(duvetId, null)
+      
+      return true
     }
 
     return false

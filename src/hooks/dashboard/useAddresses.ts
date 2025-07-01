@@ -48,7 +48,7 @@ export function useAddresses(userId: string | undefined) {
     if (!userId) return
 
     try {
-      const success = await updateAddress(id, addressData)
+      const success = await updateAddress(id, addressData, userId)
       if (success) {
         await loadAddresses()
       } else {

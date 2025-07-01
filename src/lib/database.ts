@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 
+export type DuvetStatus = 'waiting_optimal_time' | 'self_drying' | 'waiting_pickup' | 'help_drying' | null
+
 export interface Duvet {
   id: string
   name: string
@@ -9,6 +11,7 @@ export interface Duvet {
   user_id: string
   address_id: string | null
   last_clean: string | null
+  status: DuvetStatus
 }
 
 export interface Address {
@@ -42,6 +45,7 @@ export interface Order {
   user_id: string
   quilt_id: string
   status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
+  deadline: string | null
 }
 
 export async function createDuvet(
@@ -64,7 +68,8 @@ export async function createDuvet(
         image_url: imageUrl,
         user_id: userId,
         address_id: addressId || null,
-        last_clean: null
+        last_clean: null,
+        status: null
       })
       .select()
       .single()
@@ -98,6 +103,25 @@ export async function getUserDuvets(userId: string): Promise<Duvet[]> {
   } catch (error) {
     console.error('Error fetching duvets:', error)
     return []
+  }
+}
+
+export async function updateDuvetStatus(duvetId: string, status: DuvetStatus): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('quilts')
+      .update({ status })
+      .eq('id', duvetId)
+
+    if (error) {
+      console.error('Error updating duvet status:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error updating duvet status:', error)
+    return false
   }
 }
 
@@ -295,6 +319,7 @@ export async function createOrder(
   duvetId: string,
   addressId: string | null,
   placedPhoto: string | null,
+  deadline?: string | null,
   cleanHistoryId?: string | null
 ): Promise<Order | null> {
   try {
@@ -305,6 +330,7 @@ export async function createOrder(
         quilt_id: duvetId,
         address_id: addressId,
         placed_photo: placedPhoto,
+        deadline: deadline || null,
         clean_history_id: cleanHistoryId || null,
         status: 'pending'
       })
@@ -343,21 +369,135 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
   }
 }
 
-export async function getNearbyOrders(excludeUserId: string): Promise<Order[]> {
+export interface OrderWithDuvet extends Order {
+  duvet_name?: string
+}
+
+export async function getAddressesByIds(addressIds: string[]): Promise<Record<string, Address>> {
   try {
+    if (addressIds.length === 0) return {}
+    
     const { data, error } = await supabase
+      .from('addresses')
+      .select('*')
+      .in('id', addressIds)
+
+    if (error) {
+      console.error('Error fetching addresses:', error)
+      return {}
+    }
+
+    // Convert to record for easy lookup
+    const addressMap: Record<string, Address> = {}
+    data?.forEach(address => {
+      addressMap[address.id] = address
+    })
+
+    return addressMap
+  } catch (error) {
+    console.error('Error fetching addresses:', error)
+    return {}
+  }
+}
+
+export async function getDuvetsByIds(duvetIds: string[]): Promise<Record<string, string>> {
+  try {
+    if (duvetIds.length === 0) return {}
+    
+    const { data, error } = await supabase
+      .from('quilts')
+      .select('id, name')
+      .in('id', duvetIds)
+
+    if (error) {
+      console.error('Error fetching duvets:', error)
+      return {}
+    }
+
+    // Convert to record for easy lookup
+    const duvetMap: Record<string, string> = {}
+    data?.forEach(duvet => {
+      duvetMap[duvet.id] = duvet.name
+    })
+
+    return duvetMap
+  } catch (error) {
+    console.error('Error fetching duvets:', error)
+    return {}
+  }
+}
+
+export async function getNearbyOrders(
+  excludeUserId: string, 
+  userLocation?: { latitude: number; longitude: number },
+  radiusKm: number = 5
+): Promise<OrderWithDuvet[]> {
+  try {
+    // First get all pending orders excluding current user
+    const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('*')
       .neq('user_id', excludeUserId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching nearby orders:', error)
+    if (ordersError) {
+      console.error('Error fetching orders:', ordersError)
       return []
     }
 
-    return data || []
+    if (!orders || orders.length === 0) {
+      return []
+    }
+
+    // Get unique address IDs from orders
+    const addressIds = [...new Set(orders.map(order => order.address_id).filter(Boolean))]
+    
+    // Fetch addresses for these orders
+    const { data: addresses, error: addressError } = await supabase
+      .from('addresses')
+      .select('id, latitude, longitude')
+      .in('id', addressIds)
+
+    if (addressError) {
+      console.error('Error fetching addresses:', addressError)
+      return []
+    }
+
+    // Create address lookup map
+    const addressMap: Record<string, { latitude: number; longitude: number }> = {}
+    addresses?.forEach(addr => {
+      if (addr.latitude && addr.longitude) {
+        addressMap[addr.id] = { latitude: addr.latitude, longitude: addr.longitude }
+      }
+    })
+
+    // Filter orders by distance if user location is available
+    let filteredOrders = orders
+    if (userLocation) {
+      const { calculateDistance } = await import('./address-utils')
+      filteredOrders = orders.filter(order => {
+        if (!order.address_id || !addressMap[order.address_id]) {
+          return false // Skip orders without valid addresses
+        }
+        
+        const orderLocation = addressMap[order.address_id]
+        const distance = calculateDistance(userLocation, orderLocation)
+        return distance <= radiusKm
+      })
+    }
+
+    // Get duvet names for filtered orders
+    const duvetIds = [...new Set(filteredOrders.map(order => order.quilt_id).filter(Boolean))]
+    const duvetMap = await getDuvetsByIds(duvetIds)
+
+    // Combine orders with duvet names
+    const ordersWithDuvets: OrderWithDuvet[] = filteredOrders.map(order => ({
+      ...order,
+      duvet_name: duvetMap[order.quilt_id] || undefined
+    }))
+
+    return ordersWithDuvets
   } catch (error) {
     console.error('Error fetching nearby orders:', error)
     return []
@@ -407,6 +547,51 @@ export async function deleteOrder(orderId: string): Promise<boolean> {
     return true
   } catch (error) {
     console.error('Error deleting order:', error)
+    return false
+  }
+}
+
+export async function getPendingOrderForDuvet(duvetId: string, userId: string): Promise<Order | null> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('quilt_id', duvetId)
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .single()
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error fetching pending order for duvet:', error)
+      return null
+    }
+
+    return data || null
+  } catch (error) {
+    console.error('Error fetching pending order for duvet:', error)
+    return null
+  }
+}
+
+export async function checkAndCancelExpiredOrders(): Promise<boolean> {
+  try {
+    const now = new Date().toISOString()
+    
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled' })
+      .eq('status', 'pending')
+      .lt('deadline', now)
+      .not('deadline', 'is', null)
+
+    if (error) {
+      console.error('Error cancelling expired orders:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error checking expired orders:', error)
     return false
   }
 }

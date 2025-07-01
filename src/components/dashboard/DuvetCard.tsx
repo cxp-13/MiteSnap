@@ -1,11 +1,10 @@
 import Image from 'next/image'
 import CircularProgress from './shared/CircularProgress'
-import { Duvet, CleanHistoryRecord } from './shared/types'
+import { Duvet } from './shared/types'
 import { isCurrentTimeWithinSunrise } from '@/lib/weather-analysis'
 
 interface DuvetCardProps {
   duvet: Duvet
-  sunDryingStatus: CleanHistoryRecord | null
   onSunDryingService: (duvet: Duvet) => void
   onDuvetClick?: (duvet: Duvet) => void
 }
@@ -23,61 +22,14 @@ const getRiskColor = (score: number) => {
 }
 
 
-const getSunDryingStatus = (sunDryingStatus: CleanHistoryRecord | null): {
-  status: 'scheduled' | 'in_progress' | null
-  timeText: string
-  isOptimal: boolean
-} => {
-  if (!sunDryingStatus || !sunDryingStatus.start_time || !sunDryingStatus.end_time) {
-    console.log('sunDryingStatus', sunDryingStatus)
-    return { status: null, timeText: '', isOptimal: false }
-  }
-
-  const now = new Date()
-  const startTime = new Date(sunDryingStatus.start_time)
-  const endTime = new Date(sunDryingStatus.end_time)
-
-  // If current time is before start time, it's scheduled
-  if (now < startTime) {
-    return {
-      status: 'scheduled',
-      timeText: `Scheduled for ${startTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })}`,
-      isOptimal: true
-    }
-  }
-
-  // If current time is between start and end time, it's in progress
-  if (now >= startTime && now < endTime) {
-    const remaining = endTime.getTime() - now.getTime()
-    const hours = Math.floor(remaining / (1000 * 60 * 60))
-    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
-    
-    const timeRemaining = hours > 0 ? `${hours}h ${minutes}m remaining` : `${minutes}m remaining`
-    
-    return {
-      status: 'in_progress',
-      timeText: timeRemaining,
-      isOptimal: false
-    }
-  }
-
-  // If current time is past end time, this record is completed - don't show any status
-  return { status: null, timeText: '', isOptimal: false }
-}
 
 export default function DuvetCard({ 
   duvet, 
-  sunDryingStatus, 
   onSunDryingService,
   onDuvetClick
 }: DuvetCardProps) {
   const colors = getRiskColor(duvet.mite_score)
   const riskLevel = getMiteRiskLevel(duvet.mite_score)
-  const dryingStatus = getSunDryingStatus(sunDryingStatus)
   const isSunriseTime = isCurrentTimeWithinSunrise()
 
   return (
@@ -107,57 +59,49 @@ export default function DuvetCard({
 
         <CircularProgress score={duvet.mite_score} />
 
-        {/* Sun Drying Status */}
-        {dryingStatus.status && (
-          <div className={`rounded-lg p-4 ${
-            dryingStatus.status === 'scheduled' && dryingStatus.isOptimal 
-              ? 'bg-green-50 border border-green-200' 
-              : dryingStatus.status === 'in_progress'
-              ? 'bg-blue-50 border border-blue-200'
-              : 'bg-gray-50 border border-gray-200'
-          }`}>
-            <div className="space-y-2">
-              <p className={`font-medium ${
-                dryingStatus.status === 'scheduled' && dryingStatus.isOptimal
-                  ? 'text-green-800'
-                  : dryingStatus.status === 'in_progress' 
-                  ? 'text-blue-800'
-                  : 'text-gray-800'
-              }`}>
-                {dryingStatus.status === 'scheduled' && dryingStatus.isOptimal && '☀️ Optimal drying scheduled!'}
-                {dryingStatus.status === 'scheduled' && !dryingStatus.isOptimal && '📅 Sun drying scheduled'}
-                {dryingStatus.status === 'in_progress' && '🌤️ Sun drying in progress'}
-              </p>
-              
-              <div className="space-y-1 text-sm">
-                <p className={`font-medium ${
-                  dryingStatus.status === 'scheduled' && dryingStatus.isOptimal
-                    ? 'text-green-600'
-                    : dryingStatus.status === 'in_progress'
-                    ? 'text-blue-600' 
-                    : 'text-gray-600'
-                }`}>
-                  {dryingStatus.timeText}
-                </p>
-                
-                {sunDryingStatus && sunDryingStatus.start_time && dryingStatus.status !== 'scheduled' && (
-                  <p className="text-gray-600">
-                    <span className="font-medium">Started:</span> {new Date(sunDryingStatus.start_time).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    })}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Action Buttons */}
-        {isSunriseTime && !dryingStatus.status && (
+        {duvet.status === 'waiting_pickup' ? (
+          <div className="rounded-lg p-4 bg-amber-50 border border-amber-200">
+            <div className="flex items-center justify-center space-x-2">
+              <span>⏳</span>
+              <span className="font-medium text-amber-800">Waiting for pickup</span>
+            </div>
+            <p className="text-sm text-amber-600 text-center mt-1">
+              Someone will help dry your duvet
+            </p>
+          </div>
+        ) : duvet.status === 'waiting_optimal_time' ? (
+          <div className="rounded-lg p-4 bg-blue-50 border border-blue-200">
+            <div className="flex items-center justify-center space-x-2">
+              <span>⏰</span>
+              <span className="font-medium text-blue-800">Waiting for optimal time</span>
+            </div>
+            <p className="text-sm text-blue-600 text-center mt-1">
+              Self-drying scheduled
+            </p>
+          </div>
+        ) : duvet.status === 'self_drying' ? (
+          <div className="rounded-lg p-4 bg-green-50 border border-green-200">
+            <div className="flex items-center justify-center space-x-2">
+              <span>🌞</span>
+              <span className="font-medium text-green-800">Currently drying</span>
+            </div>
+            <p className="text-sm text-green-600 text-center mt-1">
+              Self-drying in progress
+            </p>
+          </div>
+        ) : duvet.status === 'help_drying' ? (
+          <div className="rounded-lg p-4 bg-purple-50 border border-purple-200">
+            <div className="flex items-center justify-center space-x-2">
+              <span>🤝</span>
+              <span className="font-medium text-purple-800">Being helped</span>
+            </div>
+            <p className="text-sm text-purple-600 text-center mt-1">
+              Someone is helping dry your duvet
+            </p>
+          </div>
+        ) : !duvet.status && isSunriseTime && (
           <div>
             <button
               onClick={(e) => {

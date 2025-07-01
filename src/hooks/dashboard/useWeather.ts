@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { getWeatherForecast, analyzeWeatherForSunDrying, type WeatherAnalysisResult } from '@/lib/weather-analysis'
 import { calculateBasicSunDryingReduction, type SunDryingAnalysisResult } from '@/lib/sun-drying-ai'
 import { createSunDryRecord } from '@/lib/clean-history'
+import { updateDuvetStatus } from '@/lib/database'
 
 export function useWeather() {
   const [location, setLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null)
@@ -35,12 +36,19 @@ export function useWeather() {
 
 
 
-  // Close sun dry modal
+  // Close sun dry modal and clear all data
   const closeSunDryModal = useCallback(() => {
     setShowSunDryModal(false)
     setSunDryStep(1)
     setWeatherAnalysis(null)
     setSunDryingAnalysis(null)
+  }, [])
+
+  // Close sun dry modal UI only (preserve weather data for order creation)
+  const closeSunDryModalUIOnly = useCallback(() => {
+    setShowSunDryModal(false)
+    setSunDryStep(1)
+    // Keep weatherAnalysis and sunDryingAnalysis for order creation
   }, [])
 
   // Start AI analysis (don't create record yet)
@@ -101,6 +109,9 @@ export function useWeather() {
         sunDryingAnalysis.finalMiteScore
       )
       
+      // Update duvet status to waiting for optimal time
+      await updateDuvetStatus(duvetId, 'waiting_optimal_time')
+      
       // Close modal and indicate success
       closeSunDryModal()
       return true
@@ -135,6 +146,7 @@ export function useWeather() {
     handleStartAIAnalysis,
     handleConfirmSunDrying,
     closeSunDryModal,
+    closeSunDryModalUIOnly,
     setShowSunDryModal,
     setSunDryStep
   }

@@ -56,7 +56,6 @@ export default function DuvetList({
             <DuvetCard
               key={duvet.id}
               duvet={duvet}
-              sunDryingStatus={duvetSunDryingStatus[duvet.id] || null}
               onSunDryingService={onSunDryingService}
               onDuvetClick={handleDuvetClick}
             />

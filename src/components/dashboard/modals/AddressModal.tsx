@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Address, AddressFormData, GeolocationPosition, GeolocationError, GeocodingResult } from './shared/types'
+import { Address, AddressFormData, GeolocationPosition, GeolocationError, GeocodingResult } from '../shared/types'
 import { getCurrentPosition, getLocationErrorMessage } from '@/lib/geolocation'
 import { reverseGeocode } from '@/lib/geocoding'
 

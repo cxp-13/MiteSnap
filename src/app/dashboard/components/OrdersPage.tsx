@@ -1,7 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useOrders } from '@/hooks/dashboard/useOrders'
 import { useAddresses } from '@/hooks/dashboard/useAddresses'
+import { formatLocalAddress, formatRelativeTime } from '@/lib/address-utils'
+import { getAddressesByIds, type Address } from '@/lib/database'
 
 interface OrdersPageProps {
   userId: string
@@ -10,6 +13,26 @@ interface OrdersPageProps {
 export default function OrdersPage({ userId }: OrdersPageProps) {
   const { orders, nearbyOrders, isLoadingOrders, handleDeleteOrder, handleAcceptOrder } = useOrders(userId)
   const { addresses } = useAddresses(userId)
+  const [nearbyOrderAddresses, setNearbyOrderAddresses] = useState<Record<string, Address>>({})
+
+  // Load addresses for nearby orders
+  useEffect(() => {
+    const loadNearbyOrderAddresses = async () => {
+      if (nearbyOrders.length === 0) return
+      
+      const addressIds = [...new Set(nearbyOrders.map(order => order.address_id).filter(Boolean))]
+      if (addressIds.length === 0) return
+      
+      try {
+        const addressMap = await getAddressesByIds(addressIds)
+        setNearbyOrderAddresses(addressMap)
+      } catch (error) {
+        console.error('Error loading nearby order addresses:', error)
+      }
+    }
+
+    loadNearbyOrderAddresses()
+  }, [nearbyOrders])
 
   if (isLoadingOrders) {
     return (
@@ -111,7 +134,7 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {nearbyOrders.map((order) => {
-                const address = addresses.find(a => a.id === order.address_id)
+                const address = order.address_id ? nearbyOrderAddresses[order.address_id] : null
                 return (
                   <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-3">
@@ -124,17 +147,27 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
                     </div>
                     
                     <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">Duvet Drying Service</h4>
-                      <p className="text-sm text-gray-600">Help someone dry their duvet</p>
+                      <h4 className="font-medium text-gray-900">
+                        {order.duvet_name || 'Duvet Drying Service'}
+                      </h4>
                       {address && (
                         <p className="text-sm text-gray-600">
-                          📍 {address.full_address}
+                          📍 {formatLocalAddress(address)}
+                        </p>
+                      )}
+                      {order.deadline ? (
+                        <p className="text-sm text-orange-600 font-medium">
+                          ⏰ {formatRelativeTime(order.deadline)}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-blue-600 font-medium">
+                          ⏰ Flexible timing
                         </p>
                       )}
                       {order.placed_photo && (
                         <img
                           src={order.placed_photo}
-                          alt="Duvet protection"
+                          alt="Duvet placement"
                           className="w-full h-24 object-cover rounded mt-2"
                         />
                       )}
