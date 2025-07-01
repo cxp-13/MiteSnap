@@ -1,10 +1,31 @@
 'use client'
 
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useMockUser } from '@/context/MockUserContext';
 import { useUnifiedUser } from '@/hooks/useUnifiedUser';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Clerk components with SSR disabled
+const SignInButton = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.SignInButton),
+  { ssr: false }
+);
+
+const SignedIn = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.SignedIn),
+  { ssr: false }
+);
+
+const SignedOut = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.SignedOut),
+  { ssr: false }
+);
+
+const UserButton = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.UserButton),
+  { ssr: false }
+);
 
 export default function Header() {
   const router = useRouter();
