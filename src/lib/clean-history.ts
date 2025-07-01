@@ -19,7 +19,8 @@ export async function createSunDryRecord(
   beforeMiteScore: number,
   startTime?: string,
   endTime?: string,
-  afterMiteScore?: number
+  afterMiteScore?: number,
+  isSelf: boolean = true
 ): Promise<CleanHistoryRecord | null> {
   try {
     const { data, error } = await supabase
@@ -29,7 +30,7 @@ export async function createSunDryRecord(
         user_id: userId,
         start_time: startTime || new Date().toISOString(),
         end_time: endTime || null,
-        is_self: true,
+        is_self: isSelf,
         before_mite_score: beforeMiteScore,
         after_mite_score: afterMiteScore || null
       })

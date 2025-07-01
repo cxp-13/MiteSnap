@@ -228,6 +228,9 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         // Update duvet status to waiting for pickup
         await updateDuvetStatus(selectedDuvet.id, 'waiting_pickup')
         
+        // Refresh the duvets list to show updated status
+        await loadDuvets()
+        
         setOrderRequestStep(3)
         // Clear weather data after successful order creation
         setTimeout(() => {

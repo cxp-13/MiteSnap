@@ -92,6 +92,11 @@ function isWithinDaylightHours(timeString: string): boolean {
 
 // Function to check if current time is within sunrise hours (for AI drying button visibility)
 export function isCurrentTimeWithinSunrise(): boolean {
+  // Check if skip night limit is enabled for development
+  if (process.env.NEXT_PUBLIC_SKIP_NIGHT_LIMIT === 'true') {
+    return true
+  }
+  
   const now = new Date()
   const currentHour = now.getHours()
   return currentHour >= SUNRISE_HOUR && currentHour < SUNSET_HOUR

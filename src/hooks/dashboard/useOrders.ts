@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createOrder, getUserOrders, getNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet } from '@/lib/database'
+import { createOrder, getUserOrders, getUserAcceptedOrders, getNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet } from '@/lib/database'
 import { getCurrentPosition } from '@/lib/geolocation'
 
 export function useOrders(userId: string | undefined) {
   const [orders, setOrders] = useState<Order[]>([])
+  const [acceptedOrders, setAcceptedOrders] = useState<OrderWithDuvet[]>([])
   const [nearbyOrders, setNearbyOrders] = useState<OrderWithDuvet[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(false)
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -31,12 +32,14 @@ export function useOrders(userId: string | undefined) {
       // Check and cancel expired orders first
       await checkAndCancelExpiredOrders()
       
-      const [userOrders, nearby] = await Promise.all([
+      const [userOrders, acceptedOrdersData, nearby] = await Promise.all([
         getUserOrders(userId),
+        getUserAcceptedOrders(userId),
         getNearbyOrders(userId, userLocation || undefined)
       ])
       
       setOrders(userOrders)
+      setAcceptedOrders(acceptedOrdersData)
       setNearbyOrders(nearby)
     } catch (error) {
       console.error('Error loading orders:', error)
@@ -81,13 +84,14 @@ export function useOrders(userId: string | undefined) {
   const handleUpdateOrderStatus = useCallback(async (
     orderId: string,
     status: Order['status'],
-    helperId?: string
+    helperId?: string,
+    dryPhoto?: string | null
   ) => {
     try {
       // Find the order to get the duvet ID
-      const order = [...orders, ...nearbyOrders].find(o => o.id === orderId)
+      const order = [...orders, ...acceptedOrders, ...nearbyOrders].find(o => o.id === orderId)
       
-      const success = await updateOrderStatus(orderId, status, helperId)
+      const success = await updateOrderStatus(orderId, status, helperId, dryPhoto)
       if (success && order) {
         // Update duvet status based on order status
         let duvetStatus: string | null = null
@@ -96,6 +100,20 @@ export function useOrders(userId: string | undefined) {
             duvetStatus = 'help_drying'
             break
           case 'completed':
+            duvetStatus = 'self_drying' // Set to drying status when service is completed
+            // If order is completed, also update the clean history record
+            if (order.clean_history_id) {
+              // Calculate a mock mite score reduction for help-drying (similar to self-drying)
+              const currentMiteScore = 50 // We'll get this from the duvet if needed
+              const estimatedReduction = Math.floor(Math.random() * 15) + 10 // 10-25 point reduction
+              const newMiteScore = Math.max(0, currentMiteScore - estimatedReduction)
+              
+              // Update the clean history record
+              import('@/lib/clean-history').then(({ updateSunDryRecord }) => {
+                updateSunDryRecord(order.clean_history_id!, newMiteScore)
+              })
+            }
+            break
           case 'cancelled':
             duvetStatus = null
             break
@@ -103,7 +121,7 @@ export function useOrders(userId: string | undefined) {
         }
         
         if (duvetStatus !== undefined) {
-          await updateDuvetStatus(order.quilt_id, duvetStatus as 'help_drying' | null)
+          await updateDuvetStatus(order.quilt_id, duvetStatus as 'help_drying' | 'self_drying' | null)
         }
         
         await loadOrders()
@@ -114,7 +132,7 @@ export function useOrders(userId: string | undefined) {
       console.error('Error updating order status:', error)
       return false
     }
-  }, [loadOrders, orders, nearbyOrders])
+  }, [loadOrders, orders, acceptedOrders, nearbyOrders])
 
   // Delete order
   const handleDeleteOrder = useCallback(async (orderId: string) => {
@@ -124,7 +142,7 @@ export function useOrders(userId: string | undefined) {
 
     try {
       // Find the order to get the duvet ID
-      const order = [...orders, ...nearbyOrders].find(o => o.id === orderId)
+      const order = [...orders, ...acceptedOrders, ...nearbyOrders].find(o => o.id === orderId)
       
       const success = await deleteOrder(orderId)
       if (success) {
@@ -141,7 +159,7 @@ export function useOrders(userId: string | undefined) {
       console.error('Error deleting order:', error)
       return false
     }
-  }, [loadOrders, orders, nearbyOrders])
+  }, [loadOrders, orders, acceptedOrders, nearbyOrders])
 
   // Check if duvet has pending order
   const getPendingOrder = useCallback(async (duvetId: string) => {
@@ -159,15 +177,16 @@ export function useOrders(userId: string | undefined) {
   const handleAcceptOrder = useCallback(async (orderId: string) => {
     if (!userId) return false
 
-    if (!confirm('Do you want to accept this service request?')) {
-      return false
-    }
-
     try {
+      // Find the order to get the duvet ID
+      const order = [...orders, ...acceptedOrders, ...nearbyOrders].find(o => o.id === orderId)
+      
       const success = await updateOrderStatus(orderId, 'accepted', userId)
-      if (success) {
+      if (success && order) {
+        // Update duvet status to help_drying when order is accepted
+        await updateDuvetStatus(order.quilt_id, 'help_drying')
+        
         await loadOrders()
-        alert('Service request accepted! The requester will be notified.')
         return true
       }
       return false
@@ -175,11 +194,12 @@ export function useOrders(userId: string | undefined) {
       console.error('Error accepting order:', error)
       return false
     }
-  }, [userId, loadOrders])
+  }, [userId, loadOrders, orders, acceptedOrders, nearbyOrders])
 
   return {
     // State
     orders,
+    acceptedOrders,
     nearbyOrders,
     isLoadingOrders,
     

@@ -323,6 +323,39 @@ export async function createOrder(
   cleanHistoryId?: string | null
 ): Promise<Order | null> {
   try {
+    let finalCleanHistoryId = cleanHistoryId
+
+    // If no clean history ID is provided, create a new help-drying record
+    if (!finalCleanHistoryId) {
+      // Get the duvet's current mite score
+      const { data: duvet, error: duvetError } = await supabase
+        .from('quilts')
+        .select('mite_score')
+        .eq('id', duvetId)
+        .single()
+
+      if (duvetError) {
+        console.error('Error fetching duvet for clean history:', duvetError)
+        // Continue without clean history record
+      } else if (duvet) {
+        // Create a help-drying clean history record
+        const { createSunDryRecord } = await import('./clean-history')
+        const cleanRecord = await createSunDryRecord(
+          duvetId,
+          userId,
+          duvet.mite_score || 50,
+          undefined, // start_time - will use current time
+          undefined, // end_time - will be set when completed
+          undefined, // after_mite_score - will be calculated later
+          false // is_self = false for help-drying
+        )
+        
+        if (cleanRecord) {
+          finalCleanHistoryId = cleanRecord.id
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .insert({
@@ -331,7 +364,7 @@ export async function createOrder(
         address_id: addressId,
         placed_photo: placedPhoto,
         deadline: deadline || null,
-        clean_history_id: cleanHistoryId || null,
+        clean_history_id: finalCleanHistoryId || null,
         status: 'pending'
       })
       .select()
@@ -365,6 +398,41 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
     return data || []
   } catch (error) {
     console.error('Error fetching user orders:', error)
+    return []
+  }
+}
+
+export async function getUserAcceptedOrders(userId: string): Promise<OrderWithDuvet[]> {
+  try {
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('service_user_id', userId)
+      .in('status', ['accepted', 'in_progress', 'completed'])
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching accepted orders:', error)
+      return []
+    }
+
+    if (!orders || orders.length === 0) {
+      return []
+    }
+
+    // Get duvet names for the orders
+    const duvetIds = [...new Set(orders.map(order => order.quilt_id).filter(Boolean))]
+    const duvetMap = await getDuvetsByIds(duvetIds)
+
+    // Combine orders with duvet names
+    const ordersWithDuvets: OrderWithDuvet[] = orders.map(order => ({
+      ...order,
+      duvet_name: duvetMap[order.quilt_id] || undefined
+    }))
+
+    return ordersWithDuvets
+  } catch (error) {
+    console.error('Error fetching accepted orders:', error)
     return []
   }
 }
@@ -507,12 +575,16 @@ export async function getNearbyOrders(
 export async function updateOrderStatus(
   orderId: string,
   status: Order['status'],
-  serviceUserId?: string | null
+  serviceUserId?: string | null,
+  dryPhoto?: string | null
 ): Promise<boolean> {
   try {
     const updateData: any = { status }
     if (serviceUserId !== undefined) {
       updateData.service_user_id = serviceUserId
+    }
+    if (dryPhoto !== undefined) {
+      updateData.dry_photo = dryPhoto
     }
 
     const { error } = await supabase
@@ -573,6 +645,11 @@ export async function getPendingOrderForDuvet(duvetId: string, userId: string): 
   }
 }
 
+/**
+ * Checks and cancels expired orders by updating their status to 'cancelled'.
+ * An order is considered expired if its deadline is in the past and its status is 'pending'.
+ * @returns {Promise<boolean>} True if the operation succeeded, false otherwise.
+ */
 export async function checkAndCancelExpiredOrders(): Promise<boolean> {
   try {
     const now = new Date().toISOString()
