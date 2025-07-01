@@ -5,6 +5,7 @@ import Header from '@/components/Header'
 import { useMockUser } from '@/context/MockUserContext'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import dynamic from 'next/dynamic'
+import { useState } from 'react'
 
 // Dynamically import Clerk components with SSR disabled
 const SignInButton = dynamic(
@@ -26,12 +27,52 @@ export default function Home() {
   const router = useRouter()
   const { isMockMode, signIn } = useMockUser()
   const { isSignedIn } = useUnifiedUser()
+  const [openFAQ, setOpenFAQ] = useState<number | null>(null)
 
   const handleGetStarted = () => {
     if (isMockMode) {
       signIn()
     }
   }
+
+  const toggleFAQ = (index: number) => {
+    setOpenFAQ(openFAQ === index ? null : index)
+  }
+
+  const faqs = [
+    {
+      question: "What is MiteSnap?",
+      answer: "MiteSnap is a comprehensive bedding management software that scientifically monitors dust mite conditions in your duvets and bedding. Our platform combines AI-powered analysis with community-based drying assistance services to help you maintain optimal hygiene and health in your bedroom environment."
+    },
+    {
+      question: "How does the AI analysis work?",
+      answer: "Our system uses Qwen's advanced visual AI model to analyze photos of your duvets, combined with real-time weather data from Tomorrow.io. The AI evaluates factors like material type, environmental conditions, and visual indicators to provide scientific assessments of dust mite levels and predict the effectiveness of sun-drying sessions."
+    },
+    {
+      question: "What is the community drying service?",
+      answer: "Our innovative community service connects you with helpful neighbors within a 5km radius who can assist with duvet drying when you're unable to do it yourself. Simply create a service request, and nearby MiteSnap users will be notified and can accept your request to help with the drying process."
+    },
+    {
+      question: "Is the service safe and reliable?",
+      answer: "Yes, safety is our top priority. All users go through verification processes, and we provide detailed profiles and ratings for community helpers. You can view helper profiles, read reviews, and communicate through our secure platform before accepting assistance."
+    },
+    {
+      question: "How accurate is the dust mite monitoring?",
+      answer: "Our AI analysis combines multiple data points including visual assessment, material properties, environmental conditions, and historical patterns to provide highly accurate dust mite risk assessments. The system continuously learns and improves its predictions based on real-world outcomes."
+    },
+    {
+      question: "What devices can I use MiteSnap on?",
+      answer: "MiteSnap is a web-based platform that works on any device with a modern browser - smartphones, tablets, laptops, and desktop computers. Simply access our website and start managing your bedding hygiene from anywhere."
+    },
+    {
+      question: "How much does MiteSnap cost?",
+      answer: "MiteSnap offers a free tier with basic monitoring features. Premium plans include advanced AI analysis, unlimited community service requests, detailed health reports, and priority support. Check our pricing page for current rates and features."
+    },
+    {
+      question: "How do I get started?",
+      answer: "Getting started is easy! Simply sign up for a free account, add your first duvet by taking a photo, and let our AI analyze its condition. You can immediately start tracking your bedding hygiene and access our community drying services."
+    }
+  ]
 
   return (
     <div className="min-h-screen w-full bg-white flex flex-col">
@@ -199,6 +240,94 @@ export default function Home() {
                 Reduce allergens and improve sleep quality with scientifically-optimized duvet maintenance
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="bg-white py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-lg text-gray-600">
+              Everything you need to know about MiteSnap and our services
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <div key={index} className="border border-gray-200 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleFAQ(index)}
+                  className="w-full px-6 py-4 text-left bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
+                >
+                  <h3 className="text-lg font-semibold text-black pr-4">
+                    {faq.question}
+                  </h3>
+                  <div className={`transform transition-transform duration-200 ${
+                    openFAQ === index ? 'rotate-180' : ''
+                  }`}>
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+                {openFAQ === index && (
+                  <div className="px-6 pb-4 bg-gray-50">
+                    <p className="text-gray-700 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* CTA in FAQ Section */}
+          <div className="text-center mt-12">
+            <p className="text-gray-600 mb-6">
+              Still have questions? We're here to help!
+            </p>
+            {isMockMode ? (
+              <>
+                {!isSignedIn ? (
+                  <button 
+                    onClick={handleGetStarted}
+                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
+                  >
+                    Try MiteSnap Now (Demo)
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => router.push('/dashboard')}
+                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
+                  >
+                    Go to Dashboard
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <SignedOut>
+                  <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                    <button className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition">
+                      Try MiteSnap Now
+                    </button>
+                  </SignInButton>
+                </SignedOut>
+                
+                <SignedIn>
+                  <button 
+                    onClick={() => router.push('/dashboard')}
+                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
+                  >
+                    Go to Dashboard
+                  </button>
+                </SignedIn>
+              </>
+            )}
           </div>
         </div>
       </section>
