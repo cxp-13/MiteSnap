@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { OrderWithDuvet } from '@/lib/database'
+import { getCleanHistoryRecord, type CleanHistoryRecord } from '@/lib/clean-history'
 
 interface ExecuteOrderModalProps {
   isOpen: boolean
@@ -29,7 +30,49 @@ export default function ExecuteOrderModal({
   onNextStep,
   onPrevStep
 }: ExecuteOrderModalProps) {
+  const [cleanHistory, setCleanHistory] = useState<CleanHistoryRecord | null>(null)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+
+  // Load clean history record when modal opens
+  useEffect(() => {
+    const loadCleanHistory = async () => {
+      if (!isOpen || !order?.clean_history_id) {
+        setCleanHistory(null)
+        setIsLoadingHistory(false)
+        return
+      }
+
+      setIsLoadingHistory(true)
+      try {
+        const history = await getCleanHistoryRecord(order.clean_history_id)
+        setCleanHistory(history)
+      } catch (error) {
+        console.error('Error loading clean history:', error)
+        setCleanHistory(null)
+      } finally {
+        setIsLoadingHistory(false)
+      }
+    }
+
+    loadCleanHistory()
+  }, [isOpen, order?.clean_history_id])
+
   if (!isOpen || !order) return null
+
+  // Check if current time is within optimal drying window using clean_history
+  const isWithinOptimalTime = () => {
+    if (!cleanHistory?.start_time || !cleanHistory?.end_time) {
+      return true // If no optimal time specified, allow execution
+    }
+    
+    const now = new Date()
+    const startTime = new Date(cleanHistory.start_time)
+    const endTime = new Date(cleanHistory.end_time)
+    
+    return now >= startTime && now <= endTime
+  }
+
+  const canExecuteOrder = !isLoadingHistory && isWithinOptimalTime()
 
   return (
     <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -117,6 +160,67 @@ export default function ExecuteOrderModal({
                   </div>
                 </div>
               </div>
+
+              {/* AI Analysis Results */}
+              {!isLoadingHistory && cleanHistory?.before_mite_score && cleanHistory?.after_mite_score && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <h5 className="font-medium text-gray-900 mb-4">AI Predicted Results</h5>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center space-x-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-800">
+                          {cleanHistory.before_mite_score}
+                        </div>
+                        <div className="text-xs text-gray-500">Current Mite Score</div>
+                      </div>
+                      <div className="text-gray-500 text-xl">→</div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {cleanHistory.after_mite_score}
+                        </div>
+                        <div className="text-xs text-gray-500">Predicted After Drying</div>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        -{cleanHistory.before_mite_score - cleanHistory.after_mite_score} points reduction predicted
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Time validation section */}
+              {!isLoadingHistory && cleanHistory?.start_time && cleanHistory?.end_time && (
+                <div className={`rounded-xl p-6 ${canExecuteOrder ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <h5 className="font-medium text-gray-900 mb-2">Optimal Drying Time Window</h5>
+                  <div className="space-y-2 text-sm">
+                    <p>
+                      <strong>Optimal Time:</strong>{' '}
+                      {new Date(cleanHistory.start_time).toLocaleString()} -{' '}
+                      {new Date(cleanHistory.end_time).toLocaleString()}
+                    </p>
+                    <p>
+                      <strong>Current Time:</strong> {new Date().toLocaleString()}
+                    </p>
+                    {canExecuteOrder ? (
+                      <p className="text-green-700 font-medium">
+                        ✓ Current time is within the optimal drying window
+                      </p>
+                    ) : (
+                      <p className="text-red-700 font-medium">
+                        ⚠ Current time is outside the optimal drying window. Please wait for the optimal time to execute this order.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {isLoadingHistory && (
+                <div className="rounded-xl p-6 bg-gray-50 border border-gray-200">
+                  <p className="text-gray-600">Loading optimal time information...</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -199,9 +303,14 @@ export default function ExecuteOrderModal({
               </button>
               <button
                 onClick={onNextStep}
-                className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-colors"
+                disabled={!canExecuteOrder}
+                className={`px-6 py-3 rounded-xl font-semibold transition-colors ${
+                  canExecuteOrder 
+                    ? 'bg-green-500 text-white hover:bg-green-600' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
-                Start Drying Process
+                {canExecuteOrder ? 'Start Drying Process' : 'Wait for Optimal Time'}
               </button>
             </>
           )}

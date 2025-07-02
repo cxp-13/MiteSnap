@@ -20,14 +20,14 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const router = useRouter()
   const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
   const [showAddressPrompt, setShowAddressPrompt] = useState(false)
-  
+
   // Order request modal state
   const [showOrderRequestModal, setShowOrderRequestModal] = useState(false)
   const [orderRequestStep, setOrderRequestStep] = useState<1 | 2 | 3>(1)
   const [orderPhoto, setOrderPhoto] = useState<File | null>(null)
   const [orderPhotoPreview, setOrderPhotoPreview] = useState<string | null>(null)
   const [isUploadingOrderPhoto, setIsUploadingOrderPhoto] = useState(false)
-  
+
   // Custom hooks
   const duvetsHook = useDuvets(userId)
   const weatherHook = useWeather()
@@ -89,7 +89,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   // Handle sun drying service request
   const handleSunDryingService = async (duvet: Duvet) => {
     setSelectedDuvet(duvet)
-    
+
     // Get location and analyze weather
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -111,14 +111,14 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   // Handle "Dry it myself" option
   const handleDryItMyself = async () => {
     if (!selectedDuvet) return
-    
+
     // Check if weather conditions are optimal
     if (!weatherAnalysis?.isOptimalForSunDrying) {
       // If conditions are not optimal, close the modal
       closeSunDryModal()
       return
     }
-    
+
     // Start AI analysis which will move to step 2 to show results
     await handleStartAIAnalysis(selectedDuvet.mite_score || 50)
   }
@@ -202,35 +202,55 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         throw new Error('Weather analysis is no longer available. Please try again.')
       }
 
+      // Run AI analysis for help-drying (same as self-drying)
+      if (!weatherAnalysis.optimalWindows.length) {
+        throw new Error('No optimal drying windows found for AI analysis.')
+      }
+
+      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
+
+      // Calculate actual drying duration from the optimal window
+      const startTime = new Date(bestWeatherWindow.startTime)
+      const endTime = new Date(bestWeatherWindow.endTime)
+      const durationInHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+
+      // Import and run AI analysis
+      const { calculateBasicSunDryingReduction } = await import('@/lib/sun-drying-ai')
+      const aiAnalysis = calculateBasicSunDryingReduction(
+        selectedDuvet.mite_score || 50,
+        bestWeatherWindow,
+        durationInHours
+      )
+
+      console.log('Help-drying AI analysis:', aiAnalysis)
+
       // Calculate deadline (30 minutes before optimal start time)
-      const deadline = weatherAnalysis.optimalWindows.length > 0
-        ? new Date(new Date(weatherAnalysis.optimalWindows[0].startTime).getTime() - 30 * 60 * 1000).toISOString()
-        : null
+      const deadline = new Date(startTime.getTime() - 30 * 60 * 1000).toISOString()
 
       console.log('Order creation debug:')
       console.log('- Weather analysis:', weatherAnalysis)
       console.log('- Optimal windows:', weatherAnalysis.optimalWindows)
+      console.log('- AI Analysis:', aiAnalysis)
       console.log('- Calculated deadline:', deadline)
 
-      if (!deadline) {
-        console.warn('No optimal windows found, order will be created without deadline')
-      }
-
-      // Create order
+      // Create order with optimal time window and AI analysis information
       const success = await handleCreateOrder(
         selectedDuvet.id,
         defaultAddress.id,
         uploadResult.url,
-        deadline
+        deadline,
+        bestWeatherWindow.startTime,
+        bestWeatherWindow.endTime,
+        aiAnalysis
       )
 
       if (success) {
         // Update duvet status to waiting for pickup
         await updateDuvetStatus(selectedDuvet.id, 'waiting_pickup')
-        
+
         // Refresh the duvets list to show updated status
         await loadDuvets()
-        
+
         setOrderRequestStep(3)
         // Clear weather data after successful order creation
         setTimeout(() => {
@@ -269,6 +289,21 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     }
   }
 
+  const isBestWindowTooSoon = () => {
+    if (!weatherAnalysis || weatherAnalysis.optimalWindows.length === 0) return false
+
+    const startTime = new Date(weatherAnalysis.optimalWindows[0].startTime).getTime()
+    const now = Date.now()
+
+    console.log('startTime', startTime)
+    console.log('now', now)
+
+    const diffInMinutes = (startTime - now) / (1000 * 60)
+
+    return diffInMinutes <= 30 && diffInMinutes >= 0
+  }
+
+
   return (
     <div className="bg-white">
       <div className="flex justify-between items-center mb-8">
@@ -296,7 +331,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
                 <span className="text-2xl">📍</span>
               </div>
-              
+
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-gray-900">Add Address First</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -312,7 +347,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                   <span>📍</span>
                   <span>Add My Address</span>
                 </button>
-                
+
                 <button
                   onClick={handleCloseAddressPrompt}
                   className="w-full px-6 py-2 text-gray-500 hover:text-gray-700 transition-colors font-medium"
@@ -376,101 +411,108 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
               {sunDryStep === 1 && (
                 <div>
                   {isLoadingWeatherAnalysis ? (
-                <div className="flex flex-col items-center justify-center py-24">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mb-8"></div>
-                  <p className="text-gray-500 font-light text-lg">Analyzing conditions...</p>
-                </div>
-              ) : weatherAnalysis ? (
-                <div className="space-y-12">
-                  {weatherAnalysis.isOptimalForSunDrying && weatherAnalysis.optimalWindows.length > 0 ? (
-                    <div className="text-center py-16 space-y-8">
-                      {/* Best Drying Time */}
-                      <div className="space-y-6">
-                        <h4 className="text-gray-500 font-light text-base uppercase tracking-[0.2em] mb-8">
-                          OPTIMAL DRYING TIME (NEXT 12 HOURS)
-                        </h4>
-                        <div className="text-5xl font-extralight text-black tracking-tight leading-none">
-                          {(() => {
-                            const now = new Date()
-                            const currentTime = now.getTime()
-                            let optimalWindow = weatherAnalysis.optimalWindows[0]
-                            
-                            const futureWindow = weatherAnalysis.optimalWindows.find(window => {
-                              const windowStartTime = new Date(window.startTime).getTime()
-                              return windowStartTime > currentTime
-                            })
-                            
-                            if (futureWindow) {
-                              optimalWindow = futureWindow
+                    <div className="flex flex-col items-center justify-center py-24">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mb-8"></div>
+                      <p className="text-gray-500 font-light text-lg">Analyzing conditions...</p>
+                    </div>
+                  ) : weatherAnalysis ? (
+                    <div className="space-y-12">
+                      {weatherAnalysis.isOptimalForSunDrying && weatherAnalysis.optimalWindows.length > 0 ? (
+                        <div className="text-center py-16 space-y-8">
+                          {/* Best Drying Time */}
+                          <div className="space-y-6">
+                            <h4 className="text-gray-500 font-light text-base uppercase tracking-[0.2em] mb-8">
+                              OPTIMAL DRYING TIME (NEXT 12 HOURS)
+                            </h4>
+                            <div className="text-5xl font-extralight text-black tracking-tight leading-none">
+                              {(() => {
+                                const now = new Date()
+                                const currentTime = now.getTime()
+                                console.log('weatherAnalysis', weatherAnalysis.optimalWindows)
+                                let optimalWindow = weatherAnalysis.optimalWindows[0]
+
+                                const futureWindow = weatherAnalysis.optimalWindows.find(window => {
+                                  const windowStartTime = new Date(window.startTime).getTime()
+                                  return windowStartTime > currentTime
+                                })
+
+                                if (futureWindow) {
+                                  optimalWindow = futureWindow
+                                }
+
+                          
+                                const startTime = new Date(optimalWindow.startTime).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })
+                                const endTime = new Date(optimalWindow.endTime).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })
+
+                                return `${startTime} - ${endTime}`
+                              })()}
+                            </div>
+                            <p className="text-gray-400 font-light text-lg tracking-wide">
+                              Optimal conditions detected
+                            </p>
+                          </div>
+
+                          {/* Two Option Buttons */}
+                          <div className="flex flex-col space-y-4">
+                            <button
+                              onClick={handleDryItMyself}
+                              disabled={isLoadingSunDryingAnalysis}
+                              className="px-12 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg flex items-center justify-center"
+                            >
+                              {isLoadingSunDryingAnalysis ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                  Analyzing...
+                                </>
+                              ) : (
+                                'Dry it myself'
+                              )}
+                            </button>
+                            {
+                              !isBestWindowTooSoon && (
+                                <button
+                                  onClick={handleRequestHelp}
+                                  className="px-12 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                                >
+                                  Have someone else dry it
+                                </button>
+                              )
                             }
-                            
-                            const startTime = new Date(optimalWindow.startTime).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })
-                            const endTime = new Date(optimalWindow.endTime).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })
-                            
-                            return `${startTime} - ${endTime}`
-                          })()}
+
+                          </div>
                         </div>
-                        <p className="text-gray-400 font-light text-lg tracking-wide">
-                          Optimal conditions detected
-                        </p>
-                      </div>
-                      
-                      {/* Two Option Buttons */}
-                      <div className="flex flex-col space-y-4">
-                        <button
-                          onClick={handleDryItMyself}
-                          disabled={isLoadingSunDryingAnalysis}
-                          className="px-12 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg flex items-center justify-center"
-                        >
-                          {isLoadingSunDryingAnalysis ? (
-                            <>
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                              Analyzing...
-                            </>
-                          ) : (
-                            'Dry it myself'
-                          )}
-                        </button>
-                        <button
-                          onClick={handleRequestHelp}
-                          className="px-12 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
-                        >
-                          Have someone else dry it
-                        </button>
-                      </div>
+                      ) : (
+                        <div className="text-center py-16 space-y-8">
+                          <div className="text-6xl text-gray-300 mb-8">☁️</div>
+                          <div className="space-y-4">
+                            <h4 className="text-xl font-light text-gray-700">
+                              Not Optimal for Sun Drying
+                            </h4>
+                            <p className="text-gray-500 font-light">
+                              {weatherAnalysis.reason}
+                            </p>
+                          </div>
+
+                          {/* Single Button */}
+                          <div className="flex justify-center">
+                            <button
+                              onClick={handleDryItMyself}
+                              className="px-12 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                            >
+                              I got it
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-center py-16 space-y-8">
-                      <div className="text-6xl text-gray-300 mb-8">☁️</div>
-                      <div className="space-y-4">
-                        <h4 className="text-xl font-light text-gray-700">
-                          Not Optimal for Sun Drying
-                        </h4>
-                        <p className="text-gray-500 font-light">
-                          {weatherAnalysis.reason}
-                        </p>
-                      </div>
-                      
-                      {/* Single Button */}
-                      <div className="flex justify-center">
-                        <button
-                          onClick={handleDryItMyself}
-                          className="px-12 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
-                        >
-                          I got it
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
                   ) : (
                     <div className="text-center py-16">
                       <p className="text-gray-500">Unable to analyze weather conditions</p>
@@ -537,8 +579,8 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                       onClick={async () => {
                         if (selectedDuvet) {
                           const success = await handleConfirmSunDrying(
-                            selectedDuvet.id, 
-                            selectedDuvet.user_id, 
+                            selectedDuvet.id,
+                            selectedDuvet.user_id,
                             selectedDuvet.mite_score || 50
                           )
                           if (success) {
@@ -577,19 +619,19 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         optimalTimeText={
           weatherAnalysis && weatherAnalysis.optimalWindows.length > 0
             ? (() => {
-                const window = weatherAnalysis.optimalWindows[0]
-                const startTime = new Date(window.startTime).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true
-                })
-                const endTime = new Date(window.endTime).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true
-                })
-                return `${startTime} - ${endTime}`
-              })()
+              const window = weatherAnalysis.optimalWindows[0]
+              const startTime = new Date(window.startTime).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+              const endTime = new Date(window.endTime).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+              return `${startTime} - ${endTime}`
+            })()
             : undefined
         }
       />

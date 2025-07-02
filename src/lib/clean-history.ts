@@ -162,6 +162,32 @@ export async function updateDuvetMiteScore(duvetId: string, newMiteScore: number
   }
 }
 
+export async function getCleanHistoryRecord(
+  recordId: string
+): Promise<CleanHistoryRecord | null> {
+  try {
+    const { data, error } = await supabase
+      .from('clean_history')
+      .select('*')
+      .eq('id', recordId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log(`[getCleanHistoryRecord] No record found for ID: ${recordId}`)
+        return null
+      }
+      console.error(`[getCleanHistoryRecord] Error:`, error)
+      return null
+    }
+
+    return data
+  } catch (err) {
+    console.error(`[getCleanHistoryRecord] Exception:`, err)
+    return null
+  }
+}
+
 export async function getCurrentSunDryingStatus(
   duvetId: string
 ): Promise<CleanHistoryRecord | null> {

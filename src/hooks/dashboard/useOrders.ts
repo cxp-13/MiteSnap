@@ -63,12 +63,15 @@ export function useOrders(userId: string | undefined) {
     duvetId: string,
     addressId: string,
     placedPhoto: string | null,
-    deadline?: string | null
+    deadline?: string | null,
+    optimalStartTime?: string | null,
+    optimalEndTime?: string | null,
+    aiAnalysis?: { finalMiteScore: number } | null
   ) => {
     if (!userId) return false
 
     try {
-      const order = await createOrder(userId, duvetId, addressId, placedPhoto, deadline)
+      const order = await createOrder(userId, duvetId, addressId, placedPhoto, deadline, undefined, optimalStartTime, optimalEndTime, aiAnalysis)
       if (order) {
         await loadOrders()
         return true
@@ -101,18 +104,6 @@ export function useOrders(userId: string | undefined) {
             break
           case 'completed':
             duvetStatus = 'self_drying' // Set to drying status when service is completed
-            // If order is completed, also update the clean history record
-            if (order.clean_history_id) {
-              // Calculate a mock mite score reduction for help-drying (similar to self-drying)
-              const currentMiteScore = 50 // We'll get this from the duvet if needed
-              const estimatedReduction = Math.floor(Math.random() * 15) + 10 // 10-25 point reduction
-              const newMiteScore = Math.max(0, currentMiteScore - estimatedReduction)
-              
-              // Update the clean history record
-              import('@/lib/clean-history').then(({ updateSunDryRecord }) => {
-                updateSunDryRecord(order.clean_history_id!, newMiteScore)
-              })
-            }
             break
           case 'cancelled':
             duvetStatus = null
@@ -122,6 +113,33 @@ export function useOrders(userId: string | undefined) {
         
         if (duvetStatus !== undefined) {
           await updateDuvetStatus(order.quilt_id, duvetStatus as 'help_drying' | 'self_drying' | null)
+        }
+        
+        // Handle clean history update for completed help-drying orders
+        if (status === 'completed' && order.clean_history_id) {
+          try {
+            // Get the actual duvet to obtain current mite score
+            const { getUserDuvets } = await import('@/lib/database')
+            const duvets = await getUserDuvets(order.user_id)
+            const duvet = duvets.find(d => d.id === order.quilt_id)
+            
+            if (duvet) {
+              // Calculate mite score reduction for help-drying (10-25 point reduction)
+              const currentMiteScore = duvet.mite_score || 50
+              const estimatedReduction = Math.floor(Math.random() * 15) + 10
+              const newMiteScore = Math.max(0, currentMiteScore - estimatedReduction)
+              
+              // Update the clean history record
+              const { updateSunDryRecord } = await import('@/lib/clean-history')
+              await updateSunDryRecord(order.clean_history_id, newMiteScore)
+              
+              // Also update the duvet's mite score
+              const { updateDuvetMiteScore } = await import('@/lib/clean-history')
+              await updateDuvetMiteScore(order.quilt_id, newMiteScore)
+            }
+          } catch (error) {
+            console.error('Error updating clean history for completed help-drying order:', error)
+          }
         }
         
         await loadOrders()

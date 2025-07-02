@@ -88,7 +88,7 @@ export default function DuvetCard({
               <span className="font-medium text-green-800">Currently drying</span>
             </div>
             <p className="text-sm text-green-600 text-center mt-1">
-              Self-drying in progress
+              Drying in progress
             </p>
           </div>
         ) : duvet.status === 'help_drying' ? (

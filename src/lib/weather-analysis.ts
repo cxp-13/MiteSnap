@@ -103,7 +103,8 @@ export function isCurrentTimeWithinSunrise(): boolean {
 }
 
 export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): WeatherAnalysisResult {
-  const intervals = weatherData.data.timelines[0].intervals
+  console.log('weatherData', weatherData)
+  const intervals = weatherData.data.timelines[0].intervals.slice(2)
   
   // Calculate overall conditions
   const totalHours = intervals.length
@@ -183,6 +184,8 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
     })
   }
 
+
+
   // Sort by suitability score (best first)
   optimalWindows.sort((a, b) => b.suitabilityScore - a.suitabilityScore)
 
@@ -209,6 +212,7 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
     const endMin = endTime.getMinutes().toString().padStart(2, '0')
     reason = `Best drying time: ${startHour}:${startMin}-${endHour}:${endMin}`
   }
+
 
   return {
     isOptimalForSunDrying,

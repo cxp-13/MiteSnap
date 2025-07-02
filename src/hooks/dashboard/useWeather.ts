@@ -23,7 +23,7 @@ export function useWeather() {
     setIsLoadingWeatherAnalysis(true)
     try {
       const forecast = await getWeatherForecast(latitude, longitude)
-      const analysis = await analyzeWeatherForSunDrying(forecast)
+      const analysis =  analyzeWeatherForSunDrying(forecast!)
       setWeatherAnalysis(analysis)
       return analysis
     } catch (error) {

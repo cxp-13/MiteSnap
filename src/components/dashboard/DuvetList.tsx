@@ -12,7 +12,6 @@ interface DuvetListProps {
 
 export default function DuvetList({
   duvets,
-  duvetSunDryingStatus,
   isLoading,
   onSunDryingService
 }: DuvetListProps) {

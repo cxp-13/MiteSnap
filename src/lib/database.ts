@@ -46,6 +46,7 @@ export interface Order {
   quilt_id: string
   status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
   deadline: string | null
+  dry_photo?: string | null
 }
 
 export async function createDuvet(
@@ -320,7 +321,10 @@ export async function createOrder(
   addressId: string | null,
   placedPhoto: string | null,
   deadline?: string | null,
-  cleanHistoryId?: string | null
+  cleanHistoryId?: string | null,
+  optimalStartTime?: string | null,
+  optimalEndTime?: string | null,
+  aiAnalysis?: { finalMiteScore: number } | null
 ): Promise<Order | null> {
   try {
     let finalCleanHistoryId = cleanHistoryId
@@ -344,9 +348,9 @@ export async function createOrder(
           duvetId,
           userId,
           duvet.mite_score || 50,
-          undefined, // start_time - will use current time
-          undefined, // end_time - will be set when completed
-          undefined, // after_mite_score - will be calculated later
+          optimalStartTime || new Date().toISOString(), // start_time - optimal start or current time
+          optimalEndTime || undefined, // end_time - optimal end time or will be set when completed
+          aiAnalysis?.finalMiteScore || undefined, // after_mite_score - use AI prediction if available
           false // is_self = false for help-drying
         )
         
