@@ -101,7 +101,7 @@ export default function DuvetCard({
               Someone is helping dry your duvet
             </p>
           </div>
-        ) : !duvet.status && isSunriseTime && (
+        ) : duvet.status === 'normal' && isSunriseTime && (
           <div>
             <button
               onClick={(e) => {

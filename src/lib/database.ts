@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-export type DuvetStatus = 'waiting_optimal_time' | 'self_drying' | 'waiting_pickup' | 'help_drying' | null
+export type DuvetStatus = 'waiting_optimal_time' | 'self_drying' | 'waiting_pickup' | 'help_drying' | 'normal'
 
 export interface Duvet {
   id: string
@@ -70,7 +70,7 @@ export async function createDuvet(
         user_id: userId,
         address_id: addressId || null,
         last_clean: null,
-        status: null
+        status: 'normal'
       })
       .select()
       .single()

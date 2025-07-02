@@ -277,8 +277,8 @@ export async function checkAndCompleteExpiredSunDrying(duvetId: string): Promise
         await updateDuvetMiteScore(duvetId, currentRecord.after_mite_score)
       }
       
-      // Reset status to null (normal state)
-      await updateDuvetStatus(duvetId, null)
+      // Reset status to normal (normal state)
+      await updateDuvetStatus(duvetId, 'normal')
       
       return true
     }

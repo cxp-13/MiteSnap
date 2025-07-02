@@ -106,13 +106,13 @@ export function useOrders(userId: string | undefined) {
             duvetStatus = 'self_drying' // Set to drying status when service is completed
             break
           case 'cancelled':
-            duvetStatus = null
+            duvetStatus = 'normal'
             break
           // 'pending' and 'in_progress' don't change duvet status
         }
         
         if (duvetStatus !== undefined) {
-          await updateDuvetStatus(order.quilt_id, duvetStatus as 'help_drying' | 'self_drying' | null)
+          await updateDuvetStatus(order.quilt_id, duvetStatus as 'help_drying' | 'self_drying' | 'normal')
         }
         
         // Handle clean history update for completed help-drying orders
@@ -166,7 +166,7 @@ export function useOrders(userId: string | undefined) {
       if (success) {
         // Reset duvet status when order is deleted
         if (order) {
-          await updateDuvetStatus(order.quilt_id, null)
+          await updateDuvetStatus(order.quilt_id, 'normal')
         }
         
         await loadOrders()
