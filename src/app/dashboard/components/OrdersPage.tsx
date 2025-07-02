@@ -6,6 +6,7 @@ import { useAddresses } from '@/hooks/dashboard/useAddresses'
 import { formatLocalAddress, formatRelativeTime } from '@/lib/address-utils'
 import { getAddressesByIds, type Address, type OrderWithDuvet } from '@/lib/database'
 import { uploadDuvetImage } from '@/lib/storage'
+import { getCleanHistoryRecord, type CleanHistoryRecord } from '@/lib/clean-history'
 import ExecuteOrderModal from '@/components/dashboard/modals/ExecuteOrderModal'
 
 interface OrdersPageProps {
@@ -16,6 +17,7 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
   const { orders, acceptedOrders, nearbyOrders, isLoadingOrders, handleDeleteOrder, handleAcceptOrder, handleUpdateOrderStatus } = useOrders(userId)
   const { addresses } = useAddresses(userId)
   const [nearbyOrderAddresses, setNearbyOrderAddresses] = useState<Record<string, Address>>({})
+  const [cleanHistoryData, setCleanHistoryData] = useState<Record<string, CleanHistoryRecord>>({})
   
   // Execute order modal state
   const [showExecuteOrderModal, setShowExecuteOrderModal] = useState(false)
@@ -43,6 +45,108 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
 
     loadNearbyOrderAddresses()
   }, [nearbyOrders])
+
+  // Load clean history data for accepted orders
+  useEffect(() => {
+    const loadCleanHistoryData = async () => {
+      if (acceptedOrders.length === 0) return
+      
+      const ordersWithCleanHistory = acceptedOrders.filter(order => order.clean_history_id)
+      if (ordersWithCleanHistory.length === 0) return
+      
+      try {
+        const cleanHistoryPromises = ordersWithCleanHistory.map(async (order) => {
+          if (order.clean_history_id) {
+            const cleanHistory = await getCleanHistoryRecord(order.clean_history_id)
+            return { orderId: order.id, cleanHistory }
+          }
+          return null
+        })
+        
+        const results = await Promise.all(cleanHistoryPromises)
+        const cleanHistoryMap: Record<string, CleanHistoryRecord> = {}
+        
+        results.forEach((result) => {
+          if (result && result.cleanHistory) {
+            cleanHistoryMap[result.orderId] = result.cleanHistory
+          }
+        })
+        
+        setCleanHistoryData(cleanHistoryMap)
+      } catch (error) {
+        console.error('Error loading clean history data:', error)
+      }
+    }
+
+    loadCleanHistoryData()
+  }, [acceptedOrders])
+
+  // Helper function to format time range
+  const formatTimeRange = (startTime: string, endTime: string) => {
+    const start = new Date(startTime).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+    const end = new Date(endTime).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+    return `${start} - ${end}`
+  }
+
+  // Helper function to get execute button state with user-friendly messaging
+  const getExecuteButtonState = (cleanHistory: CleanHistoryRecord | undefined) => {
+    if (!cleanHistory?.start_time || !cleanHistory?.end_time) {
+      return { enabled: true, text: "Execute Order", message: null }
+    }
+    
+    const now = new Date()
+    const startTime = new Date(cleanHistory.start_time)
+    const endTime = new Date(cleanHistory.end_time)
+    
+    if (now < startTime) {
+      // Future time window
+      const hoursUntil = Math.ceil((startTime.getTime() - now.getTime()) / (1000 * 60 * 60))
+      return { 
+        enabled: false, 
+        text: "Not Available Yet", 
+        message: `Available in ${hoursUntil} hour${hoursUntil > 1 ? 's' : ''}`
+      }
+    } else if (now > endTime) {
+      // Past time window
+      return { 
+        enabled: false, 
+        text: "Time Window Ended", 
+        message: null
+      }
+    } else {
+      // Current time window
+      return { enabled: true, text: "Execute Order", message: null }
+    }
+  }
+
+  // Helper function to get completion button state
+  const getCompletionButtonState = (cleanHistory: CleanHistoryRecord | undefined) => {
+    if (!cleanHistory?.end_time) {
+      return { enabled: true, text: "Complete Order", message: null }
+    }
+    
+    const now = new Date()
+    const endTime = new Date(cleanHistory.end_time)
+    
+    if (now > endTime) {
+      return { enabled: true, text: "Complete Order", message: null }
+    } else {
+      const hoursRemaining = Math.ceil((endTime.getTime() - now.getTime()) / (1000 * 60 * 60))
+      return {
+        enabled: false,
+        text: "Drying in Progress",
+        message: `Can complete in ${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''}`
+      }
+    }
+  }
 
   // Execute order modal handlers
   const handleExecuteOrder = (order: OrderWithDuvet) => {
@@ -75,8 +179,8 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
         throw new Error('Failed to upload dry photo')
       }
 
-      // Update order status to completed and set dry_photo
-      const success = await handleUpdateOrderStatus(selectedOrder.id, 'completed', undefined, uploadResult.url)
+      // Update order status to in_progress and set dry_photo
+      const success = await handleUpdateOrderStatus(selectedOrder.id, 'in_progress', undefined, uploadResult.url)
       
       if (success) {
         setExecuteOrderStep(3)
@@ -89,6 +193,23 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
       alert('Failed to complete order. Please try again.')
     } finally {
       setIsUploadingDryPhoto(false)
+    }
+  }
+
+  // Handle final completion of in_progress order (after end time)
+  const handleFinalCompleteOrder = async (orderId: string) => {
+    try {
+      const success = await handleUpdateOrderStatus(orderId, 'completed')
+      
+      if (success) {
+        // Order will be refreshed automatically through handleUpdateOrderStatus
+        console.log('Order completed successfully')
+      } else {
+        throw new Error('Failed to complete order')
+      }
+    } catch (error) {
+      console.error('Error completing order:', error)
+      alert('Failed to complete order. Please try again.')
     }
   }
 
@@ -213,6 +334,8 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {acceptedOrders.map((order) => {
                 const address = addresses.find(a => a.id === order.address_id)
+                const cleanHistory = cleanHistoryData[order.id]
+                
                 return (
                   <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-3">
@@ -233,7 +356,12 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
                       <h4 className="font-medium text-gray-900">
                         {order.duvet_name || 'Duvet Drying Service'}
                       </h4>
-                      <p className="text-sm text-gray-600">Helping with sun-drying</p>
+                      <p className="text-sm text-gray-600">
+                        {cleanHistory && cleanHistory.start_time && cleanHistory.end_time 
+                          ? formatTimeRange(cleanHistory.start_time, cleanHistory.end_time)
+                          : 'Helping with sun-drying'
+                        }
+                      </p>
                       {address && (
                         <p className="text-sm text-gray-600">
                           📍 {address.full_address}
@@ -250,18 +378,59 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
 
                     <div className="mt-4">
                       {order.status === 'accepted' && (
-                        <button
-                          onClick={() => handleExecuteOrder(order)}
-                          className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium"
-                        >
-                          Execute Order
-                        </button>
+                        <>
+                          {(() => {
+                            const buttonState = getExecuteButtonState(cleanHistory)
+                            return (
+                              <>
+                                <button
+                                  onClick={() => handleExecuteOrder(order)}
+                                  disabled={!buttonState.enabled}
+                                  className={`w-full px-4 py-2 rounded font-medium transition-colors ${
+                                    buttonState.enabled
+                                      ? 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {buttonState.text}
+                                </button>
+                                {buttonState.message && (
+                                  <p className="text-xs text-gray-500 mt-1 text-center">
+                                    {buttonState.message}
+                                  </p>
+                                )}
+                              </>
+                            )
+                          })()}
+                        </>
                       )}
                       
                       {order.status === 'in_progress' && (
-                        <div className="text-sm text-yellow-600 font-medium">
-                          In progress
-                        </div>
+                        <>
+                          {(() => {
+                            const completionState = getCompletionButtonState(cleanHistory)
+                            return (
+                              <>
+                                <button
+                                  onClick={() => handleFinalCompleteOrder(order.id)}
+                                  disabled={!completionState.enabled}
+                                  className={`w-full px-4 py-2 rounded font-medium transition-colors ${
+                                    completionState.enabled
+                                      ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {completionState.text}
+                                </button>
+                                {completionState.message && (
+                                  <p className="text-xs text-gray-500 mt-1 text-center">
+                                    {completionState.message}
+                                  </p>
+                                )}
+                              </>
+                            )
+                          })()}
+                        </>
                       )}
                       
                       {order.status === 'completed' && (

@@ -11,6 +11,7 @@ import { uploadDuvetImage } from '@/lib/storage'
 import DuvetList from '@/components/dashboard/DuvetList'
 import NewDuvetModal from '@/components/dashboard/modals/NewDuvetModal'
 import OrderRequestModal from '@/components/dashboard/modals/OrderRequestModal'
+import TimeRangePicker from '@/components/dashboard/shared/TimeRangePicker'
 
 interface DuvetsPageProps {
   userId: string
@@ -72,13 +73,16 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     isLoadingSunDryingAnalysis,
     showSunDryModal,
     sunDryStep,
+    isManualMode,
+    manualTimeWindow,
     analyzeWeatherForDrying,
     closeSunDryModal,
     closeSunDryModalUIOnly,
     setShowSunDryModal,
     setSunDryStep,
     handleStartAIAnalysis,
-    handleConfirmSunDrying
+    handleConfirmSunDrying,
+    handleManualTimeSelection
   } = weatherHook
 
   const { addresses, getDefaultAddress } = addressesHook
@@ -133,9 +137,13 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       return
     }
 
-    // Check if weather analysis is available
-    if (!weatherAnalysis) {
-      alert('Weather analysis is not available. Please try again or contact support.')
+    // Check if time window is available (either from weather analysis or manual selection)
+    const effectiveWindow = isManualMode && manualTimeWindow 
+      ? manualTimeWindow 
+      : weatherAnalysis?.optimalWindows?.[0]
+    
+    if (!effectiveWindow) {
+      alert(isManualMode ? 'Please select a time window first' : 'Weather analysis is not available. Please try again or contact support.')
       return
     }
 
@@ -197,28 +205,25 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         throw new Error('Failed to upload photo')
       }
 
-      // Check if weather analysis is still available
-      if (!weatherAnalysis) {
-        throw new Error('Weather analysis is no longer available. Please try again.')
+      // Get effective time window (weather analysis or manual selection)
+      const effectiveWindow = isManualMode && manualTimeWindow 
+        ? manualTimeWindow 
+        : weatherAnalysis?.optimalWindows?.[0]
+      
+      if (!effectiveWindow) {
+        throw new Error(isManualMode ? 'Manual time window is no longer available. Please try again.' : 'Weather analysis is no longer available. Please try again.')
       }
 
-      // Run AI analysis for help-drying (same as self-drying)
-      if (!weatherAnalysis.optimalWindows.length) {
-        throw new Error('No optimal drying windows found for AI analysis.')
-      }
-
-      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
-
-      // Calculate actual drying duration from the optimal window
-      const startTime = new Date(bestWeatherWindow.startTime)
-      const endTime = new Date(bestWeatherWindow.endTime)
+      // Calculate actual drying duration from the effective window
+      const startTime = new Date(effectiveWindow.startTime)
+      const endTime = new Date(effectiveWindow.endTime)
       const durationInHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
 
       // Import and run AI analysis
       const { calculateBasicSunDryingReduction } = await import('@/lib/sun-drying-ai')
       const aiAnalysis = calculateBasicSunDryingReduction(
         selectedDuvet.mite_score || 50,
-        bestWeatherWindow,
+        effectiveWindow,
         durationInHours
       )
 
@@ -228,19 +233,19 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       const deadline = new Date(startTime.getTime() - 30 * 60 * 1000).toISOString()
 
       console.log('Order creation debug:')
-      console.log('- Weather analysis:', weatherAnalysis)
-      console.log('- Optimal windows:', weatherAnalysis.optimalWindows)
+      console.log('- Is manual mode:', isManualMode)
+      console.log('- Effective window:', effectiveWindow)
       console.log('- AI Analysis:', aiAnalysis)
       console.log('- Calculated deadline:', deadline)
 
-      // Create order with optimal time window and AI analysis information
+      // Create order with effective time window and AI analysis information
       const success = await handleCreateOrder(
         selectedDuvet.id,
         defaultAddress.id,
         uploadResult.url,
         deadline,
-        bestWeatherWindow.startTime,
-        bestWeatherWindow.endTime,
+        effectiveWindow.startTime,
+        effectiveWindow.endTime,
         aiAnalysis
       )
 
@@ -289,19 +294,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     }
   }
 
-  const isBestWindowTooSoon = () => {
-    if (!weatherAnalysis || weatherAnalysis.optimalWindows.length === 0) return false
 
-    const startTime = new Date(weatherAnalysis.optimalWindows[0].startTime).getTime()
-    const now = Date.now()
-
-    console.log('startTime', startTime)
-    console.log('now', now)
-
-    const diffInMinutes = (startTime - now) / (1000 * 60)
-
-    return diffInMinutes <= 30 && diffInMinutes >= 0
-  }
 
 
   return (
@@ -440,7 +433,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                                   optimalWindow = futureWindow
                                 }
 
-                          
+
                                 const startTime = new Date(optimalWindow.startTime).toLocaleTimeString('en-US', {
                                   hour: 'numeric',
                                   minute: '2-digit',
@@ -476,16 +469,12 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                                 'Dry it myself'
                               )}
                             </button>
-                            {
-                              !isBestWindowTooSoon && (
-                                <button
-                                  onClick={handleRequestHelp}
-                                  className="px-12 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
-                                >
-                                  Have someone else dry it
-                                </button>
-                              )
-                            }
+                            <button
+                              onClick={handleRequestHelp}
+                              className="px-12 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                            >
+                              Have someone else dry it
+                            </button>
 
                           </div>
                         </div>
@@ -513,6 +502,62 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                         </div>
                       )}
                     </div>
+                  ) : isManualMode ? (
+                    <div className="py-8 space-y-6">
+                      <div className="text-center space-y-4">
+                        <div className="text-4xl text-gray-300 mb-4">⏰</div>
+                        <h4 className="text-xl font-light text-gray-700">
+                          Weather Analysis Unavailable
+                        </h4>
+                        <p className="text-gray-500 font-light">
+                          Select your preferred drying time manually
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-xl p-6">
+                        <TimeRangePicker
+                          onTimeRangeChange={handleManualTimeSelection}
+                        />
+                      </div>
+
+                      {manualTimeWindow && (
+                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                          <div className="flex items-start space-x-3">
+                            <div className="text-amber-600 text-lg">⚠️</div>
+                            <div className="flex-1">
+                              <h5 className="font-medium text-amber-800 mb-1">Manual Time Selection</h5>
+                              <p className="text-sm text-amber-700">
+                                Weather conditions will not be considered. Ensure good drying conditions during your selected time.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col space-y-4">
+                        <button
+                          onClick={handleDryItMyself}
+                          disabled={!manualTimeWindow || isLoadingSunDryingAnalysis}
+                          className="px-12 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg flex items-center justify-center"
+                        >
+                          {isLoadingSunDryingAnalysis ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                              Analyzing...
+                            </>
+                          ) : (
+                            'Dry it myself'
+                          )}
+                        </button>
+                        <button
+                          onClick={handleRequestHelp}
+                          disabled={!manualTimeWindow}
+                          className="px-12 py-4 bg-green-500 hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                        >
+                          Have someone else dry it
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="text-center py-16">
                       <p className="text-gray-500">Unable to analyze weather conditions</p>
@@ -525,7 +570,9 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                 <div className="py-8 space-y-4">
                   <div className="text-center space-y-4">
                     <h4 className="text-2xl font-semibold text-black">AI Analysis Results</h4>
-                    <p className="text-gray-600">Based on weather conditions and current mite score</p>
+                    <p className="text-gray-600">
+                      Based on {isManualMode ? 'selected time window' : 'weather conditions'} and current mite score
+                    </p>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-6 space-y-6">
@@ -617,22 +664,25 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         onNextStep={handleOrderNextStep}
         onPrevStep={handleOrderPrevStep}
         optimalTimeText={
-          weatherAnalysis && weatherAnalysis.optimalWindows.length > 0
-            ? (() => {
-              const window = weatherAnalysis.optimalWindows[0]
-              const startTime = new Date(window.startTime).toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              })
-              const endTime = new Date(window.endTime).toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              })
-              return `${startTime} - ${endTime}`
-            })()
-            : undefined
+          (() => {
+            const effectiveWindow = isManualMode && manualTimeWindow 
+              ? manualTimeWindow 
+              : weatherAnalysis?.optimalWindows?.[0]
+            
+            if (!effectiveWindow) return undefined
+            
+            const startTime = new Date(effectiveWindow.startTime).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+            const endTime = new Date(effectiveWindow.endTime).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+            return `${startTime} - ${endTime}${isManualMode ? ' (Manual)' : ''}`
+          })()
         }
       />
     </div>

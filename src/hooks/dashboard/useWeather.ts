@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { getWeatherForecast, analyzeWeatherForSunDrying, type WeatherAnalysisResult } from '@/lib/weather-analysis'
+import { getWeatherForecast, analyzeWeatherForSunDrying, type WeatherAnalysisResult, type OptimalTimeWindow } from '@/lib/weather-analysis'
 import { calculateBasicSunDryingReduction, type SunDryingAnalysisResult } from '@/lib/sun-drying-ai'
 import { createSunDryRecord } from '@/lib/clean-history'
 import { updateDuvetStatus } from '@/lib/database'
@@ -17,10 +17,15 @@ export function useWeather() {
   // Sun drying modal state
   const [showSunDryModal, setShowSunDryModal] = useState(false)
   const [sunDryStep, setSunDryStep] = useState<1 | 2>(1)
+  
+  // Manual time selection state
+  const [isManualMode, setIsManualMode] = useState(false)
+  const [manualTimeWindow, setManualTimeWindow] = useState<OptimalTimeWindow | null>(null)
 
   // Analyze weather for sun drying
   const analyzeWeatherForDrying = useCallback(async (latitude: number, longitude: number) => {
     setIsLoadingWeatherAnalysis(true)
+    setIsManualMode(false) // Reset manual mode when trying weather analysis
     try {
       const forecast = await getWeatherForecast(latitude, longitude)
       const analysis =  analyzeWeatherForSunDrying(forecast!)
@@ -28,10 +33,24 @@ export function useWeather() {
       return analysis
     } catch (error) {
       console.error('Error analyzing weather:', error)
+      setIsManualMode(true) // Enable manual mode when weather fails
       return null
     } finally {
       setIsLoadingWeatherAnalysis(false)
     }
+  }, [])
+
+  // Handle manual time selection
+  const handleManualTimeSelection = useCallback((startTime: string, endTime: string) => {
+    const manualWindow: OptimalTimeWindow = {
+      startTime,
+      endTime,
+      temperature: 15, // Default values for manual mode
+      humidity: 70,
+      precipitationProbability: 20,
+      suitabilityScore: 50
+    }
+    setManualTimeWindow(manualWindow)
   }, [])
 
 
@@ -42,6 +61,8 @@ export function useWeather() {
     setSunDryStep(1)
     setWeatherAnalysis(null)
     setSunDryingAnalysis(null)
+    setIsManualMode(false)
+    setManualTimeWindow(null)
   }, [])
 
   // Close sun dry modal UI only (preserve weather data for order creation)
@@ -53,26 +74,28 @@ export function useWeather() {
 
   // Start AI analysis (don't create record yet)
   const handleStartAIAnalysis = useCallback(async (currentMiteScore: number) => {
-    if (!weatherAnalysis || !weatherAnalysis.optimalWindows.length) {
-      alert('Weather analysis not available')
+    // Use manual time window if in manual mode, otherwise use weather analysis
+    const effectiveWindow = isManualMode && manualTimeWindow 
+      ? manualTimeWindow 
+      : weatherAnalysis?.optimalWindows?.[0]
+    
+    if (!effectiveWindow) {
+      alert(isManualMode ? 'Please select a time window first' : 'Weather analysis not available')
       return false
     }
 
     try {
       setIsLoadingSunDryingAnalysis(true)
       
-      // Get the best weather window
-      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
-      
-      // Calculate actual drying duration from the optimal window
-      const startTime = new Date(bestWeatherWindow.startTime)
-      const endTime = new Date(bestWeatherWindow.endTime)
+      // Calculate actual drying duration from the effective window
+      const startTime = new Date(effectiveWindow.startTime)
+      const endTime = new Date(effectiveWindow.endTime)
       const durationInHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
       
-      // Run AI analysis without photo (using weather-based analysis)
+      // Run AI analysis
       const analysis = calculateBasicSunDryingReduction(
         currentMiteScore,
-        bestWeatherWindow,
+        effectiveWindow,
         durationInHours
       )
       
@@ -86,26 +109,28 @@ export function useWeather() {
     } finally {
       setIsLoadingSunDryingAnalysis(false)
     }
-  }, [weatherAnalysis])
+  }, [weatherAnalysis, isManualMode, manualTimeWindow])
 
   // Confirm and start sun drying (after showing results)
   const handleConfirmSunDrying = useCallback(async (duvetId: string, userId: string, currentMiteScore: number) => {
-    if (!weatherAnalysis || !weatherAnalysis.optimalWindows.length || !sunDryingAnalysis) {
-      alert('Weather analysis or prediction not available')
+    // Use manual time window if in manual mode, otherwise use weather analysis
+    const effectiveWindow = isManualMode && manualTimeWindow 
+      ? manualTimeWindow 
+      : weatherAnalysis?.optimalWindows?.[0]
+    
+    if (!effectiveWindow || !sunDryingAnalysis) {
+      alert('Time window or prediction not available')
       return false
     }
 
     try {
-      // Get the best weather window
-      const bestWeatherWindow = weatherAnalysis.optimalWindows[0]
-      
-      // Create sun dry record with optimal time window and predicted mite score
+      // Create sun dry record with effective time window and predicted mite score
       await createSunDryRecord(
         duvetId, 
         userId, 
         currentMiteScore,
-        bestWeatherWindow.startTime,
-        bestWeatherWindow.endTime,
+        effectiveWindow.startTime,
+        effectiveWindow.endTime,
         sunDryingAnalysis.finalMiteScore
       )
       
@@ -120,7 +145,7 @@ export function useWeather() {
       alert('Failed to start sun drying. Please try again.')
       return false
     }
-  }, [weatherAnalysis, sunDryingAnalysis, closeSunDryModal])
+  }, [weatherAnalysis, sunDryingAnalysis, closeSunDryModal, isManualMode, manualTimeWindow])
 
   return {
     // Location & Weather State
@@ -137,6 +162,10 @@ export function useWeather() {
     showSunDryModal,
     sunDryStep,
     
+    // Manual Time Selection State
+    isManualMode,
+    manualTimeWindow,
+    
     // Actions
     setLocation,
     setIsLoadingLocation,
@@ -145,9 +174,11 @@ export function useWeather() {
     analyzeWeatherForDrying,
     handleStartAIAnalysis,
     handleConfirmSunDrying,
+    handleManualTimeSelection,
     closeSunDryModal,
     closeSunDryModalUIOnly,
     setShowSunDryModal,
-    setSunDryStep
+    setSunDryStep,
+    setIsManualMode
   }
 }
