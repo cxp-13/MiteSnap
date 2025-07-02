@@ -39,7 +39,7 @@ export async function getCurrentPosition(
       return
     }
 
-    const success = (position: any) => {
+    const success = (position: globalThis.GeolocationPosition) => {
       resolve({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -48,7 +48,7 @@ export async function getCurrentPosition(
       })
     }
 
-    const error = (err: any) => {
+    const error = (err: GeolocationPositionError) => {
       let errorType: GeolocationError['type']
       let message: string
 
@@ -97,7 +97,7 @@ export async function watchPosition(
       return
     }
 
-    const success = (position: any) => {
+    const success = (position: globalThis.GeolocationPosition) => {
       callback({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -106,7 +106,7 @@ export async function watchPosition(
       })
     }
 
-    const error = (err: any) => {
+    const error = (err: GeolocationPositionError) => {
       let errorType: GeolocationError['type']
       let message: string
 

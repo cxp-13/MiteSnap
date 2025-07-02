@@ -235,7 +235,7 @@ export async function updateAddress(
         .eq('user_id', userId)
     }
 
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     
     // New structure fields
     if (addressData.country !== undefined) updateData.country = addressData.country
@@ -583,7 +583,7 @@ export async function updateOrderStatus(
   dryPhoto?: string | null
 ): Promise<boolean> {
   try {
-    const updateData: any = { status }
+    const updateData: Record<string, unknown> = { status }
     if (serviceUserId !== undefined) {
       updateData.service_user_id = serviceUserId
     }

@@ -157,7 +157,7 @@ export default function Home() {
                 </h3>
               </div>
               <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                Powered by Qwen's advanced visual AI model combined with real-time weather data from Tomorrow.io. 
+                Powered by Qwen&apos;s advanced visual AI model combined with real-time weather data from Tomorrow.io. 
                 Our intelligent system analyzes your duvet photos and environmental conditions to scientifically 
                 assess dust mite levels and predict optimal sun-drying effectiveness.
               </p>
@@ -188,7 +188,7 @@ export default function Home() {
                 </h3>
               </div>
               <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                Can't dry your duvet yourself? Our innovative community service instantly connects you with 
+                Can&apos;t dry your duvet yourself? Our innovative community service instantly connects you with 
                 helpful neighbors within a 5km radius. Every platform user can assist with duvet drying, 
                 creating a supportive local network for better home hygiene.
               </p>
@@ -288,7 +288,7 @@ export default function Home() {
           {/* CTA in FAQ Section */}
           <div className="text-center mt-12">
             <p className="text-gray-600 mb-6">
-              Still have questions? We're here to help!
+              Still have questions? We&apos;re here to help!
             </p>
             {isMockMode ? (
               <>

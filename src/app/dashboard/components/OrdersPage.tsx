@@ -32,7 +32,7 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     const loadNearbyOrderAddresses = async () => {
       if (nearbyOrders.length === 0) return
       
-      const addressIds = [...new Set(nearbyOrders.map(order => order.address_id).filter(Boolean))]
+      const addressIds = [...new Set(nearbyOrders.map(order => order.address_id).filter((id): id is string => Boolean(id)))]
       if (addressIds.length === 0) return
       
       try {

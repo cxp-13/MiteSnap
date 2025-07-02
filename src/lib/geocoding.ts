@@ -25,7 +25,7 @@ export interface OpenCageResponse {
     reset: number
   }
   results: Array<{
-    annotations: any
+    annotations: Record<string, unknown>
     bounds: {
       northeast: { lat: number; lng: number }
       southwest: { lat: number; lng: number }
@@ -50,7 +50,7 @@ export interface OpenCageResponse {
       state?: string
       state_code?: string
       suburb?: string
-      [key: string]: any
+      [key: string]: unknown
     }
     confidence: number
     distance_from_q: {
