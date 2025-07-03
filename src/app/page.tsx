@@ -75,37 +75,50 @@ export default function Home() {
   ]
 
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col">
+    <div className="min-h-screen w-full bg-white flex flex-col relative">
+      {/* Subtle background texture */}
+      <div className="absolute inset-0 opacity-[0.02] bg-gradient-to-br from-gray-900 via-transparent to-gray-900"></div>
+      <div className="absolute inset-0 opacity-[0.015]" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0,0,0,0.15) 1px, transparent 0)`,
+        backgroundSize: '20px 20px'
+      }}></div>
+      
       {/* Header */}
       <Header />
       
-      {/* Hero Section - Full viewport height */}
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-black mb-6 tracking-tight">
-            Breathe Easy. Live Clean.
+      {/* Hero Section - Full viewport height with perfect centering */}
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
+        <div className="max-w-4xl mx-auto text-center space-y-12">
+          {/* Main Headline */}
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-light text-black leading-[0.9] tracking-[-0.02em] mb-8">
+            Your Smart Solution for<br />
+            <span className="text-gray-700">Mite-Free Living</span>
           </h1>
-          <p className="text-lg md:text-2xl font-semibold text-gray-500 mb-12">
-            AI-powered dust mite & duvet care.
+          
+          {/* Subheading */}
+          <p className="text-xl md:text-2xl lg:text-3xl font-light text-gray-600 leading-relaxed tracking-[-0.01em] max-w-3xl mx-auto">
+            Say Goodbye to Dust Mites, Hello to Freshness.
           </p>
           
           {/* CTA Button */}
-          <div className="mb-16">
+          <div className="pt-8">
             {isMockMode ? (
               <>
                 {!isSignedIn ? (
                   <button 
                     onClick={handleGetStarted}
-                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
+                    className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
                   >
-                    Get Started (Demo)
+                    <span className="relative z-10">Get Started</span>
+                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
                   </button>
                 ) : (
                   <button 
                     onClick={() => router.push('/dashboard')}
-                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
+                    className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
                   >
-                    Go to Dashboard
+                    <span className="relative z-10">Go to Dashboard</span>
+                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
                   </button>
                 )}
               </>
@@ -113,8 +126,9 @@ export default function Home() {
               <>
                 <SignedOut>
                   <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-                    <button className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition">
-                      Get Started
+                    <button className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
+                      <span className="relative z-10">Get Started</span>
+                      <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
                     </button>
                   </SignInButton>
                 </SignedOut>
@@ -122,9 +136,10 @@ export default function Home() {
                 <SignedIn>
                   <button 
                     onClick={() => router.push('/dashboard')}
-                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
+                    className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
                   >
-                    Go to Dashboard
+                    <span className="relative z-10">Go to Dashboard</span>
+                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
                   </button>
                 </SignedIn>
               </>
