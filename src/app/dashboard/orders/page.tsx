@@ -46,7 +46,7 @@ export default function OrdersRoute() {
   const userId = user.id
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="bg-gray-50 flex flex-1">
       {/* Sidebar */}
       <Sidebar />
 

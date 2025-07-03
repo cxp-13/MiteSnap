@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { Qwen } from '@lobehub/icons'
 import Header from '@/components/Header'
 import { useMockUser } from '@/context/MockUserContext'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
@@ -38,6 +40,107 @@ export default function Home() {
   const toggleFAQ = (index: number) => {
     setOpenFAQ(openFAQ === index ? null : index)
   }
+
+  useEffect(() => {
+    const setupRoleSwapAnimations = () => {
+      const helperDiv = document.querySelector('[data-role="helper"]') as HTMLElement
+      const youDiv = document.querySelector('[data-role="you"]') as HTMLElement
+      const helperLabel = document.getElementById('helper-label') as HTMLElement
+      const youLabel = document.getElementById('you-label') as HTMLElement
+      const helperContainer = document.getElementById('helper-container') as HTMLElement
+      const youContainer = document.getElementById('you-container') as HTMLElement
+      const helperIcon = document.getElementById('helper-icon') as HTMLElement
+      const youIcon = document.getElementById('you-icon') as HTMLElement
+
+      if (!helperDiv || !youDiv || !helperLabel || !youLabel || !helperContainer || !youContainer || !helperIcon || !youIcon) {
+        console.log('Missing elements for role swap animation')
+        return
+      }
+
+      // State to track if roles are currently swapped
+      let isSwapped = false
+
+      // Universal function to safely set class on any element
+      const setElementClass = (element: HTMLElement, className: string) => {
+        if (!element) return
+        try {
+          element.setAttribute('class', className)
+        } catch (e) {
+          console.warn('Failed to set class on element:', element, e)
+        }
+      }
+
+      const applyGreyTheme = (container: HTMLElement, icon: HTMLElement, label: HTMLElement) => {
+        setElementClass(container, 'w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-300 group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg')
+        setElementClass(icon, 'w-8 h-8 text-gray-600 transition-colors duration-300')
+        setElementClass(label, 'text-xs font-medium text-gray-600 transition-colors duration-300')
+      }
+
+      const applyWhiteTheme = (container: HTMLElement, icon: HTMLElement, label: HTMLElement) => {
+        setElementClass(container, 'w-16 h-16 bg-white rounded-xl flex items-center justify-center border-2 border-gray-300 group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg')
+        setElementClass(icon, 'w-8 h-8 text-gray-700 transition-colors duration-300')
+        setElementClass(label, 'text-xs font-medium text-gray-700 transition-colors duration-300')
+      }
+
+      const setOriginalState = () => {
+        // Helper: Grey theme + "Helper" label
+        applyGreyTheme(helperContainer, helperIcon, helperLabel)
+        if (helperLabel && helperLabel.textContent !== undefined) {
+          helperLabel.textContent = 'Helper'
+        }
+        
+        // You: White theme + "You" label
+        applyWhiteTheme(youContainer, youIcon, youLabel)
+        if (youLabel && youLabel.textContent !== undefined) {
+          youLabel.textContent = 'You'
+        }
+      }
+
+      const setSwappedState = () => {
+        // Helper becomes You (white theme)
+        applyWhiteTheme(helperContainer, helperIcon, helperLabel)
+        if (helperLabel && helperLabel.textContent !== undefined) {
+          helperLabel.textContent = 'You'
+        }
+        
+        // You becomes Helper (grey theme)
+        applyGreyTheme(youContainer, youIcon, youLabel)
+        if (youLabel && youLabel.textContent !== undefined) {
+          youLabel.textContent = 'Helper'
+        }
+      }
+
+      const handleRoleToggle = () => {
+        if (isSwapped) {
+          // Currently swapped, return to original
+          setOriginalState()
+          isSwapped = false
+        } else {
+          // Currently original, swap roles
+          setSwappedState()
+          isSwapped = true
+        }
+      }
+
+      helperDiv.addEventListener('mouseenter', handleRoleToggle)
+      youDiv.addEventListener('mouseenter', handleRoleToggle)
+
+      return () => {
+        helperDiv.removeEventListener('mouseenter', handleRoleToggle)
+        youDiv.removeEventListener('mouseenter', handleRoleToggle)
+      }
+    }
+
+    // Add a small delay to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
+      const cleanup = setupRoleSwapAnimations()
+      return cleanup
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [])
 
   const faqs = [
     {
@@ -179,151 +282,211 @@ export default function Home() {
         </div>
       </main>
 
-      {/* AI MiteScan & Insights Section */}
-      <section className="min-h-screen bg-white py-20 px-6 flex items-center justify-center relative z-10">
-        <div className="max-w-6xl mx-auto text-center">
-          {/* Section Heading */}
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-8 tracking-tight">
-            AI MiteScan & Insights
-          </h2>
+      {/* Combined Core Features Section */}
+      <section className="min-h-screen bg-white py-8 px-6 flex items-center justify-center relative z-10">
+        <div className="max-w-7xl mx-auto w-full h-full flex flex-col justify-center space-y-8">
           
-          {/* Section Description */}
-          <p className="text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-4xl mx-auto mb-16 font-light">
-            Get precise mite analysis with our SiliconFlow-powered AI visual model, which scientifically assesses mite levels from your bedding photos. This is enhanced by Tomorrow.io's real-time weather data, predicting optimal sun-drying conditions for maximum effectiveness.
-          </p>
-
-          {/* AI Workflow Diagram */}
-          <div className="flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-12 max-w-5xl mx-auto">
-            {/* Input */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300">
-                <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <span className="text-sm font-medium text-gray-700">Photo Input</span>
+          {/* AI MiteScan & Insights Row */}
+          <div className="flex flex-col lg:flex-row items-center justify-between space-y-8 lg:space-y-0 lg:space-x-16 h-1/2">
+            {/* Left: Content */}
+            <div className="flex-1 lg:text-left text-center">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-black mb-4 tracking-tight">
+                AI MiteScan & Insights
+              </h2>
+              <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-normal max-w-xl">
+                Get precise mite analysis with our{' '}
+                <span className="text-purple-600 font-medium">SiliconFlow</span>
+                -powered AI visual model, enhanced by Tomorrow.io's real-time weather data for optimal sun-drying predictions.
+              </p>
             </div>
+            
+            {/* Right: Enhanced Workflow Diagram */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-4xl mx-auto">
+                <div className="grid grid-cols-5 gap-2 items-center">
+                  {/* Dual Inputs Column */}
+                  <div className="flex flex-col space-y-3">
+                    {/* Duvet Photos */}
+                    <div className="flex flex-col items-center space-y-2 group cursor-pointer">
+                      <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center border-2 border-gray-200 group-hover:border-gray-400 group-hover:bg-white group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg">
+                        <svg className="w-7 h-7 text-gray-700 group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-xs font-medium text-gray-700 group-hover:text-black transition-colors duration-300">Duvet Photos</span>
+                    </div>
 
-            {/* Arrow */}
-            <div className="hidden md:block">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
+                    {/* Weather Data */}
+                    <div className="flex flex-col items-center space-y-2 group cursor-pointer">
+                      <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-300 group-hover:border-gray-500 group-hover:bg-gray-50 group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg">
+                        <svg className="w-7 h-7 text-gray-600 group-hover:text-gray-800 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                      </div>
+                      <span className="text-xs font-medium text-gray-700 group-hover:text-gray-800 transition-colors duration-300">Weather Data</span>
+                    </div>
+                  </div>
 
-            {/* Processing */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-32 h-20 bg-black rounded-lg flex flex-col items-center justify-center text-white">
-                <span className="text-xs font-medium">SiliconFlow AI</span>
-                <span className="text-xs text-gray-300">Qwen Model</span>
-              </div>
-              <span className="text-sm font-medium text-gray-700">AI Processing</span>
-            </div>
+                  {/* Converging Flow Lines */}
+                  <div className="flex flex-col items-center justify-center space-y-4 relative -mx-1">
+                    {/* Top curved line */}
+                    <div className="relative w-16 h-8">
+                      <svg className="w-full h-full" viewBox="0 0 64 32" fill="none">
+                        <path 
+                          d="M2 8 Q32 2 60 16" 
+                          stroke="rgb(107 114 128)" 
+                          strokeWidth="2.5" 
+                          strokeLinecap="round"
+                          strokeDasharray="4 3"
+                          className="opacity-80"
+                        />
+                        <circle 
+                          cx="60" 
+                          cy="16" 
+                          r="2" 
+                          fill="rgb(107 114 128)" 
+                          className="opacity-90"
+                        />
+                      </svg>
+                    </div>
+                    
+                    {/* Bottom curved line */}
+                    <div className="relative w-16 h-8">
+                      <svg className="w-full h-full" viewBox="0 0 64 32" fill="none">
+                        <path 
+                          d="M2 24 Q32 30 60 16" 
+                          stroke="rgb(107 114 128)" 
+                          strokeWidth="2.5" 
+                          strokeLinecap="round"
+                          strokeDasharray="4 3"
+                          className="opacity-80"
+                        />
+                        <circle 
+                          cx="60" 
+                          cy="16" 
+                          r="2" 
+                          fill="rgb(107 114 128)" 
+                          className="opacity-90"
+                        />
+                      </svg>
+                    </div>
+                  </div>
 
-            {/* Plus Weather */}
-            <div className="flex items-center space-x-4">
-              <span className="text-2xl text-gray-400">+</span>
-              <div className="flex flex-col items-center space-y-4">
-                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center border-2 border-blue-200">
-                  <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                  </svg>
+                  {/* AI Processing */}
+                  <div className="flex flex-col items-center space-y-2 group cursor-pointer">
+                    <div className="w-20 h-16 bg-gradient-to-r from-gray-800 to-black rounded-xl flex items-center justify-center text-white shadow-lg group-hover:from-gray-700 group-hover:to-gray-800 group-hover:scale-105 transition-all duration-300 group-hover:shadow-xl p-3">
+                      <div className="flex items-center justify-center w-full h-full">
+                        <Qwen.Combine size={22} type={'mono'} />
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 group-hover:text-black transition-colors duration-300">AI Processing</span>
+                  </div>
+
+                  {/* Output Flow Line */}
+                  <div className="flex items-center justify-center -mx-1">
+                    <div className="relative w-12 h-6">
+                      <svg className="w-full h-full" viewBox="0 0 48 24" fill="none">
+                        <path 
+                          d="M2 12 Q24 12 42 12" 
+                          stroke="rgb(107 114 128)" 
+                          strokeWidth="2.5" 
+                          strokeLinecap="round"
+                          strokeDasharray="5 4"
+                          className="opacity-80"
+                        />
+                        <path 
+                          d="M36 8 L44 12 L36 16" 
+                          stroke="rgb(107 114 128)" 
+                          strokeWidth="2.5" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                          fill="none"
+                          className="opacity-85"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Mite Analysis Output */}
+                  <div className="flex flex-col items-center space-y-2 group cursor-pointer">
+                    <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center border-2 border-gray-300 group-hover:border-gray-500 group-hover:bg-gray-50 group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg">
+                      {/* Microscopic mite silhouette */}
+                      <svg className="w-8 h-8 text-gray-600 group-hover:text-black transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 4c-1.5 0-3 .5-4 1.5C7 6.5 6.5 8 6.5 9.5c0 1 .3 2 .8 2.8l-1.8 1.8c-.3.3-.3.8 0 1.1s.8.3 1.1 0l1.8-1.8c.8.5 1.8.8 2.8.8 1.5 0 3-.5 4-1.5 1-1 1.5-2.5 1.5-4s-.5-3-1.5-4c-1-1-2.5-1.5-4-1.5zm0 2c1 0 1.8.3 2.5 1s1 1.5 1 2.5-.3 1.8-1 2.5-1.5 1-2.5 1-1.8-.3-2.5-1-1-1.5-1-2.5.3-1.8 1-2.5 1.5-1 2.5-1z"/>
+                        <circle cx="12" cy="9.5" r="1.5"/>
+                      </svg>
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 group-hover:text-black transition-colors duration-300">Mite Analysis</span>
+                  </div>
                 </div>
-                <span className="text-sm font-medium text-gray-700">Weather Data</span>
               </div>
-            </div>
-
-            {/* Arrow */}
-            <div className="hidden md:block">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-
-            {/* Output */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center border-2 border-green-200">
-                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <span className="text-sm font-medium text-gray-700">Mite Analysis</span>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Hassle-Free Community Drying Section */}
-      <section className="min-h-screen bg-white py-20 px-6 flex items-center justify-center relative z-10">
-        <div className="max-w-6xl mx-auto text-center">
-          {/* Section Heading */}
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-8 tracking-tight">
-            Hassle-Free Community Drying
-          </h2>
-          
-          {/* Section Description */}
-          <p className="text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-4xl mx-auto mb-16 font-light">
-            Connect instantly with verified neighbors for convenient duvet drying. Our OpenCage-powered location matching finds the closest helpers within a 5km radius, creating a reliable, supportive network for effortless home hygiene.
-          </p>
+          {/* Divider */}
+          <div className="w-full h-px bg-gray-200"></div>
 
-          {/* Community Interaction Diagram */}
-          <div className="flex flex-col md:flex-row items-center justify-center space-y-12 md:space-y-0 md:space-x-16 max-w-4xl mx-auto">
-            {/* User 1 */}
-            <div className="flex flex-col items-center space-y-4 group">
-              <div className="relative">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300 group-hover:border-blue-400 group-hover:bg-blue-50 transition-all duration-300">
-                  <svg className="w-12 h-12 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                {/* Active indicator */}
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
-              </div>
-              <span className="text-sm font-medium text-gray-700">Helper</span>
+          {/* Community Drying Row */}
+          <div className="flex flex-col lg:flex-row items-center justify-between space-y-8 lg:space-y-0 lg:space-x-16 h-1/2">
+            {/* Left: Content */}
+            <div className="flex-1 lg:text-left text-center">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-black mb-4 tracking-tight">
+                Hassle-Free Community Drying
+              </h2>
+              <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-normal max-w-xl">
+                Connect instantly with verified neighbors for convenient duvet drying. Our location matching finds helpers within a 5km radius for reliable support.
+              </p>
             </div>
+            
+            {/* Right: Enhanced Community Diagram */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="flex items-center space-x-8" id="community-diagram">
+                {/* Helper */}
+                <div className="flex flex-col items-center space-y-2 group cursor-pointer" data-role="helper">
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-300 group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg" id="helper-container">
+                      <svg className="w-8 h-8 text-gray-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="helper-icon">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 transition-colors duration-300" id="helper-label">Helper</span>
+                </div>
 
-            {/* Connection Visualization */}
-            <div className="flex flex-col items-center space-y-4">
-              {/* 5KM Radius Circle */}
-              <div className="relative w-32 h-32 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-sm font-bold text-gray-600">5KM</span>
-                <span className="text-xs text-gray-500 absolute -bottom-6">RADIUS</span>
-                
-                {/* Connection lines */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-0.5 bg-gray-300 transform -rotate-45 absolute"></div>
-                  <div className="w-16 h-0.5 bg-gray-300 transform rotate-45 absolute"></div>
+                {/* 5KM Connection with Pulse Animation */}
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="relative w-20 h-20 border-2 border-dashed border-gray-400 rounded-full flex items-center justify-center animate-pulse">
+                    <span className="text-xs font-bold text-gray-700">5KM</span>
+                    {/* Removed crossed elements as requested */}
+                  </div>
+                  <span className="text-xs font-medium text-gray-700">Radius</span>
+                </div>
+
+                {/* You */}
+                <div className="flex flex-col items-center space-y-2 group cursor-pointer" data-role="you">
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center border-2 border-gray-300 group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg" id="you-container">
+                      <svg className="w-8 h-8 text-gray-700 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="you-icon">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-600 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 transition-colors duration-300" id="you-label">You</span>
                 </div>
               </div>
-            </div>
-
-            {/* User 2 */}
-            <div className="flex flex-col items-center space-y-4 group">
-              <div className="relative">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300 group-hover:border-green-400 group-hover:bg-green-50 transition-all duration-300">
-                  <svg className="w-12 h-12 text-gray-600 group-hover:text-green-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                {/* Active indicator */}
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
-              </div>
-              <span className="text-sm font-medium text-gray-700">You</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="bg-white py-20 px-4">
+      <section className="bg-white py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-semibold text-black mb-4">
               Frequently Asked Questions
             </h2>
             <p className="text-lg text-gray-600">
