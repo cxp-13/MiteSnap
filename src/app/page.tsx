@@ -79,8 +79,8 @@ export default function Home() {
       {/* Header */}
       <Header />
       
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
+      {/* Hero Section - Full viewport height */}
+      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <h1 className="text-4xl md:text-6xl font-extrabold text-black mb-6 tracking-tight">
             Breathe Easy. Live Clean.
