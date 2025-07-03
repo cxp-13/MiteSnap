@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
-import { MockUserProvider } from "@/context/MockUserContext";
 import Footer from "@/components/Footer";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -27,12 +26,10 @@ export default function RootLayout({
         className={`${plusJakartaSans.variable} antialiased min-h-screen flex flex-col`}
       >
         <ClerkProvider>
-          <MockUserProvider>
-            <div className="flex-1">
-              {children}
-            </div>
-            <Footer />
-          </MockUserProvider>
+          <div className="flex-1">
+            {children}
+          </div>
+          <Footer />
         </ClerkProvider>
       </body>
     </html>

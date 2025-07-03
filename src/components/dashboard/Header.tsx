@@ -8,11 +8,10 @@ interface User {
 
 interface HeaderProps {
   user: User | null
-  isMockMode: boolean
   signOut: () => void
 }
 
-export default function Header({ user, isMockMode, signOut }: HeaderProps) {
+export default function Header({ user, signOut }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -29,21 +28,7 @@ export default function Header({ user, isMockMode, signOut }: HeaderProps) {
           <span className="text-sm text-gray-600">
             Welcome, {user?.name || 'User'}
           </span>
-          {isMockMode ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                {user?.name?.[0] || 'D'}
-              </div>
-              <button
-                onClick={signOut}
-                className="text-xs text-gray-600 hover:text-gray-800"
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <UserButton />
-          )}
+          <UserButton />
         </div>
       </div>
     </header>

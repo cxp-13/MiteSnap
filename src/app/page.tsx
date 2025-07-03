@@ -1,13 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Qwen } from '@lobehub/icons'
-import Header from '@/components/Header'
-import { useMockUser } from '@/context/MockUserContext'
-import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import dynamic from 'next/dynamic'
+import { motion } from 'framer-motion'
 
 // Dynamically import Clerk components with SSR disabled
 const SignInButton = dynamic(
@@ -25,20 +23,25 @@ const SignedOut = dynamic(
   { ssr: false }
 );
 
+const UserButton = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.UserButton),
+  { ssr: false }
+);
+
 export default function Home() {
   const router = useRouter()
-  const { isMockMode, signIn } = useMockUser()
-  const { isSignedIn } = useUnifiedUser()
   const [openFAQ, setOpenFAQ] = useState<number | null>(null)
 
-  const handleGetStarted = () => {
-    if (isMockMode) {
-      signIn()
-    }
-  }
+  // 新增：用于锚点定位
+  const featuresRef = useRef<HTMLDivElement | null>(null)
+  const faqRef = useRef<HTMLDivElement | null>(null)
+  const pricingRef = useRef<HTMLDivElement | null>(null)
 
-  const toggleFAQ = (index: number) => {
-    setOpenFAQ(openFAQ === index ? null : index)
+  // 平滑滚动函数
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
   }
 
   useEffect(() => {
@@ -142,162 +145,138 @@ export default function Home() {
     }
   }, [])
 
+  // FAQ数据抽取到组件外部
   const faqs = [
     {
-      question: "What is MiteSnap?",
-      answer: "MiteSnap is a comprehensive bedding management software that scientifically monitors dust mite conditions in your duvets and bedding. Our platform combines AI-powered analysis with community-based drying assistance services to help you maintain optimal hygiene and health in your bedroom environment."
+      q: "What is MiteSnap and what does it offer?",
+      a: "MiteSnap is your smart solution for scientifically tracking dust mite conditions in bedding (like duvets, sheets, and pillows) by combining AI visual analysis with real-time weather data. It intelligently monitors the progress and effectiveness of sun-drying your bedding. MiteSnap also features a community helper function, currently allowing you to request sun-drying assistance completely free of charge, with a future update to include a tipping feature for helpers."
     },
     {
-      question: "How does the AI analysis work?",
-      answer: "Our system uses Qwen's advanced visual AI model to analyze photos of your duvets, combined with real-time weather data from Tomorrow.io. The AI evaluates factors like material type, environmental conditions, and visual indicators to provide scientific assessments of dust mite levels and predict the effectiveness of sun-drying sessions."
+      q: "How does MiteSnap's AI analysis work?",
+      a: "MiteSnap's analysis leverages the advanced Qwen/Qwen2.5-VL-72B-Instruct multimodal AI model. By integrating this powerful AI with Tomorrow.io's real-time weather data and uploaded photos of your bedding, MiteSnap rapidly analyzes and provides a comprehensive understanding of your bedding's health status."
     },
     {
-      question: "What is the community drying service?",
-      answer: "Our innovative community service connects you with helpful neighbors within a 5km radius who can assist with duvet drying when you're unable to do it yourself. Simply create a service request, and nearby MiteSnap users will be notified and can accept your request to help with the drying process."
-    },
-    {
-      question: "Is the service safe and reliable?",
-      answer: "Yes, safety is our top priority. All users go through verification processes, and we provide detailed profiles and ratings for community helpers. You can view helper profiles, read reviews, and communicate through our secure platform before accepting assistance."
-    },
-    {
-      question: "How accurate is the dust mite monitoring?",
-      answer: "Our AI analysis combines multiple data points including visual assessment, material properties, environmental conditions, and historical patterns to provide highly accurate dust mite risk assessments. The system continuously learns and improves its predictions based on real-world outcomes."
-    },
-    {
-      question: "What devices can I use MiteSnap on?",
-      answer: "MiteSnap is a web-based platform that works on any device with a modern browser - smartphones, tablets, laptops, and desktop computers. Simply access our website and start managing your bedding hygiene from anywhere."
-    },
-    {
-      question: "How much does MiteSnap cost?",
-      answer: "MiteSnap offers a free tier with basic monitoring features. Premium plans include advanced AI analysis, unlimited community service requests, detailed health reports, and priority support. Check our pricing page for current rates and features."
-    },
-    {
-      question: "How do I get started?",
-      answer: "Getting started is easy! Simply sign up for a free account, add your first duvet by taking a photo, and let our AI analyze its condition. You can immediately start tracking your bedding hygiene and access our community drying services."
+      q: "What are MiteSnap's pricing plans?",
+      a: "MiteSnap's core features are currently completely free to use. We are dedicated to providing accessible solutions for mite-free living. Future updates will introduce premium subscription plans with enhanced features and benefits."
     }
-  ]
+  ];
 
   return (
     <div className="min-h-screen w-full bg-white flex flex-col relative">
-      {/* Subtle digital noise texture background */}
-      <div 
-        className="absolute inset-0 opacity-[0.03]" 
-        style={{
-          backgroundImage: `
-            radial-gradient(circle at 1px 1px, rgba(156, 163, 175, 0.4) 0.5px, transparent 0.5px),
-            radial-gradient(circle at 3px 3px, rgba(156, 163, 175, 0.3) 0.3px, transparent 0.3px),
-            radial-gradient(circle at 5px 5px, rgba(156, 163, 175, 0.2) 0.2px, transparent 0.2px)
-          `,
-          backgroundSize: '8px 8px, 12px 12px, 16px 16px',
-          backgroundPosition: '0 0, 2px 2px, 4px 4px'
-        }}
-      ></div>
+      {/* Sticky Navigation Bar (Portia style + 登录) */}
+      <nav
+        className="fixed top-6 left-1/2 z-50 -translate-x-1/2 w-[98vw] max-w-[1800px] bg-white/80 backdrop-blur-lg border border-gray-200 shadow-xl flex items-center justify-between px-8 md:px-16 py-4 rounded-[2.5rem] transition-all duration-300"
+        style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif', boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.10)' }}
+      >
+        <div className="flex items-center space-x-2">
+          <Image src="/logo.png" alt="MiteSnap Logo" width={32} height={32} className="mr-2" />
+          <span className="text-2xl font-bold text-black tracking-wide">MiteSnap</span>
+          {/* Nav links group - left, next to logo */}
+          <div className="flex items-center space-x-2 ml-4">
+            <button onClick={() => scrollToSection(featuresRef)} className="text-base font-medium text-gray-700 hover:text-black transition-colors px-3 py-1 rounded focus:outline-none">Features</button>
+            <button onClick={() => scrollToSection(faqRef)} className="text-base font-medium text-gray-700 hover:text-black transition-colors px-3 py-1 rounded focus:outline-none">FAQ</button>
+            <button onClick={() => scrollToSection(pricingRef)} className="text-base font-medium text-gray-700 hover:text-black transition-colors px-3 py-1 rounded focus:outline-none">Pricing</button>
+          </div>
+        </div>
+        {/* Spacer for separation */}
+        <div className="flex-1" />
+        {/* Account/utility links group - right aligned */}
+        <div className="flex items-center space-x-2 md:space-x-4">
+          <SignedOut>
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+              <button className="px-6 py-2 rounded-full bg-black text-white font-semibold text-base shadow hover:bg-gray-900 transition-all">Sign in</button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <button onClick={() => router.push('/dashboard')} className="px-5 py-2 rounded-full bg-gray-900 text-white font-semibold text-base shadow hover:bg-black transition-all">Dashboard</button>
+            <UserButton />
+          </SignedIn>
+        </div>
+      </nav>
+      {/* 占位防止内容被遮挡 */}
+      <div className="h-28" />
       
-      {/* Additional fine grain overlay for tactile feel */}
-      <div 
-        className="absolute inset-0 opacity-[0.015]" 
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 1px,
-              rgba(156, 163, 175, 0.1) 1px,
-              rgba(156, 163, 175, 0.1) 2px
-            ),
-            repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 1px,
-              rgba(156, 163, 175, 0.1) 1px,
-              rgba(156, 163, 175, 0.1) 2px
-            )
-          `,
-          backgroundSize: '4px 4px'
-        }}
-      ></div>
-      
-      {/* Header */}
-      <Header />
       
       {/* Hero Section - Full viewport height with perfect centering */}
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
-        <div className="max-w-4xl mx-auto text-center space-y-12">
+      <main className="min-h-[70vh] flex flex-col items-center justify-center px-2 md:px-4 relative z-10">
+        <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto text-center space-y-12">
           {/* Main Headline */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-light text-black leading-[0.9] tracking-[-0.02em] mb-8">
+          <motion.h1
+            className="text-5xl md:text-7xl lg:text-8xl font-light text-black leading-[0.9] tracking-[-0.02em] mb-8"
+            initial={{ opacity: 0, translateY: 30 }}
+            whileInView={{ opacity: 1, translateY: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
             Your Smart Solution for<br />
             <span className="text-gray-700">Mite-Free Living</span>
-          </h1>
+          </motion.h1>
           
           {/* Subheading */}
-          <p className="text-xl md:text-2xl lg:text-3xl font-light text-gray-600 leading-relaxed tracking-[-0.01em] max-w-3xl mx-auto">
+          <motion.p
+            className="text-xl md:text-2xl lg:text-3xl font-light text-gray-600 leading-relaxed tracking-[-0.01em] max-w-3xl mx-auto"
+            initial={{ opacity: 0, translateY: 30 }}
+            whileInView={{ opacity: 1, translateY: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          >
             Say Goodbye to Dust Mites, Hello to Freshness.
-          </p>
+          </motion.p>
           
           {/* CTA Button */}
           <div className="pt-8">
-            {isMockMode ? (
-              <>
-                {!isSignedIn ? (
-                  <button 
-                    onClick={handleGetStarted}
-                    className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
-                  >
-                    <span className="relative z-10">Get Started</span>
-                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => router.push('/dashboard')}
-                    className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
-                  >
-                    <span className="relative z-10">Go to Dashboard</span>
-                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <SignedOut>
-                  <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-                    <button className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
-                      <span className="relative z-10">Get Started</span>
-                      <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
-                    </button>
-                  </SignInButton>
-                </SignedOut>
-                
-                <SignedIn>
-                  <button 
-                    onClick={() => router.push('/dashboard')}
-                    className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
-                  >
-                    <span className="relative z-10">Go to Dashboard</span>
-                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
-                  </button>
-                </SignedIn>
-              </>
-            )}
+            <SignedOut>
+              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                <button className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
+                  <span className="relative z-10">Get Started</span>
+                  <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
+                </button>
+              </SignInButton>
+            </SignedOut>
+            
+            <SignedIn>
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
+              >
+                <span className="relative z-10">Go to Dashboard</span>
+                <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
+              </button>
+            </SignedIn>
           </div>
         </div>
       </main>
 
+      {/* Features Section Anchor */}
+      <div ref={featuresRef}></div>
       {/* Combined Core Features Section */}
-      <section className="min-h-screen bg-white py-8 px-6 flex items-center justify-center relative z-10">
-        <div className="max-w-7xl mx-auto w-full h-full flex flex-col justify-center space-y-8">
+      <section className="min-h-screen bg-white py-8 px-2 md:px-4 flex items-center justify-center relative z-10">
+        <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto w-full h-full flex flex-col justify-center space-y-8">
           
           {/* AI MiteScan & Insights Row */}
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-8 lg:space-y-0 lg:space-x-16 h-1/2">
             {/* Left: Content */}
             <div className="flex-1 lg:text-left text-center">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-black mb-4 tracking-tight">
+              <motion.h2
+                className="text-3xl md:text-4xl lg:text-5xl font-semibold text-black mb-4 tracking-tight"
+                initial={{ opacity: 0, translateY: 30 }}
+                whileInView={{ opacity: 1, translateY: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
                 AI MiteScan & Insights
-              </h2>
-              <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-normal max-w-xl">
+              </motion.h2>
+              <motion.p 
+                className="text-lg md:text-xl text-gray-600 leading-relaxed font-normal max-w-xl"
+                initial={{ opacity: 0, translateY: 30 }}
+                whileInView={{ opacity: 1, translateY: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+              >
                 Get precise mite analysis with our{' '}
                 <span className="text-purple-600 font-medium">SiliconFlow</span>
-                -powered AI visual model, enhanced by Tomorrow.io's real-time weather data for optimal sun-drying predictions.
-              </p>
+                -powered AI visual model, enhanced by Tomorrow.io&apos;s real-time weather data for optimal sun-drying predictions.
+              </motion.p>
             </div>
             
             {/* Right: Enhanced Workflow Diagram */}
@@ -411,10 +390,17 @@ export default function Home() {
                   {/* Mite Analysis Output */}
                   <div className="flex flex-col items-center space-y-2 group cursor-pointer">
                     <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center border-2 border-gray-300 group-hover:border-gray-500 group-hover:bg-gray-50 group-hover:scale-105 transition-all duration-300 group-hover:shadow-lg">
-                      {/* Microscopic mite silhouette */}
-                      <svg className="w-8 h-8 text-gray-600 group-hover:text-black transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 4c-1.5 0-3 .5-4 1.5C7 6.5 6.5 8 6.5 9.5c0 1 .3 2 .8 2.8l-1.8 1.8c-.3.3-.3.8 0 1.1s.8.3 1.1 0l1.8-1.8c.8.5 1.8.8 2.8.8 1.5 0 3-.5 4-1.5 1-1 1.5-2.5 1.5-4s-.5-3-1.5-4c-1-1-2.5-1.5-4-1.5zm0 2c1 0 1.8.3 2.5 1s1 1.5 1 2.5-.3 1.8-1 2.5-1.5 1-2.5 1-1.8-.3-2.5-1-1-1.5-1-2.5.3-1.8 1-2.5 1.5-1 2.5-1z"/>
-                        <circle cx="12" cy="9.5" r="1.5"/>
+                      {/* Stylized bug/mite icon */}
+                      <svg className="w-9 h-9 text-gray-700 group-hover:text-black transition-colors duration-300" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="16" cy="18" rx="7" ry="9" fill="currentColor"/>
+                        <ellipse cx="16" cy="11" rx="4" ry="3" fill="currentColor"/>
+                        <line x1="16" y1="3" x2="16" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <line x1="8" y1="10" x2="13" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <line x1="24" y1="10" x2="19" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <line x1="7" y1="20" x2="12" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <line x1="25" y1="20" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <line x1="10" y1="27" x2="14" y2="24" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <line x1="22" y1="27" x2="18" y2="24" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                       </svg>
                     </div>
                     <span className="text-xs font-medium text-gray-700 group-hover:text-black transition-colors duration-300">Mite Analysis</span>
@@ -431,12 +417,24 @@ export default function Home() {
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-8 lg:space-y-0 lg:space-x-16 h-1/2">
             {/* Left: Content */}
             <div className="flex-1 lg:text-left text-center">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-black mb-4 tracking-tight">
+              <motion.h2
+                className="text-3xl md:text-4xl lg:text-5xl font-semibold text-black mb-4 tracking-tight"
+                initial={{ opacity: 0, translateY: 30 }}
+                whileInView={{ opacity: 1, translateY: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+              >
                 Hassle-Free Community Drying
-              </h2>
-              <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-normal max-w-xl">
+              </motion.h2>
+              <motion.p 
+                className="text-lg md:text-xl text-gray-600 leading-relaxed font-normal max-w-xl"
+                initial={{ opacity: 0, translateY: 30 }}
+                whileInView={{ opacity: 1, translateY: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
+              >
                 Connect instantly with verified neighbors for convenient duvet drying. Our location matching finds helpers within a 5km radius for reliable support.
-              </p>
+              </motion.p>
             </div>
             
             {/* Right: Enhanced Community Diagram */}
@@ -482,90 +480,145 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="bg-white py-12 px-4">
-        <div className="max-w-4xl mx-auto">
+      {/* FAQ Section Anchor */}
+      <div ref={faqRef}></div>
+      <section className="bg-white py-12 px-2 md:px-4 min-h-screen flex items-center justify-center">
+        <div className="max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-[900px] mx-auto w-full">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-semibold text-black mb-4">
+            <motion.h2
+              className="text-3xl md:text-4xl font-semibold text-black mb-4"
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
+            >
               Frequently Asked Questions
-            </h2>
-            <p className="text-lg text-gray-600">
+            </motion.h2>
+            <motion.p 
+              className="text-lg text-gray-600" 
+              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            >
               Everything you need to know about MiteSnap and our services
-            </p>
+            </motion.p>
           </div>
-
-          <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <div key={index} className="border border-gray-200 rounded-xl overflow-hidden">
-                <button
-                  onClick={() => toggleFAQ(index)}
-                  className="w-full px-6 py-4 text-left bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
-                >
-                  <h3 className="text-lg font-semibold text-black pr-4">
-                    {faq.question}
-                  </h3>
-                  <div className={`transform transition-transform duration-200 ${
-                    openFAQ === index ? 'rotate-180' : ''
+          {/* Modern Accordion FAQ */}
+          <div className="space-y-3">
+            {faqs.map((item, idx) => {
+              const isOpen = openFAQ === idx
+              return (
+                <div key={idx} className={`border rounded-2xl overflow-hidden bg-white shadow-sm transition-all duration-300 hover:shadow-md ${
+                  isOpen ? 'border-gray-300 shadow-md' : 'border-gray-200'
+                }`}>
+                  <div
+                    onClick={() => setOpenFAQ(openFAQ === idx ? null : idx)}
+                    className={`w-full px-8 py-6 text-left flex items-center justify-between group cursor-pointer transition-all duration-300 ${
+                      isOpen ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
+                    }`}
+                    style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
+                  >
+                    <h3 className={`text-lg font-semibold pr-6 transition-all duration-300 select-text ${
+                      isOpen ? 'text-black' : 'text-gray-900 group-hover:text-black'
+                    }`}>
+                      {item.q}
+                    </h3>
+                    <span className="ml-2 flex items-center flex-shrink-0">
+                      <svg className={`w-5 h-5 transition-all duration-500 ease-out transform ${
+                        isOpen ? 'rotate-180 text-black' : 'text-gray-400 group-hover:text-gray-600'
+                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div className={`overflow-hidden transition-all duration-500 ease-out ${
+                    isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
                   }`}>
-                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <div className="px-8 pb-8 pt-2 bg-white border-t border-gray-100">
+                      <div className="pt-4">
+                        <p className="text-gray-700 leading-[1.75] text-base select-text" style={{ 
+                          fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif',
+                          letterSpacing: '0.01em'
+                        }}>
+                          {item.a}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </button>
-                {openFAQ === index && (
-                  <div className="px-6 pb-4 bg-gray-50">
-                    <p className="text-gray-700 leading-relaxed">
-                      {faq.answer}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
+                </div>
+              )
+            })}
           </div>
+        </div>
+      </section>
 
-          {/* CTA in FAQ Section */}
-          <div className="text-center mt-12">
-            <p className="text-gray-600 mb-6">
-              Still have questions? We&apos;re here to help!
-            </p>
-            {isMockMode ? (
-              <>
-                {!isSignedIn ? (
-                  <button 
-                    onClick={handleGetStarted}
-                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
-                  >
-                    Try MiteSnap Now (Demo)
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => router.push('/dashboard')}
-                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
-                  >
-                    Go to Dashboard
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <SignedOut>
-                  <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-                    <button className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition">
-                      Try MiteSnap Now
-                    </button>
-                  </SignInButton>
-                </SignedOut>
-                
-                <SignedIn>
-                  <button 
-                    onClick={() => router.push('/dashboard')}
-                    className="px-8 py-3 rounded-full bg-black text-white font-bold text-lg shadow-md hover:bg-gray-900 transition"
-                  >
-                    Go to Dashboard
-                  </button>
-                </SignedIn>
-              </>
-            )}
+      {/* Pricing Plans Section Anchor */}
+      <div ref={pricingRef}></div>
+      {/* Pricing Plans Section */}
+      <section className="bg-white py-20 px-2 md:px-4 flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-4xl w-full mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2 
+              className="text-3xl md:text-4xl font-semibold text-black mb-4" 
+              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              Pricing Plans
+            </motion.h2>
+            <motion.p 
+              className="text-lg text-gray-600" 
+              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            >
+              Choose the plan that fits your needs. Upgrade anytime.
+            </motion.p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Basic Plan Card */}
+            <motion.div 
+              className="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm p-8 items-center"
+              initial={{ opacity: 0, translateY: 50 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+            >
+              <span className="text-xl font-bold text-black mb-1">Basic</span>
+              <span className="text-3xl font-extrabold text-black mb-2">$0 <span className="text-base font-medium text-gray-500">/ Forever Free</span></span>
+              <span className="text-base text-gray-500 mb-6">Essential tools for initial tracking.</span>
+              <ul className="w-full space-y-4 mb-8">
+                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Manage 1 Duvet Profile</li>
+                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited AI MiteScan Analysis & Self-Drying Recommendations</li>
+                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited Community Drying Request Submissions</li>
+              </ul>
+            </motion.div>
+            {/* Pro Plan Card */}
+            <motion.div 
+              className="flex flex-col rounded-2xl border-2 border-gray-900 bg-gray-50 shadow-lg p-8 items-center relative"
+              initial={{ opacity: 0, translateY: 50 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+            >
+              <span className="absolute -top-5 left-1/2 -translate-x-1/2 bg-black text-white text-xs font-bold px-4 py-1 rounded-full shadow">Highly Recommended</span>
+              <span className="text-xl font-bold text-black mb-1">Pro</span>
+              <span className="text-3xl font-extrabold text-black mb-2">$3.9 <span className="text-base font-medium text-gray-500">/ month</span></span>
+              <span className="text-base text-gray-500 mb-6">Unlock advanced capabilities for comprehensive care.</span>
+              <ul className="w-full space-y-4 mb-8">
+                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Manage up to 5 Duvet Profiles</li>
+                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Ability to Accept Drying Requests from others (unlimited, with tipping & visibility boost)</li>
+                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>All other features are identical to the Basic Plan</li>
+              </ul>
+              <button className="w-full py-3 rounded-xl bg-gray-400 text-white font-semibold text-lg shadow cursor-not-allowed" disabled>Coming Soon</button>
+            </motion.div>
           </div>
         </div>
       </section>

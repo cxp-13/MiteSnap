@@ -3,21 +3,19 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
-import { useMockUser } from '@/context/MockUserContext'
 
 export default function Dashboard() {
   const { user, isLoaded, isSignedIn } = useUnifiedUser()
-  const { isMockMode } = useMockUser()
   const router = useRouter()
 
   // Redirect to duvets page once user is loaded
   useEffect(() => {
     if (isLoaded) {
-      if ((isSignedIn && user?.id) || isMockMode) {
+      if (isSignedIn && user?.id) {
         router.replace('/dashboard/duvets')
       }
     }
-  }, [isLoaded, isSignedIn, user?.id, isMockMode, router])
+  }, [isLoaded, isSignedIn, user?.id, router])
 
   // Loading state
   if (!isLoaded) {
@@ -29,7 +27,7 @@ export default function Dashboard() {
   }
 
   // Not signed in state
-  if (!isSignedIn && !isMockMode) {
+  if (!isSignedIn) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">

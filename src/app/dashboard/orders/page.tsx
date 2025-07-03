@@ -1,14 +1,12 @@
 'use client'
 
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
-import { useMockUser } from '@/context/MockUserContext'
 import Sidebar from '@/components/dashboard/Sidebar'
 import Header from '@/components/dashboard/Header'
 import OrdersPage from '../components/OrdersPage'
 
 export default function OrdersRoute() {
   const { user, isLoaded, isSignedIn } = useUnifiedUser()
-  const { isMockMode, signOut } = useMockUser()
 
   // Loading state
   if (!isLoaded) {
@@ -20,7 +18,7 @@ export default function OrdersRoute() {
   }
 
   // Not signed in state
-  if (!isSignedIn && !isMockMode) {
+  if (!isSignedIn) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -53,7 +51,7 @@ export default function OrdersRoute() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <Header user={user} isMockMode={isMockMode} signOut={signOut} />
+        <Header user={user} />
 
         {/* Page Content */}
         <main className="flex-1 p-8">
