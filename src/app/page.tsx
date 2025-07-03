@@ -1,11 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { useMockUser } from '@/context/MockUserContext'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
 
 // Dynamically import Clerk components with SSR disabled
 const SignInButton = dynamic(
@@ -76,12 +76,43 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-white flex flex-col relative">
-      {/* Subtle background texture */}
-      <div className="absolute inset-0 opacity-[0.02] bg-gradient-to-br from-gray-900 via-transparent to-gray-900"></div>
-      <div className="absolute inset-0 opacity-[0.015]" style={{
-        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0,0,0,0.15) 1px, transparent 0)`,
-        backgroundSize: '20px 20px'
-      }}></div>
+      {/* Subtle digital noise texture background */}
+      <div 
+        className="absolute inset-0 opacity-[0.03]" 
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 1px 1px, rgba(156, 163, 175, 0.4) 0.5px, transparent 0.5px),
+            radial-gradient(circle at 3px 3px, rgba(156, 163, 175, 0.3) 0.3px, transparent 0.3px),
+            radial-gradient(circle at 5px 5px, rgba(156, 163, 175, 0.2) 0.2px, transparent 0.2px)
+          `,
+          backgroundSize: '8px 8px, 12px 12px, 16px 16px',
+          backgroundPosition: '0 0, 2px 2px, 4px 4px'
+        }}
+      ></div>
+      
+      {/* Additional fine grain overlay for tactile feel */}
+      <div 
+        className="absolute inset-0 opacity-[0.015]" 
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 1px,
+              rgba(156, 163, 175, 0.1) 1px,
+              rgba(156, 163, 175, 0.1) 2px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 1px,
+              rgba(156, 163, 175, 0.1) 1px,
+              rgba(156, 163, 175, 0.1) 2px
+            )
+          `,
+          backgroundSize: '4px 4px'
+        }}
+      ></div>
       
       {/* Header */}
       <Header />
