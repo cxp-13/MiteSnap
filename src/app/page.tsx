@@ -179,112 +179,141 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Value Proposition Section */}
-      <section className="bg-gray-50 py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
-              Why Choose MiteSnap?
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Revolutionary AI technology meets community-powered service for the ultimate duvet care experience
-            </p>
-          </div>
+      {/* AI MiteScan & Insights Section */}
+      <section className="min-h-screen bg-white py-20 px-6 flex items-center justify-center relative z-10">
+        <div className="max-w-6xl mx-auto text-center">
+          {/* Section Heading */}
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-8 tracking-tight">
+            AI MiteScan & Insights
+          </h2>
+          
+          {/* Section Description */}
+          <p className="text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-4xl mx-auto mb-16 font-light">
+            Get precise mite analysis with our SiliconFlow-powered AI visual model, which scientifically assesses mite levels from your bedding photos. This is enhanced by Tomorrow.io's real-time weather data, predicting optimal sun-drying conditions for maximum effectiveness.
+          </p>
 
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Highlight 1: AI Analysis */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                  <span className="text-2xl">🤖</span>
-                </div>
-                <h3 className="text-2xl font-bold text-black">
-                  AI-Powered Mite Analysis
-                </h3>
+          {/* AI Workflow Diagram */}
+          <div className="flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-12 max-w-5xl mx-auto">
+            {/* Input */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300">
+                <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
               </div>
-              <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                Powered by Qwen&apos;s advanced visual AI model combined with real-time weather data from Tomorrow.io. 
-                Our intelligent system analyzes your duvet photos and environmental conditions to scientifically 
-                assess dust mite levels and predict optimal sun-drying effectiveness.
-              </p>
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Qwen Visual AI</span>
+              <span className="text-sm font-medium text-gray-700">Photo Input</span>
+            </div>
+
+            {/* Arrow */}
+            <div className="hidden md:block">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+
+            {/* Processing */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-32 h-20 bg-black rounded-lg flex flex-col items-center justify-center text-white">
+                <span className="text-xs font-medium">SiliconFlow AI</span>
+                <span className="text-xs text-gray-300">Qwen Model</span>
+              </div>
+              <span className="text-sm font-medium text-gray-700">AI Processing</span>
+            </div>
+
+            {/* Plus Weather */}
+            <div className="flex items-center space-x-4">
+              <span className="text-2xl text-gray-400">+</span>
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center border-2 border-blue-200">
+                  <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                  </svg>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Weather Integration</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>Scientific Analysis</span>
-                </div>
+                <span className="text-sm font-medium text-gray-700">Weather Data</span>
               </div>
             </div>
 
-            {/* Highlight 2: Community Service */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
-                  <span className="text-2xl">🤝</span>
-                </div>
-                <h3 className="text-2xl font-bold text-black">
-                  Community Drying Service
-                </h3>
+            {/* Arrow */}
+            <div className="hidden md:block">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+
+            {/* Output */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center border-2 border-green-200">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
               </div>
-              <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                Can&apos;t dry your duvet yourself? Our innovative community service instantly connects you with 
-                helpful neighbors within a 5km radius. Every platform user can assist with duvet drying, 
-                creating a supportive local network for better home hygiene.
-              </p>
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>5km Radius</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Instant Matching</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Community Support</span>
-                </div>
-              </div>
+              <span className="text-sm font-medium text-gray-700">Mite Analysis</span>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Additional Benefits */}
-          <div className="mt-16 grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📊</span>
+      {/* Hassle-Free Community Drying Section */}
+      <section className="min-h-screen bg-white py-20 px-6 flex items-center justify-center relative z-10">
+        <div className="max-w-6xl mx-auto text-center">
+          {/* Section Heading */}
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-8 tracking-tight">
+            Hassle-Free Community Drying
+          </h2>
+          
+          {/* Section Description */}
+          <p className="text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-4xl mx-auto mb-16 font-light">
+            Connect instantly with verified neighbors for convenient duvet drying. Our OpenCage-powered location matching finds the closest helpers within a 5km radius, creating a reliable, supportive network for effortless home hygiene.
+          </p>
+
+          {/* Community Interaction Diagram */}
+          <div className="flex flex-col md:flex-row items-center justify-center space-y-12 md:space-y-0 md:space-x-16 max-w-4xl mx-auto">
+            {/* User 1 */}
+            <div className="flex flex-col items-center space-y-4 group">
+              <div className="relative">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300 group-hover:border-blue-400 group-hover:bg-blue-50 transition-all duration-300">
+                  <svg className="w-12 h-12 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                {/* Active indicator */}
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
               </div>
-              <h4 className="text-xl font-semibold text-black mb-2">Smart Tracking</h4>
-              <p className="text-gray-600">
-                Monitor every sun-drying session with detailed effectiveness reports and mite reduction analytics
-              </p>
+              <span className="text-sm font-medium text-gray-700">Helper</span>
             </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🌤️</span>
+
+            {/* Connection Visualization */}
+            <div className="flex flex-col items-center space-y-4">
+              {/* 5KM Radius Circle */}
+              <div className="relative w-32 h-32 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center">
+                <span className="text-sm font-bold text-gray-600">5KM</span>
+                <span className="text-xs text-gray-500 absolute -bottom-6">RADIUS</span>
+                
+                {/* Connection lines */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-0.5 bg-gray-300 transform -rotate-45 absolute"></div>
+                  <div className="w-16 h-0.5 bg-gray-300 transform rotate-45 absolute"></div>
+                </div>
               </div>
-              <h4 className="text-xl font-semibold text-black mb-2">Weather Optimization</h4>
-              <p className="text-gray-600">
-                Get real-time recommendations for optimal drying conditions based on local weather patterns
-              </p>
             </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🏠</span>
+
+            {/* User 2 */}
+            <div className="flex flex-col items-center space-y-4 group">
+              <div className="relative">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300 group-hover:border-green-400 group-hover:bg-green-50 transition-all duration-300">
+                  <svg className="w-12 h-12 text-gray-600 group-hover:text-green-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                {/* Active indicator */}
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
               </div>
-              <h4 className="text-xl font-semibold text-black mb-2">Healthier Home</h4>
-              <p className="text-gray-600">
-                Reduce allergens and improve sleep quality with scientifically-optimized duvet maintenance
-              </p>
+              <span className="text-sm font-medium text-gray-700">You</span>
             </div>
           </div>
         </div>
