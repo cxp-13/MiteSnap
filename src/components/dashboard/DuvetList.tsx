@@ -8,7 +8,6 @@ interface DuvetListProps {
   duvetSunDryingStatus: Record<string, CleanHistoryRecord | null>
   isLoading: boolean
   onSunDryingService: (duvet: Duvet) => void
-  onAddNewDuvet: () => void
   addresses?: Address[]
 }
 
@@ -16,7 +15,6 @@ export default function DuvetList({
   duvets,
   isLoading,
   onSunDryingService,
-  onAddNewDuvet,
   addresses
 }: DuvetListProps) {
   const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)

@@ -14,7 +14,6 @@ interface OrderRequestModalProps {
   onCreateOrder: () => void
   onNextStep?: () => void
   onPrevStep?: () => void
-  optimalTimeText?: string
 }
 
 export default function OrderRequestModal({
@@ -28,8 +27,7 @@ export default function OrderRequestModal({
   onPhotoUpload,
   onCreateOrder,
   onNextStep,
-  onPrevStep,
-  optimalTimeText
+  onPrevStep
 }: OrderRequestModalProps) {
   if (!isOpen || !duvet) return null
 

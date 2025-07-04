@@ -30,7 +30,7 @@ const getLocationText = (duvet: Duvet, addresses?: Address[]) => {
   
   // Format like international address: Street, District, City, State
   const parts = []
-  if (address.street) parts.push(address.street)
+  // if (address.street) parts.push(address.street)
   if (address.neighbourhood) parts.push(address.neighbourhood)
   if (address.district) parts.push(address.district)
   if (address.city) parts.push(address.city)

@@ -124,7 +124,7 @@ export default function AddressModal({
       setIsGettingLocation(false)
       setIsGeocoding(false)
     }
-  }, [])
+  }, [formData.is_default])
 
   // Auto-fetch location for new addresses
   useEffect(() => {

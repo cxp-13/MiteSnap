@@ -8,6 +8,7 @@ import { getAddressesByIds, type Address, type OrderWithDuvet } from '@/lib/data
 import { uploadDuvetImage } from '@/lib/storage'
 import { getCleanHistoryRecord, type CleanHistoryRecord } from '@/lib/clean-history'
 import ExecuteOrderModal from '@/components/dashboard/modals/ExecuteOrderModal'
+import Image from 'next/image'
 
 interface OrdersPageProps {
   userId: string
@@ -299,9 +300,11 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
                         </p>
                       )}
                       {order.placed_photo && (
-                        <img
+                        <Image
                           src={order.placed_photo}
                           alt="Duvet placement"
+                          width={200}
+                          height={100}
                           className="w-full h-24 object-cover rounded mt-2"
                         />
                       )}
@@ -376,9 +379,11 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
                         </p>
                       )}
                       {order.placed_photo && (
-                        <img
+                        <Image
                           src={order.placed_photo}
                           alt="Duvet placement"
+                          width={200}
+                          height={100}
                           className="w-full h-24 object-cover rounded mt-2"
                         />
                       )}
@@ -496,9 +501,11 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
                         </p>
                       )}
                       {order.placed_photo && (
-                        <img
+                        <Image
                           src={order.placed_photo}
                           alt="Duvet placement"
+                          width={200}
+                          height={100}
                           className="w-full h-24 object-cover rounded mt-2"
                         />
                       )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { getDuvetSunDryHistory, type CleanHistoryRecord } from '@/lib/clean-history'
 import { Duvet } from './shared/types'
 
@@ -12,13 +12,7 @@ export default function DuvetHistoryModal({ duvet, isOpen, onClose }: DuvetHisto
   const [historyRecords, setHistoryRecords] = useState<CleanHistoryRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    if (isOpen && duvet) {
-      loadHistory()
-    }
-  }, [isOpen, duvet.id])
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     setIsLoading(true)
     try {
       const records = await getDuvetSunDryHistory(duvet.id)
@@ -28,7 +22,13 @@ export default function DuvetHistoryModal({ duvet, isOpen, onClose }: DuvetHisto
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [duvet])
+
+  useEffect(() => {
+    if (isOpen && duvet.id) {
+      loadHistory()
+    }
+  }, [duvet, loadHistory, isOpen])
 
   const formatDuration = (startTime: string, endTime: string | null) => {
     if (!endTime) return 'In progress'

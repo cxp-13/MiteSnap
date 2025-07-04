@@ -365,7 +365,6 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         isLoading={isLoadingDuvets}
         onSunDryingService={handleSunDryingService}
         duvetSunDryingStatus={duvetSunDryingStatus}
-        onAddNewDuvet={handleOpenNewDuvetModal}
         addresses={addresses}
       />
 
@@ -727,27 +726,27 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         onCreateOrder={handleCreateOrderRequest}
         onNextStep={handleOrderNextStep}
         onPrevStep={handleOrderPrevStep}
-        optimalTimeText={
-          (() => {
-            const effectiveWindow = isManualMode && manualTimeWindow 
-              ? manualTimeWindow 
-              : weatherAnalysis?.optimalWindows?.[0]
+        // optimalTimeText={
+        //   (() => {
+        //     const effectiveWindow = isManualMode && manualTimeWindow 
+        //       ? manualTimeWindow 
+        //       : weatherAnalysis?.optimalWindows?.[0]
             
-            if (!effectiveWindow) return undefined
+        //     if (!effectiveWindow) return undefined
             
-            const startTime = new Date(effectiveWindow.startTime).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
-            })
-            const endTime = new Date(effectiveWindow.endTime).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
-            })
-            return `${startTime} - ${endTime}${isManualMode ? ' (Manual)' : ''}`
-          })()
-        }
+        //     const startTime = new Date(effectiveWindow.startTime).toLocaleTimeString('en-US', {
+        //       hour: 'numeric',
+        //       minute: '2-digit',
+        //       hour12: true
+        //     })
+        //     const endTime = new Date(effectiveWindow.endTime).toLocaleTimeString('en-US', {
+        //       hour: 'numeric',
+        //       minute: '2-digit',
+        //       hour12: true
+        //     })
+        //     return `${startTime} - ${endTime}${isManualMode ? ' (Manual)' : ''}`
+        //   })()
+        // }
       />
     </div>
   )
