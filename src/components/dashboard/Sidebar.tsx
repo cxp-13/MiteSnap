@@ -25,7 +25,7 @@ export default function Sidebar() {
     }}>
       {/* Header */}
       <div className="p-6 border-b border-gray-300">
-        <div className="flex items-center space-x-3">
+        <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
           <Image 
             src="/logo_bg_black.png" 
             alt="MiteSnap Logo" 
@@ -34,7 +34,7 @@ export default function Sidebar() {
             className="rounded-lg"
           />
           <h1 className="text-lg font-semibold text-gray-900">MiteSnap</h1>
-        </div>
+        </Link>
       </div>
       
       {/* Navigation */}
@@ -113,24 +113,24 @@ export default function Sidebar() {
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-3 py-2 mb-4">
             USER
           </p>
-          <div className="flex flex-col items-center space-y-3">
+          <div className="flex items-center space-x-3 px-3">
             <div style={{
-              boxShadow: '0 0 0 3px rgba(255, 255, 255, 0.3), 0 0 20px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.3), 0 0 10px rgba(0, 0, 0, 0.05)',
               borderRadius: '50%'
             }}>
               <UserButton 
                 appearance={{
                   elements: {
                     avatarBox: {
-                      width: '48px',
-                      height: '48px'
+                      width: '40px',
+                      height: '40px'
                     }
                   }
                 }}
               />
             </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">{user?.name || 'User'}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
             </div>
           </div>
         </div>
