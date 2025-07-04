@@ -165,17 +165,17 @@ export default function Home() {
     <div className="min-h-screen w-full bg-white flex flex-col relative">
       {/* Sticky Navigation Bar (Portia style + 登录) */}
       <nav
-        className="fixed top-6 left-1/2 z-50 -translate-x-1/2 w-[98vw] max-w-[1800px] bg-white/80 backdrop-blur-lg border border-gray-200 shadow-xl flex items-center justify-between px-8 md:px-16 py-4 rounded-[2.5rem] transition-all duration-300"
-        style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif', boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.10)' }}
+        className="fixed top-6 left-1/2 z-50 -translate-x-1/2 w-[98vw] max-w-[1800px] bg-gray-900/95 backdrop-blur-lg border border-gray-700 shadow-xl flex items-center justify-between px-8 md:px-16 py-4 rounded-[2.5rem] transition-all duration-300"
+        style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif', boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)' }}
       >
         <div className="flex items-center space-x-2">
           <Image src="/logo.png" alt="MiteSnap Logo" width={32} height={32} className="mr-2" />
-          <span className="text-2xl font-bold text-black tracking-wide">MiteSnap</span>
+          <span className="text-2xl font-bold text-white tracking-wide">MiteSnap</span>
           {/* Nav links group - left, next to logo */}
           <div className="flex items-center space-x-2 ml-4">
-            <button onClick={() => scrollToSection(featuresRef)} className="text-base font-medium text-gray-700 hover:text-black transition-colors px-3 py-1 rounded focus:outline-none">Features</button>
-            <button onClick={() => scrollToSection(faqRef)} className="text-base font-medium text-gray-700 hover:text-black transition-colors px-3 py-1 rounded focus:outline-none">FAQ</button>
-            <button onClick={() => scrollToSection(pricingRef)} className="text-base font-medium text-gray-700 hover:text-black transition-colors px-3 py-1 rounded focus:outline-none">Pricing</button>
+            <button onClick={() => scrollToSection(featuresRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">Features</button>
+            <button onClick={() => scrollToSection(faqRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">FAQ</button>
+            <button onClick={() => scrollToSection(pricingRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">Pricing</button>
           </div>
         </div>
         {/* Spacer for separation */}
@@ -184,11 +184,11 @@ export default function Home() {
         <div className="flex items-center space-x-2 md:space-x-4">
           <SignedOut>
             <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-              <button className="px-6 py-2 rounded-full bg-black text-white font-semibold text-base shadow hover:bg-gray-900 transition-all">Sign in</button>
+              <button className="px-6 py-2 rounded-full bg-white text-gray-900 font-semibold text-base shadow hover:bg-gray-100 transition-all">Sign in</button>
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <button onClick={() => router.push('/dashboard')} className="px-5 py-2 rounded-full bg-gray-900 text-white font-semibold text-base shadow hover:bg-black transition-all">Dashboard</button>
+            <button onClick={() => router.push('/dashboard')} className="px-5 py-2 rounded-full bg-white text-gray-900 font-semibold text-base shadow hover:bg-gray-100 transition-all">Dashboard</button>
             <UserButton />
           </SignedIn>
         </div>

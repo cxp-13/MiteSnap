@@ -1,0 +1,36 @@
+interface LinearProgressProps {
+  score: number
+}
+
+const getMiteLevel = (score: number) => {
+  if (score < 30) return 'Low'
+  if (score < 60) return 'Moderate'
+  return 'High'
+}
+
+export default function LinearProgress({ score }: LinearProgressProps) {
+  const percentage = Math.min(score, 100)
+  
+  return (
+    <div className="w-full">
+      {/* Mite Index Label and Score */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-900">Mite Index</span>
+        <span className="text-lg font-bold text-gray-900">{score}</span>
+      </div>
+      
+      {/* Progress Track */}
+      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+        <div 
+          className="bg-gray-800 h-2 rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      
+      {/* Level Indicator */}
+      <div className="text-xs text-gray-600 text-center">
+        {getMiteLevel(score)} Level
+      </div>
+    </div>
+  )
+}

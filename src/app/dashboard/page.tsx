@@ -20,7 +20,7 @@ export default function Dashboard() {
   // Loading state
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
       </div>
     )
@@ -29,7 +29,7 @@ export default function Dashboard() {
   // Not signed in state
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-gray-900">Please sign in</h1>
           <p className="text-gray-600">You need to be signed in to access the dashboard</p>
@@ -41,7 +41,7 @@ export default function Dashboard() {
   // No user ID available
   if (!user?.id) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-gray-900">Error</h1>
           <p className="text-gray-600">Unable to load user information</p>
@@ -52,7 +52,7 @@ export default function Dashboard() {
 
   // This should not render as useEffect will redirect
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="h-screen bg-gray-50 flex items-center justify-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
     </div>
   )

@@ -2,7 +2,6 @@
 
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import Sidebar from '@/components/dashboard/Sidebar'
-import Header from '@/components/dashboard/Header'
 import AddressesPage from '../components/AddressesPage'
 
 export default function AddressesRoute() {
@@ -11,7 +10,7 @@ export default function AddressesRoute() {
   // Loading state
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
       </div>
     )
@@ -20,7 +19,7 @@ export default function AddressesRoute() {
   // Not signed in state
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-gray-900">Please sign in</h1>
           <p className="text-gray-600">You need to be signed in to access the dashboard</p>
@@ -32,7 +31,7 @@ export default function AddressesRoute() {
   // No user ID available
   if (!user?.id) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-gray-900">Error</h1>
           <p className="text-gray-600">Unable to load user information</p>
@@ -44,19 +43,21 @@ export default function AddressesRoute() {
   const userId = user.id
 
   return (
-    <div className="bg-gray-50 flex flex-1">
+    <div className="flex h-screen" style={{ background: 'linear-gradient(135deg, #F8F8F8 0%, #F0F0F0 100%)' }}>
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <Header user={user} />
-
         {/* Page Content */}
-        <main className="flex-1 p-8">
-          <div className="max-w-7xl mx-auto">
-            <AddressesPage userId={userId} />
+        <main className="flex-1 p-4 overflow-auto">
+          <div className="w-full mx-auto px-4">
+            {/* White rounded container with floating shadow */}
+            <div className="bg-white rounded-2xl p-8" style={{ 
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02)' 
+            }}>
+              <AddressesPage userId={userId} />
+            </div>
           </div>
         </main>
       </div>

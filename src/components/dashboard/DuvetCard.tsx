@@ -1,12 +1,13 @@
 import Image from 'next/image'
-import CircularProgress from './shared/CircularProgress'
-import { Duvet } from './shared/types'
+import LinearProgress from './shared/LinearProgress'
+import { Duvet, Address } from './shared/types'
 import { isCurrentTimeWithinSunrise } from '@/lib/weather-analysis'
 
 interface DuvetCardProps {
   duvet: Duvet
   onSunDryingService: (duvet: Duvet) => void
   onDuvetClick?: (duvet: Duvet) => void
+  addresses?: Address[]
 }
 
 const getMiteRiskLevel = (score: number) => {
@@ -16,9 +17,28 @@ const getMiteRiskLevel = (score: number) => {
 }
 
 const getRiskColor = (score: number) => {
-  if (score < 30) return { bg: 'from-emerald-400 to-emerald-600', text: 'text-emerald-600', border: 'border-emerald-200' }
-  if (score < 60) return { bg: 'from-amber-400 to-amber-600', text: 'text-amber-600', border: 'border-amber-200' }
-  return { bg: 'from-red-400 to-red-600', text: 'text-red-600', border: 'border-red-200' }
+  if (score < 30) return { bg: 'from-gray-400 to-gray-600', text: 'text-gray-600', border: 'border-gray-200' }
+  if (score < 60) return { bg: 'from-gray-600 to-gray-800', text: 'text-gray-800', border: 'border-gray-300' }
+  return { bg: 'from-black to-gray-900', text: 'text-black', border: 'border-black' }
+}
+
+const getLocationText = (duvet: Duvet, addresses?: Address[]) => {
+  if (!duvet.address_id || !addresses) return 'Location not set'
+  
+  const address = addresses.find(addr => addr.id === duvet.address_id)
+  if (!address) return 'Location not found'
+  
+  // Format similar to AddressManager's getLocationLabel
+  if (address.city) {
+    return `Located in ${address.city}`
+  }
+  if (address.district) {
+    return `Located in ${address.district}`
+  }
+  if (address.neighbourhood) {
+    return `Located in ${address.neighbourhood}`
+  }
+  return 'Located at address'
 }
 
 
@@ -26,7 +46,8 @@ const getRiskColor = (score: number) => {
 export default function DuvetCard({ 
   duvet, 
   onSunDryingService,
-  onDuvetClick
+  onDuvetClick,
+  addresses
 }: DuvetCardProps) {
   const colors = getRiskColor(duvet.mite_score)
   const riskLevel = getMiteRiskLevel(duvet.mite_score)
@@ -34,87 +55,102 @@ export default function DuvetCard({
 
   return (
     <div 
-      className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow cursor-pointer"
+      className="bg-white rounded-2xl overflow-hidden cursor-pointer group transition-all duration-700 ease-out hover:-translate-y-2 shadow-md hover:shadow-lg"
       onClick={() => onDuvetClick?.(duvet)}
     >
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden">
-            <Image
-              src={duvet.image_url || '/placeholder-duvet.png'}
-              alt={duvet.name}
-              width={80}
-              height={80}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-semibold text-gray-900">{duvet.name}</h3>
-            <p className="text-gray-600">{duvet.material}</p>
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${colors.border} ${colors.text} bg-opacity-10`}>
-              {riskLevel}
-            </div>
+      {/* Image Section - Top 60% */}
+      <div className="relative h-48 bg-gray-100 overflow-hidden">
+        <Image
+          src={duvet.image_url || '/placeholder-duvet.png'}
+          alt={duvet.name}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+        />
+        {/* Risk Badge */}
+        <div className="absolute top-4 left-4">
+          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${colors.border} ${colors.text} bg-white/90 backdrop-blur-sm shadow-sm`}>
+            {riskLevel}
           </div>
         </div>
+      </div>
 
-        <CircularProgress score={duvet.mite_score} />
+      {/* Content Section - Bottom 40% */}
+      <div className="p-6 space-y-4">
+        {/* Title */}
+        <h3 className="text-xl font-bold text-black">{duvet.name}</h3>
+        {/* Location */}
+        <p className="text-sm text-gray-600">{getLocationText(duvet, addresses)}</p>
+        
+        {/* Mite Score Row - Full Width like "by Author" */}
+        <div className="py-2">
+          <LinearProgress score={duvet.mite_score} />
+        </div>
 
+        {/* Bottom Row - Split like "Lessons/Level" */}
+        <div className="flex items-center justify-between">
+          {/* Left Side - Material and Last Clean */}
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="flex items-center space-x-1">
+              <span className="text-gray-600">Material:</span>
+              <span className="text-black font-medium">{duvet.material}</span>
+            </div>
+            {duvet.last_clean && (
+              <div className="flex items-center space-x-1">
+                <span className="text-gray-600">Last cleaned:</span>
+                <span className="text-black font-medium">
+                  {(() => {
+                    const lastCleanDate = new Date(duvet.last_clean)
+                    const today = new Date()
+                    const diffTime = Math.abs(today.getTime() - lastCleanDate.getTime())
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                    
+                    if (diffDays === 1) return "1 day ago"
+                    if (diffDays < 7) return `${diffDays} days ago`
+                    if (diffDays < 14) return "1 week ago"
+                    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+                    if (diffDays < 60) return "1 month ago"
+                    return `${Math.floor(diffDays / 30)} months ago`
+                  })()}
+                </span>
+              </div>
+            )}
+          </div>
 
-        {/* Action Buttons */}
-        {duvet.status === 'waiting_pickup' ? (
-          <div className="rounded-lg p-4 bg-amber-50 border border-amber-200">
-            <div className="flex items-center justify-center space-x-2">
-              <span>⏳</span>
-              <span className="font-medium text-amber-800">Waiting for pickup</span>
-            </div>
-            <p className="text-sm text-amber-600 text-center mt-1">
-              Someone will help dry your duvet
-            </p>
+          {/* Right Side - Action Button */}
+          <div className="flex items-center">
+            {duvet.status === 'waiting_pickup' ? (
+              <div className="flex items-center space-x-1 text-sm">
+                <span>⏳</span>
+                <span className="text-gray-600">Waiting</span>
+              </div>
+            ) : duvet.status === 'waiting_optimal_time' ? (
+              <div className="flex items-center space-x-1 text-sm">
+                <span>⏰</span>
+                <span className="text-gray-600">Scheduled</span>
+              </div>
+            ) : duvet.status === 'self_drying' ? (
+              <div className="flex items-center space-x-1 text-sm">
+                <span>🌞</span>
+                <span className="text-gray-600">Drying</span>
+              </div>
+            ) : duvet.status === 'help_drying' ? (
+              <div className="flex items-center space-x-1 text-sm">
+                <span>🤝</span>
+                <span className="text-gray-600">Helping</span>
+              </div>
+            ) : duvet.status === 'normal' && isSunriseTime ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSunDryingService(duvet)
+                }}
+                className="flex items-center justify-center px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg"
+              >
+                <span>Dry it</span>
+              </button>
+            ) : null}
           </div>
-        ) : duvet.status === 'waiting_optimal_time' ? (
-          <div className="rounded-lg p-4 bg-blue-50 border border-blue-200">
-            <div className="flex items-center justify-center space-x-2">
-              <span>⏰</span>
-              <span className="font-medium text-blue-800">Waiting for optimal time</span>
-            </div>
-            <p className="text-sm text-blue-600 text-center mt-1">
-              Self-drying scheduled
-            </p>
-          </div>
-        ) : duvet.status === 'self_drying' ? (
-          <div className="rounded-lg p-4 bg-green-50 border border-green-200">
-            <div className="flex items-center justify-center space-x-2">
-              <span>🌞</span>
-              <span className="font-medium text-green-800">Currently drying</span>
-            </div>
-            <p className="text-sm text-green-600 text-center mt-1">
-              Drying in progress
-            </p>
-          </div>
-        ) : duvet.status === 'help_drying' ? (
-          <div className="rounded-lg p-4 bg-purple-50 border border-purple-200">
-            <div className="flex items-center justify-center space-x-2">
-              <span>🤝</span>
-              <span className="font-medium text-purple-800">Being helped</span>
-            </div>
-            <p className="text-sm text-purple-600 text-center mt-1">
-              Someone is helping dry your duvet
-            </p>
-          </div>
-        ) : duvet.status === 'normal' && isSunriseTime && (
-          <div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onSunDryingService(duvet)
-              }}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
-            >
-              <span>🤖</span>
-              <span>Dry it</span>
-            </button>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )

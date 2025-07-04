@@ -1,19 +1,24 @@
 import { useState } from 'react'
 import DuvetCard from './DuvetCard'
+import AddNewDuvetCard from './AddNewDuvetCard'
 import DuvetHistoryModal from './DuvetHistoryModal'
-import { Duvet, CleanHistoryRecord } from './shared/types'
+import { Duvet, CleanHistoryRecord, Address } from './shared/types'
 
 interface DuvetListProps {
   duvets: Duvet[]
   duvetSunDryingStatus: Record<string, CleanHistoryRecord | null>
   isLoading: boolean
   onSunDryingService: (duvet: Duvet) => void
+  onAddNewDuvet: () => void
+  addresses?: Address[]
 }
 
 export default function DuvetList({
   duvets,
   isLoading,
-  onSunDryingService
+  onSunDryingService,
+  onAddNewDuvet,
+  addresses
 }: DuvetListProps) {
   const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -50,15 +55,17 @@ export default function DuvetList({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {duvets.map((duvet) => (
             <DuvetCard
               key={duvet.id}
               duvet={duvet}
               onSunDryingService={onSunDryingService}
               onDuvetClick={handleDuvetClick}
+              addresses={addresses}
             />
           ))}
+          <AddNewDuvetCard onClick={onAddNewDuvet} />
         </div>
       )}
 

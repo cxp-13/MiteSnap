@@ -298,15 +298,24 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
 
   return (
-    <div className="bg-white">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900">My Duvets</h2>
-        <button
-          onClick={handleOpenNewDuvetModal}
-          className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-colors font-semibold"
-        >
-          + Add New Duvet
-        </button>
+    <div>
+      {/* Welcome Section */}
+      <div className="mb-12">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+          Welcome to MiteSnap
+        </h1>
+        <p className="text-lg text-gray-600 font-light leading-relaxed">
+          Manage your duvets and track mite risk levels
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div className="border-b border-gray-200 mb-12"></div>
+
+      {/* Latest Duvets Section */}
+      <div className="mb-10">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Latest Duvets</h2>
+        <p className="text-base text-gray-600 font-light leading-relaxed mb-8">Monitor and manage your duvets for optimal health</p>
       </div>
 
       <DuvetList
@@ -314,6 +323,8 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         isLoading={isLoadingDuvets}
         onSunDryingService={handleSunDryingService}
         duvetSunDryingStatus={duvetSunDryingStatus}
+        onAddNewDuvet={handleOpenNewDuvetModal}
+        addresses={addresses}
       />
 
       {/* Address Prompt Modal */}

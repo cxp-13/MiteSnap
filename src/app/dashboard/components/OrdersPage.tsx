@@ -236,9 +236,6 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
   if (isLoadingOrders) {
     return (
       <div className="bg-white">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">My Orders</h2>
-        </div>
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
           <span className="ml-3 text-gray-600">Loading your orders...</span>
@@ -248,9 +245,15 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
   }
 
   return (
-    <div className="bg-white">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900">My Orders</h2>
+    <div>
+      {/* Welcome Section */}
+      <div className="mb-12">
+        <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 mb-3">
+          Nearby Orders
+        </h1>
+        <p className="text-lg text-gray-600">
+          Help others and earn rewards
+        </p>
       </div>
 
       <div className="space-y-8">
@@ -258,16 +261,21 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">My Service Requests</h3>
           {orders.length === 0 ? (
-            <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="text-gray-500">No service requests yet</p>
-              <p className="text-sm text-gray-400 mt-1">Your duvet drying requests will appear here</p>
+            <div className="bg-gray-50 rounded-2xl p-12 text-center">
+              <div className="space-y-4">
+                <div className="text-6xl text-gray-400">📦</div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No service requests yet</h3>
+                  <p className="text-gray-500">Your duvet drying requests will appear here</p>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {orders.map((order) => {
                 const address = addresses.find(a => a.id === order.address_id)
                 return (
-                  <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div key={order.id} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between mb-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
