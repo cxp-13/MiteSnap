@@ -28,17 +28,15 @@ const getLocationText = (duvet: Duvet, addresses?: Address[]) => {
   const address = addresses.find(addr => addr.id === duvet.address_id)
   if (!address) return 'Location not found'
   
-  // Format similar to AddressManager's getLocationLabel
-  if (address.city) {
-    return `Located in ${address.city}`
-  }
-  if (address.district) {
-    return `Located in ${address.district}`
-  }
-  if (address.neighbourhood) {
-    return `Located in ${address.neighbourhood}`
-  }
-  return 'Located at address'
+  // Format like international address: Street, District, City, State
+  const parts = []
+  if (address.street) parts.push(address.street)
+  if (address.neighbourhood) parts.push(address.neighbourhood)
+  if (address.district) parts.push(address.district)
+  if (address.city) parts.push(address.city)
+  if (address.state) parts.push(address.state)
+  
+  return parts.length > 0 ? parts.join(', ') : 'Address available'
 }
 
 
@@ -55,16 +53,15 @@ export default function DuvetCard({
 
   return (
     <div 
-      className="bg-white rounded-2xl overflow-hidden cursor-pointer group transition-all duration-700 ease-out hover:-translate-y-2 shadow-md hover:shadow-lg"
-      onClick={() => onDuvetClick?.(duvet)}
+      className="bg-white rounded-2xl overflow-hidden group shadow-md transition-all duration-200 ease-out hover:shadow-lg hover:-translate-y-0.5"
     >
       {/* Image Section - Top 60% */}
-      <div className="relative h-48 bg-gray-100 overflow-hidden">
+      <div className="relative h-64 bg-gray-100 overflow-hidden">
         <Image
           src={duvet.image_url || '/placeholder-duvet.png'}
           alt={duvet.name}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+          className="object-cover"
         />
         {/* Risk Badge */}
         <div className="absolute top-4 left-4">
@@ -116,8 +113,24 @@ export default function DuvetCard({
             )}
           </div>
 
-          {/* Right Side - Action Button */}
-          <div className="flex items-center">
+          {/* Right Side - Action Buttons */}
+          <div className="flex items-center space-x-2">
+            {/* History Button - Always shown */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDuvetClick?.(duvet)
+              }}
+              className="flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-gray-700 text-white rounded-xl hover:bg-gray-800 text-sm font-semibold shadow-md"
+              title="View history"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>History</span>
+            </button>
+            
+            {/* Status/Action Button */}
             {duvet.status === 'waiting_pickup' ? (
               <div className="flex items-center space-x-1 text-sm">
                 <span>⏳</span>
@@ -144,8 +157,11 @@ export default function DuvetCard({
                   e.stopPropagation()
                   onSunDryingService(duvet)
                 }}
-                className="flex items-center justify-center px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg"
+                className="flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 text-sm font-semibold shadow-md"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
                 <span>Dry it</span>
               </button>
             ) : null}

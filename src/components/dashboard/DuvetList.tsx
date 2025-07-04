@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import DuvetCard from './DuvetCard'
-import AddNewDuvetCard from './AddNewDuvetCard'
 import DuvetHistoryModal from './DuvetHistoryModal'
 import { Duvet, CleanHistoryRecord, Address } from './shared/types'
 
@@ -65,7 +64,6 @@ export default function DuvetList({
               addresses={addresses}
             />
           ))}
-          <AddNewDuvetCard onClick={onAddNewDuvet} />
         </div>
       )}
 

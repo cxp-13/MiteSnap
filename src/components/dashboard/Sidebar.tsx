@@ -130,7 +130,6 @@ export default function Sidebar() {
               />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-900">Welcome,</p>
               <p className="text-sm text-gray-600">{user?.name || 'User'}</p>
             </div>
           </div>

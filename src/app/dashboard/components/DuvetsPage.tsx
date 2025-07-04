@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { type Duvet, updateDuvetStatus } from '@/lib/database'
 import { useDuvets } from '@/hooks/dashboard/useDuvets'
 import { useWeather } from '@/hooks/dashboard/useWeather'
 import { useAddresses } from '@/hooks/dashboard/useAddresses'
 import { useOrders } from '@/hooks/dashboard/useOrders'
+import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import { uploadDuvetImage } from '@/lib/storage'
 import DuvetList from '@/components/dashboard/DuvetList'
 import NewDuvetModal from '@/components/dashboard/modals/NewDuvetModal'
@@ -19,8 +20,10 @@ interface DuvetsPageProps {
 
 export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const router = useRouter()
+  const { user } = useUnifiedUser()
   const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
   const [showAddressPrompt, setShowAddressPrompt] = useState(false)
+  const [analysisMessageIndex, setAnalysisMessageIndex] = useState(0)
 
   // Order request modal state
   const [showOrderRequestModal, setShowOrderRequestModal] = useState(false)
@@ -88,6 +91,27 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const { addresses, getDefaultAddress } = addressesHook
   const { handleCreateOrder } = ordersHook
 
+  // Analysis messages for the animation
+  const analysisMessages = [
+    'Analyzing recent weather data...',
+    'Evaluating air humidity conditions...',
+    'Calculating optimal drying effectiveness...',
+    'Generating personalized recommendations...'
+  ]
+
+  // Cycle through analysis messages during animation
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (sunDryStep === 2 && !sunDryingAnalysis) {
+      interval = setInterval(() => {
+        setAnalysisMessageIndex((prev) => (prev + 1) % analysisMessages.length)
+      }, 800) // Change message every 800ms
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [sunDryStep, sunDryingAnalysis, analysisMessages.length])
+
 
 
   // Handle sun drying service request
@@ -123,8 +147,15 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       return
     }
 
-    // Start AI analysis which will move to step 2 to show results
-    await handleStartAIAnalysis(selectedDuvet.mite_score || 50)
+    // Show the AI analysis animation (step 2)
+    setSunDryStep(2)
+    setAnalysisMessageIndex(0) // Reset message index
+
+    // Wait for 3.2 seconds (4 messages × 800ms) for the animation to complete
+    setTimeout(async () => {
+      // Start actual AI analysis which will show results on the same step
+      await handleStartAIAnalysis(selectedDuvet.mite_score || 50)
+    }, 3200)
   }
 
   // Handle "Have someone else dry it" option
@@ -302,7 +333,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       {/* Welcome Section */}
       <div className="mb-12">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
-          Welcome to MiteSnap
+          Welcome{user?.name ? ` ${user.name}` : ''}
         </h1>
         <p className="text-lg text-gray-600 font-light leading-relaxed">
           Manage your duvets and track mite risk levels
@@ -314,7 +345,18 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
       {/* Latest Duvets Section */}
       <div className="mb-10">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Latest Duvets</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Latest Duvets</h2>
+          <button
+            onClick={handleOpenNewDuvetModal}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span>Add Duvet</span>
+          </button>
+        </div>
         <p className="text-base text-gray-600 font-light leading-relaxed mb-8">Monitor and manage your duvets for optimal health</p>
       </div>
 
@@ -396,39 +438,39 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
       {/* Sun-Drying Modal */}
       {showSunDryModal && selectedDuvet && (
-        <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-12 w-full mx-6 shadow-2xl max-w-xl">
-            <div className="flex justify-between items-start mb-12">
-              <h3 className="text-2xl font-light text-black tracking-tight">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-8 w-full mx-4 shadow-lg max-w-md">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-lg font-medium text-black">
                 AI Blanket Drying - {selectedDuvet.name}
               </h3>
               <button
                 onClick={closeSunDryModal}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-thin ml-6 mt-1"
+                className="text-gray-400 hover:text-gray-600 text-xl font-normal"
               >
                 ×
               </button>
             </div>
 
             {/* Multi-Step Display */}
-            <div className="space-y-12">
+            <div className="space-y-6">
               {sunDryStep === 1 && (
                 <div>
                   {isLoadingWeatherAnalysis ? (
-                    <div className="flex flex-col items-center justify-center py-24">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mb-8"></div>
-                      <p className="text-gray-500 font-light text-lg">Analyzing conditions...</p>
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mb-4"></div>
+                      <p className="text-gray-500 font-normal text-sm">Analyzing conditions...</p>
                     </div>
                   ) : weatherAnalysis ? (
-                    <div className="space-y-12">
+                    <div className="space-y-6">
                       {weatherAnalysis.isOptimalForSunDrying && weatherAnalysis.optimalWindows.length > 0 ? (
-                        <div className="text-center py-16 space-y-8">
+                        <div className="text-center py-8 space-y-6">
                           {/* Best Drying Time */}
-                          <div className="space-y-6">
-                            <h4 className="text-gray-500 font-light text-base uppercase tracking-[0.2em] mb-8">
+                          <div className="space-y-4">
+                            <h4 className="text-gray-500 font-medium text-sm uppercase tracking-wider">
                               OPTIMAL DRYING TIME (NEXT 12 HOURS)
                             </h4>
-                            <div className="text-5xl font-extralight text-black tracking-tight leading-none">
+                            <div className="text-4xl font-light text-black tracking-tight leading-none">
                               {(() => {
                                 const now = new Date()
                                 const currentTime = now.getTime()
@@ -459,21 +501,21 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                                 return `${startTime} - ${endTime}`
                               })()}
                             </div>
-                            <p className="text-gray-400 font-light text-lg tracking-wide">
+                            <p className="text-gray-500 font-normal text-sm">
                               Optimal conditions detected
                             </p>
                           </div>
 
                           {/* Two Option Buttons */}
-                          <div className="flex flex-col space-y-4">
+                          <div className="flex flex-col space-y-3">
                             <button
                               onClick={handleDryItMyself}
                               disabled={isLoadingSunDryingAnalysis}
-                              className="px-12 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg flex items-center justify-center"
+                              className="px-8 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 text-base flex items-center justify-center"
                             >
                               {isLoadingSunDryingAnalysis ? (
                                 <>
-                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                   Analyzing...
                                 </>
                               ) : (
@@ -482,21 +524,21 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                             </button>
                             <button
                               onClick={handleRequestHelp}
-                              className="px-12 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                              className="px-8 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium transition-all duration-200 text-base border border-gray-300"
                             >
-                              Have someone else dry it
+                              Hire Helper
                             </button>
 
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-16 space-y-8">
-                          <div className="text-6xl text-gray-300 mb-8">☁️</div>
-                          <div className="space-y-4">
-                            <h4 className="text-xl font-light text-gray-700">
+                        <div className="text-center py-8 space-y-6">
+                          <div className="text-4xl text-gray-300 mb-4">☁️</div>
+                          <div className="space-y-3">
+                            <h4 className="text-lg font-medium text-gray-700">
                               Not Optimal for Sun Drying
                             </h4>
-                            <p className="text-gray-500 font-light">
+                            <p className="text-gray-500 font-normal text-sm">
                               {weatherAnalysis.reason}
                             </p>
                           </div>
@@ -505,7 +547,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                           <div className="flex justify-center">
                             <button
                               onClick={handleDryItMyself}
-                              className="px-12 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                              className="px-8 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-medium transition-all duration-200 text-base"
                             >
                               I got it
                             </button>
@@ -514,13 +556,13 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                       )}
                     </div>
                   ) : isManualMode ? (
-                    <div className="py-8 space-y-6">
-                      <div className="text-center space-y-4">
-                        <div className="text-4xl text-gray-300 mb-4">⏰</div>
-                        <h4 className="text-xl font-light text-gray-700">
+                    <div className="py-6 space-y-4">
+                      <div className="text-center space-y-3">
+                        <div className="text-3xl text-gray-300 mb-3">⏰</div>
+                        <h4 className="text-lg font-medium text-gray-700">
                           Weather Analysis Unavailable
                         </h4>
-                        <p className="text-gray-500 font-light">
+                        <p className="text-gray-500 font-normal text-sm">
                           Select your preferred drying time manually
                         </p>
                       </div>
@@ -545,15 +587,15 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                         </div>
                       )}
 
-                      <div className="flex flex-col space-y-4">
+                      <div className="flex flex-col space-y-3">
                         <button
                           onClick={handleDryItMyself}
                           disabled={!manualTimeWindow || isLoadingSunDryingAnalysis}
-                          className="px-12 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg flex items-center justify-center"
+                          className="px-8 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 text-base flex items-center justify-center"
                         >
                           {isLoadingSunDryingAnalysis ? (
                             <>
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                               Analyzing...
                             </>
                           ) : (
@@ -563,73 +605,84 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                         <button
                           onClick={handleRequestHelp}
                           disabled={!manualTimeWindow}
-                          className="px-12 py-4 bg-green-500 hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 text-lg"
+                          className="px-8 py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-900 rounded-lg font-medium transition-all duration-200 text-base border border-gray-300"
                         >
-                          Have someone else dry it
+                          Hire Helper
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-16">
-                      <p className="text-gray-500">Unable to analyze weather conditions</p>
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 text-sm">Unable to analyze weather conditions</p>
                     </div>
                   )}
                 </div>
               )}
 
+              {sunDryStep === 2 && !sunDryingAnalysis && (
+                <div className="py-12 space-y-6">
+                  <div className="flex flex-col items-center justify-center space-y-6">
+                    {/* AI Analysis Animation */}
+                    <div className="relative">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center animate-pulse">
+                        <div className="w-8 h-8 bg-gray-400 rounded-full animate-spin"></div>
+                      </div>
+                      <div className="absolute inset-0 w-16 h-16 border-2 border-gray-300 rounded-full animate-ping opacity-20"></div>
+                    </div>
+                    
+                    {/* Cycling Analysis Messages */}
+                    <div className="text-center space-y-2">
+                      <h4 className="text-lg font-medium text-black">AI Analysis in Progress</h4>
+                      <p className="text-gray-600 text-sm">
+                        <span className="transition-opacity duration-300">
+                          {analysisMessages[analysisMessageIndex]}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {sunDryStep === 2 && sunDryingAnalysis && selectedDuvet && (
-                <div className="py-8 space-y-4">
-                  <div className="text-center space-y-4">
-                    <h4 className="text-2xl font-semibold text-black">AI Analysis Results</h4>
-                    <p className="text-gray-600">
+                <div className="py-6 space-y-4">
+                  <div className="text-center space-y-3">
+                    <h4 className="text-lg font-medium text-black">AI Analysis Results</h4>
+                    <p className="text-gray-600 text-sm">
                       Based on {isManualMode ? 'selected time window' : 'weather conditions'} and current mite score
                     </p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-6 space-y-6">
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
                     <div className="space-y-3">
-                      <h5 className="font-semibold text-gray-900">Predicted Mite Index Change</h5>
+                      <h5 className="font-medium text-gray-900 text-sm">Predicted Mite Index Change</h5>
                       <div className="flex items-center justify-center space-x-4">
                         <div className="text-center">
-                          <div className="text-3xl font-bold text-gray-800">
+                          <div className="text-2xl font-medium text-gray-800">
                             {selectedDuvet.mite_score || 50}
                           </div>
-                          <div className="text-sm text-gray-500">Current</div>
+                          <div className="text-xs text-gray-500">Current</div>
                         </div>
-                        <div className="text-gray-500 text-2xl">→</div>
+                        <div className="text-gray-500 text-lg">→</div>
                         <div className="text-center">
-                          <div className="text-3xl font-bold text-green-600">
+                          <div className="text-2xl font-medium text-gray-800">
                             {sunDryingAnalysis.finalMiteScore}
                           </div>
-                          <div className="text-sm text-gray-500">Predicted</div>
+                          <div className="text-xs text-gray-500">Predicted</div>
                         </div>
                       </div>
                       <div className="text-center">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
                           -{sunDryingAnalysis.miteScoreReduction} points reduction
                         </span>
                       </div>
                     </div>
 
-                    {sunDryingAnalysis.analysisReasons && sunDryingAnalysis.analysisReasons.length > 0 && (
-                      <div className="space-y-3">
-                        <h5 className="font-semibold text-gray-900">Analysis Summary</h5>
-                        <ul className="space-y-2">
-                          {sunDryingAnalysis.analysisReasons.map((reason, index) => (
-                            <li key={index} className="text-gray-700 flex items-start">
-                              <span className="text-blue-500 mr-2 font-medium">•</span>
-                              <span className="flex-1">{reason}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
 
-                  <div className="flex justify-center space-x-4">
+                  <div className="flex justify-center space-x-3">
                     <button
                       onClick={() => setSunDryStep(1)}
-                      className="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
                       Back
                     </button>
@@ -648,7 +701,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                           }
                         }
                       }}
-                      className="px-8 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-colors"
+                      className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm"
                     >
                       Start Sun Drying
                     </button>

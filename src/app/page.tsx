@@ -32,12 +32,12 @@ export default function Home() {
   const router = useRouter()
   const [openFAQ, setOpenFAQ] = useState<number | null>(null)
 
-  // 新增：用于锚点定位
+  // Anchor positioning refs
   const featuresRef = useRef<HTMLDivElement | null>(null)
   const faqRef = useRef<HTMLDivElement | null>(null)
   const pricingRef = useRef<HTMLDivElement | null>(null)
 
-  // 平滑滚动函数
+  // Smooth scroll function
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
     if (ref.current) {
       ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -145,7 +145,7 @@ export default function Home() {
     }
   }, [])
 
-  // FAQ数据抽取到组件外部
+  // FAQ data extracted to component scope
   const faqs = [
     {
       q: "What is MiteSnap and what does it offer?",
@@ -163,7 +163,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-white flex flex-col relative">
-      {/* Sticky Navigation Bar (Portia style + 登录) */}
+      {/* Sticky Navigation Bar */}
       <nav
         className="fixed top-6 left-1/2 z-50 -translate-x-1/2 w-[98vw] max-w-[1800px] bg-gray-900/95 backdrop-blur-lg border border-gray-700 shadow-xl flex items-center justify-between px-8 md:px-16 py-4 rounded-[2.5rem] transition-all duration-300"
         style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif', boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)' }}
@@ -193,7 +193,7 @@ export default function Home() {
           </SignedIn>
         </div>
       </nav>
-      {/* 占位防止内容被遮挡 */}
+      {/* Spacer to prevent content overlap */}
       <div className="h-28" />
       
       

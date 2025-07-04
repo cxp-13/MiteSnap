@@ -2,14 +2,15 @@ interface LinearProgressProps {
   score: number
 }
 
-const getMiteLevel = (score: number) => {
-  if (score < 30) return 'Low'
-  if (score < 60) return 'Moderate'
-  return 'High'
+const getProgressColor = (score: number) => {
+  if (score < 30) return 'bg-green-600'
+  if (score < 60) return 'bg-yellow-500'
+  return 'bg-red-600'
 }
 
 export default function LinearProgress({ score }: LinearProgressProps) {
   const percentage = Math.min(score, 100)
+  const progressColor = getProgressColor(score)
   
   return (
     <div className="w-full">
@@ -22,15 +23,11 @@ export default function LinearProgress({ score }: LinearProgressProps) {
       {/* Progress Track */}
       <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
         <div 
-          className="bg-gray-800 h-2 rounded-full transition-all duration-500 ease-out"
+          className={`${progressColor} h-2 rounded-full transition-all duration-500 ease-out`}
           style={{ width: `${percentage}%` }}
         />
       </div>
       
-      {/* Level Indicator */}
-      <div className="text-xs text-gray-600 text-center">
-        {getMiteLevel(score)} Level
-      </div>
     </div>
   )
 }

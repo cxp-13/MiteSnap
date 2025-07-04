@@ -70,7 +70,7 @@ export default function NewDuvetModal({
 
   return (
     <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className={`bg-gray-50 rounded-2xl p-10 w-full mx-4 shadow-2xl ${currentStep === 4 ? 'max-w-7xl' : 'max-w-4xl'}`}>
+        <div className={`bg-gray-50 rounded-2xl p-8 w-full mx-4 shadow-2xl ${currentStep === 4 ? 'max-w-md' : 'max-w-4xl'}`}>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold text-black">Add New Duvet</h3>
           <button 
@@ -89,9 +89,9 @@ export default function NewDuvetModal({
               <p className="text-gray-600 text-lg">Take a clear photo of your duvet</p>
             </div>
             
-            <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-black transition-colors cursor-pointer">
+            <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-black transition-colors cursor-pointer group">
               {photoPreview ? (
-                <div className="space-y-4">
+                <div className="relative">
                   <Image 
                     src={photoPreview} 
                     alt="Duvet preview" 
@@ -99,7 +99,13 @@ export default function NewDuvetModal({
                     height={200}
                     className="max-h-48 mx-auto rounded-xl shadow-md object-contain"
                   />
-                  <p className="text-base text-green-600 font-medium">Photo uploaded successfully</p>
+                  
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <div className="text-white text-sm font-medium bg-black/60 px-3 py-1 rounded-lg">
+                      Click to change photo
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">

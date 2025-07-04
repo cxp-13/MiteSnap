@@ -4,14 +4,12 @@ interface SunDryingAIResponse {
   effectiveness_score: number
   mite_score_reduction: number
   final_mite_score: number
-  analysis_reasons: string[]
 }
 
 export interface SunDryingAnalysisResult {
   effectivenessScore: number
   miteScoreReduction: number
   finalMiteScore: number
-  analysisReasons: string[]
 }
 
 export async function analyzeSunDryingEffectiveness(
@@ -56,7 +54,6 @@ export async function analyzeSunDryingEffectiveness(
 2. Evaluate the effectiveness of the sun-drying process (0-100 score)
 3. Calculate the mite score reduction based on the sun-drying conditions and photo analysis
 4. Determine the final mite score after sun-drying
-5. Provide specific reasons for your assessment
 
 **Sun-Drying Effectiveness Analysis**:
 Analyze the sun-drying effectiveness based on:
@@ -72,12 +69,7 @@ Provide a mite score reduction between 10-40 points based on the combined effect
 {
   "effectiveness_score": 0-100,
   "mite_score_reduction": 10-40,
-  "final_mite_score": ${Math.max(0, beforeMiteScore - 40)}-${Math.max(0, beforeMiteScore - 10)},
-  "analysis_reasons": [
-    "Brief summary of drying conditions quality",
-    "Weather suitability assessment", 
-    "Expected mite reduction outcome"
-  ]
+  "final_mite_score": ${Math.max(0, beforeMiteScore - 40)}-${Math.max(0, beforeMiteScore - 10)}
 }
 \`\`\``,
                 type: "text"
@@ -138,8 +130,7 @@ Provide a mite score reduction between 10-40 points based on the combined effect
     return {
       effectivenessScore: Math.max(0, Math.min(100, aiResponse.effectiveness_score)),
       miteScoreReduction: actualReduction,
-      finalMiteScore,
-      analysisReasons: aiResponse.analysis_reasons || []
+      finalMiteScore
     }
   } catch (error) {
     console.error('Error analyzing sun-drying effectiveness:', error)
@@ -185,9 +176,6 @@ export function calculateBasicSunDryingReduction(
   return {
     effectivenessScore,
     miteScoreReduction: actualReduction,
-    finalMiteScore,
-    analysisReasons: [
-      `${actualReduction} point reduction in mite activity levels`
-    ]
+    finalMiteScore
   }
 }
