@@ -122,14 +122,13 @@ export default function AddressManager({
           <div className="space-y-6">
             <div className="text-6xl text-gray-400">📍</div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">Add Your First Address</h3>
-              <p className="text-gray-500 mb-4">Set up your address to enable location-based services like help-drying</p>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No addresses yet</h3>
+              <p className="text-gray-500 mb-4">Add your first address to enable location-based services</p>
             </div>
             <button
               onClick={handleNewAddress}
-              className="inline-flex items-center px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors space-x-2"
+              className="inline-flex items-center px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors space-x-2"
             >
-              <span>📍</span>
               <span>Add Address</span>
             </button>
           </div>

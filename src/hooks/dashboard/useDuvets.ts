@@ -127,7 +127,7 @@ export function useDuvets(userId: string | undefined) {
     }
   }, [])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const handleStartAnalysis = useCallback(async () => {
     if (!selectedPhoto || !userId) return
 

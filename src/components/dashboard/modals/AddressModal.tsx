@@ -279,9 +279,9 @@ export default function AddressModal({
                 <p className="text-sm text-gray-500">Edit the detected information as needed</p>
               </div>
               
-              {/* Compact Grid Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* Row 1 */}
+              {/* 地址主表单部分：三列自适应布局，国家字段与其他字段同一行 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* House Number */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">House Number</label>
                   <input
@@ -292,7 +292,7 @@ export default function AddressModal({
                     placeholder=""
                   />
                 </div>
-                
+                {/* Road/Street */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Road/Street</label>
                   <input
@@ -303,7 +303,7 @@ export default function AddressModal({
                     placeholder=""
                   />
                 </div>
-
+                {/* Neighbourhood */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Neighbourhood</label>
                   <input
@@ -314,8 +314,7 @@ export default function AddressModal({
                     placeholder=""
                   />
                 </div>
-
-                {/* Row 2 */}
+                {/* District */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
                   <input
@@ -326,7 +325,7 @@ export default function AddressModal({
                     placeholder=""
                   />
                 </div>
-
+                {/* City */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     City <span className="text-red-500">*</span>
@@ -340,7 +339,7 @@ export default function AddressModal({
                     required
                   />
                 </div>
-                
+                {/* State/Province */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
                   <input
@@ -351,10 +350,7 @@ export default function AddressModal({
                     placeholder=""
                   />
                 </div>
-              </div>
-
-              {/* Row 3 - Country */}
-              <div className="grid grid-cols-1 gap-4">
+                {/* Country（与其他字段同一行） */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                   <input
@@ -367,28 +363,29 @@ export default function AddressModal({
                 </div>
               </div>
 
-              {/* Row 4 - Floor and Elevator Info for Help-Drying Service */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-3">Building Information (For Help-Drying Service)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Floor Number</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={formData.floor_number || ''}
-                      onChange={(e) => handleInputChange('floor_number', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
-                      placeholder=""
-                    />
+              {/* Building & Service Info 一体化分区风格 */}
+              <div className="mt-6 mb-2">
+                <div className="text-base font-semibold text-gray-700 mb-2">Building & Service Info</div>
+                <div className="bg-gray-100 rounded-xl px-6 py-4">
+                  {/* Floor Number */}
+                  <div className="grid grid-cols-3 items-center py-3 border-b border-gray-200">
+                    <span className="text-gray-600">Floor Number</span>
+                    <div className="col-span-2 flex justify-end">
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={formData.floor_number || ''}
+                        onChange={(e) => handleInputChange('floor_number', e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-24 bg-white rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-100 border border-gray-300 shadow-sm transition-all text-right"
+                        placeholder=""
+                      />
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Building Has Elevator <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex items-center space-x-6 mt-2">
+                  {/* Elevator */}
+                  <div className="grid grid-cols-3 items-center py-3 border-b border-gray-200">
+                    <span className="text-gray-600">Building Has Elevator <span className='text-red-500'>*</span></span>
+                    <div className="col-span-2 flex justify-end space-x-6">
                       <label className="flex items-center">
                         <input
                           type="radio"
@@ -411,25 +408,20 @@ export default function AddressModal({
                       </label>
                     </div>
                   </div>
+                  {/* Default Address */}
+                  <div className="grid grid-cols-3 items-center py-3">
+                    <span className="text-gray-600">Set as default address</span>
+                    <div className="col-span-2 flex justify-end">
+                      <input
+                        type="checkbox"
+                        id="is_default"
+                        checked={formData.is_default || false}
+                        onChange={(e) => handleInputChange('is_default', e.target.checked)}
+                        className="h-5 w-5 text-amber-600 focus:ring-amber-500 border-amber-300 rounded"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Default Address Option - Only show when not loading */}
-          {!(isGettingLocation || isGeocoding) && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="is_default"
-                  checked={formData.is_default || false}
-                  onChange={(e) => handleInputChange('is_default', e.target.checked)}
-                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-amber-300 rounded"
-                />
-                <label htmlFor="is_default" className="text-sm font-medium text-amber-900">
-                  Set as default address
-                </label>
               </div>
             </div>
           )}

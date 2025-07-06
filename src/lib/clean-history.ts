@@ -218,11 +218,17 @@ export async function getCleanHistoryRecord(
   recordId: string
 ): Promise<CleanHistoryRecord | null> {
   try {
+    console.log(`🔍 [getCleanHistoryRecord] Fetching record for ID: ${recordId}`)
+    
     const { data, error } = await supabase
       .from('clean_history')
       .select('*')
       .eq('id', recordId)
       .single()
+
+    console.log(`🔍 [getCleanHistoryRecord] Database response:`)
+    console.log('  Data:', data)
+    console.log('  Error:', error)
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -233,6 +239,7 @@ export async function getCleanHistoryRecord(
       return null
     }
 
+    console.log(`[getCleanHistoryRecord] Successfully retrieved record for ID: ${recordId}`, data)
     return data
   } catch (err) {
     console.error(`[getCleanHistoryRecord] Exception:`, err)

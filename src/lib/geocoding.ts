@@ -112,69 +112,32 @@ export async function reverseGeocode(
     const result = data.results[0]
     const components = result.components
     
-    // For Chinese addresses, map the administrative levels correctly
-    let city: string | null = null
-    let district: string | null = null
+    console.log('🌍 Reverse Geocoding API Response:', {
+      country: components.country,
+      state: components.state,
+      city: components.city,
+      _normalized_city: components._normalized_city,
+      district: components.district,
+      borough: components.borough,
+      suburb: components.suburb,
+      road: components.road,
+      house_number: components.house_number,
+      neighbourhood: components.neighbourhood
+    })
     
-    if (components.country === 'China') {
-      // In China: state = province, city = prefecture-level city, district = county/district
-      // OpenCage might map these incorrectly, so we need to check multiple fields
+    // Use the API response data as-is, with minimal universal cleaning
+    const city = (components.city as string) || (components._normalized_city as string) || null
+    let district = (components.district as string) || (components.borough as string) || (components.suburb as string) || null
+    
+    // Only remove common administrative suffixes that don't contain meaningful information
+    if (district && typeof district === 'string') {
+      const originalDistrict = district
+      district = district.replace(/\s*(Sub-?District|Street)$/i, '').trim()
       
-      console.log('🌍 Geocoding China - Raw components:', {
-        city: components.city,
-        _normalized_city: components._normalized_city,
-        county: components.county,
-        district: components.district,
-        suburb: components.suburb,
-        borough: components.borough,
-        state: components.state
-      })
-      
-      city = (components.city as string) || (components._normalized_city as string) || (components.county as string) || null
-      district = (components.district as string) || (components.county as string) || (components.suburb as string) || (components.borough as string) || null
-      
-      console.log('🌍 Geocoding China - Initial mapping:', { city, district })
-      
-      // Special handling: if city contains "District" it's likely the district level
-      if (city && typeof city === 'string' && city.includes('District')) {
-        district = city
-        city = (components.state_district as string) || (components.city_district as string) || null
-        console.log('🌍 Geocoding China - City contains District, remapped:', { city, district })
+      // If district becomes empty after cleanup, use original value
+      if (!district || district.length === 0) {
+        district = originalDistrict
       }
-      
-      // For Shenzhen specifically: if we get "Bao'an District" as city, fix it
-      if (city && typeof city === 'string' && city.toLowerCase().includes("bao'an")) {
-        district = city
-        city = "Shenzhen"
-        console.log('🌍 Geocoding China - Detected Bao\'an, fixed to Shenzhen:', { city, district })
-      }
-      
-      // For Shenzhen area: if district contains Bao'an but city is not Shenzhen, fix it
-      if (district && typeof district === 'string' && district.toLowerCase().includes("bao'an") && (!city || city !== "Shenzhen")) {
-        city = "Shenzhen"
-        district = "Bao'an District"
-        console.log('🌍 Geocoding China - District contains Bao\'an, fixed city to Shenzhen:', { city, district })
-      }
-      
-      // Remove sub-district level information (街道, Sub-District, Subdistrict)
-      if (district && typeof district === 'string') {
-        const originalDistrict = district
-        district = district.replace(/\s*(Sub-?District|Street|街道)$/i, '').trim()
-        
-        console.log('🌍 Geocoding China - Removed sub-district suffix:', { originalDistrict, cleanedDistrict: district })
-        
-        // If district becomes empty after removing sub-district info, use other components
-        if (!district || district.length === 0) {
-          district = (components.suburb as string) || (components.borough as string) || null
-          console.log('🌍 Geocoding China - District empty after cleanup, using fallback:', district)
-        }
-      }
-      
-      console.log('🌍 Geocoding China - Final result:', { city, district })
-    } else {
-      // For non-Chinese addresses, use the original mapping
-      city = (components.city as string) || (components._normalized_city as string) || null
-      district = (components.borough as string) || (components.suburb as string) || null
     }
 
     return {
@@ -224,68 +187,32 @@ export async function forwardGeocode(address: string): Promise<GeocodingResult |
     const result = data.results[0]
     const components = result.components
     
-    // For Chinese addresses, map the administrative levels correctly
-    let city: string | null = null
-    let district: string | null = null
+    console.log('🌍 Forward Geocoding API Response:', {
+      country: components.country,
+      state: components.state,
+      city: components.city,
+      _normalized_city: components._normalized_city,
+      district: components.district,
+      borough: components.borough,
+      suburb: components.suburb,
+      road: components.road,
+      house_number: components.house_number,
+      neighbourhood: components.neighbourhood
+    })
     
-    if (components.country === 'China') {
-      // In China: state = province, city = prefecture-level city, district = county/district
+    // Use the API response data as-is, with minimal universal cleaning
+    const city = (components.city as string) || (components._normalized_city as string) || null
+    let district = (components.district as string) || (components.borough as string) || (components.suburb as string) || null
+    
+    // Only remove common administrative suffixes that don't contain meaningful information
+    if (district && typeof district === 'string') {
+      const originalDistrict = district
+      district = district.replace(/\s*(Sub-?District|Street)$/i, '').trim()
       
-      console.log('🌍 Forward Geocoding China - Raw components:', {
-        city: components.city,
-        _normalized_city: components._normalized_city,
-        county: components.county,
-        district: components.district,
-        suburb: components.suburb,
-        borough: components.borough,
-        state: components.state
-      })
-      
-      city = (components.city as string) || (components._normalized_city as string) || (components.county as string) || null
-      district = (components.district as string) || (components.county as string) || (components.suburb as string) || (components.borough as string) || null
-      
-      console.log('🌍 Forward Geocoding China - Initial mapping:', { city, district })
-      
-      // Special handling: if city contains "District" it's likely the district level
-      if (city && typeof city === 'string' && city.includes('District')) {
-        district = city
-        city = (components.state_district as string) || (components.city_district as string) || null
-        console.log('🌍 Forward Geocoding China - City contains District, remapped:', { city, district })
+      // If district becomes empty after cleanup, use original value
+      if (!district || district.length === 0) {
+        district = originalDistrict
       }
-      
-      // For Shenzhen specifically: if we get "Bao'an District" as city, fix it
-      if (city && typeof city === 'string' && city.toLowerCase().includes("bao'an")) {
-        district = city
-        city = "Shenzhen"
-        console.log('🌍 Forward Geocoding China - Detected Bao\'an, fixed to Shenzhen:', { city, district })
-      }
-      
-      // For Shenzhen area: if district contains Bao'an but city is not Shenzhen, fix it
-      if (district && typeof district === 'string' && district.toLowerCase().includes("bao'an") && (!city || city !== "Shenzhen")) {
-        city = "Shenzhen"
-        district = "Bao'an District"
-        console.log('🌍 Forward Geocoding China - District contains Bao\'an, fixed city to Shenzhen:', { city, district })
-      }
-      
-      // Remove sub-district level information (街道, Sub-District, Subdistrict)
-      if (district && typeof district === 'string') {
-        const originalDistrict = district
-        district = district.replace(/\s*(Sub-?District|Street|街道)$/i, '').trim()
-        
-        console.log('🌍 Forward Geocoding China - Removed sub-district suffix:', { originalDistrict, cleanedDistrict: district })
-        
-        // If district becomes empty after removing sub-district info, use other components
-        if (!district || district.length === 0) {
-          district = (components.suburb as string) || (components.borough as string) || null
-          console.log('🌍 Forward Geocoding China - District empty after cleanup, using fallback:', district)
-        }
-      }
-      
-      console.log('🌍 Forward Geocoding China - Final result:', { city, district })
-    } else {
-      // For non-Chinese addresses, use the original mapping
-      city = (components.city as string) || (components._normalized_city as string) || null
-      district = (components.borough as string) || (components.suburb as string) || null
     }
 
     return {
