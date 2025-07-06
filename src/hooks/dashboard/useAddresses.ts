@@ -30,6 +30,9 @@ export function useAddresses(userId: string | undefined) {
   const handleCreateAddress = useCallback(async (addressData: AddressFormData) => {
     if (!userId) return
 
+    console.log('🏠 useAddresses handleCreateAddress called with:', addressData)
+    console.log('🏗️ useAddresses has_elevator value:', addressData.has_elevator, 'type:', typeof addressData.has_elevator)
+
     try {
       const success = await createAddress(addressData, userId)
       if (success) {
@@ -78,13 +81,22 @@ export function useAddresses(userId: string | undefined) {
   }, [userId, loadAddresses])
 
   // Set default address
-  const handleSetDefaultAddress = useCallback(async (id: string) => {
+  const handleSetDefaultAddress = useCallback(async (id: string, preventReload?: boolean) => {
     if (!userId) return
 
     try {
       const success = await setDefaultAddress(id, userId)
       if (success) {
-        await loadAddresses()
+        // Only reload addresses if not preventing reload (e.g., when modal is open)
+        if (!preventReload) {
+          await loadAddresses()
+        } else {
+          // Update local state without reloading to prevent form data loss
+          setAddresses(prev => prev.map(addr => ({
+            ...addr,
+            is_default: addr.id === id
+          })))
+        }
       } else {
         throw new Error('Failed to set default address. Please try again.')
       }

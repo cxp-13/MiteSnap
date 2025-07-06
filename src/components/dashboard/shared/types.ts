@@ -32,10 +32,11 @@ export interface AddressFormData {
   road?: string
   house_number?: string
   neighbourhood?: string
-  address_line?: string
   longitude?: number
   latitude?: number
   is_default?: boolean
+  floor_number?: number
+  has_elevator?: boolean
   // Legacy fields for backward compatibility
   apartment?: string
   unit?: string

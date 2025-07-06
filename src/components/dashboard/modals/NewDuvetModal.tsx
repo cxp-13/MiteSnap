@@ -367,8 +367,7 @@ export default function NewDuvetModal({
                           {addresses.map((address) => (
                             <option key={address.id} value={address.id}>
                               {address.is_default && '🏠 '}
-                              {address.address_line || 
-                               `${address.house_number || ''} ${address.road || ''}, ${address.city || ''}`.trim()}
+                              {`${address.house_number || ''} ${address.road || ''}, ${address.city || ''}`.trim()}
                               {address.is_default && ' (Default)'}
                             </option>
                           ))}

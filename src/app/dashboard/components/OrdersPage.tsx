@@ -15,7 +15,7 @@ interface OrdersPageProps {
 }
 
 export default function OrdersPage({ userId }: OrdersPageProps) {
-  const { orders, acceptedOrders, nearbyOrders, isLoadingOrders, handleDeleteOrder, handleAcceptOrder, handleUpdateOrderStatus } = useOrders(userId)
+  const { acceptedOrders, nearbyOrders, isLoadingOrders, handleAcceptOrder, handleUpdateOrderStatus } = useOrders(userId)
   const { addresses } = useAddresses(userId)
   const [nearbyOrderAddresses, setNearbyOrderAddresses] = useState<Record<string, Address>>({})
   const [cleanHistoryData, setCleanHistoryData] = useState<Record<string, CleanHistoryRecord>>({})
@@ -128,24 +128,36 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     }
   }
 
-  // Helper function to get completion button state
-  const getCompletionButtonState = (cleanHistory: CleanHistoryRecord | undefined) => {
-    if (!cleanHistory?.end_time) {
-      return { enabled: true, text: "Complete Order", message: null }
+
+  // Helper function to calculate drying progress
+  const getDryingProgress = (cleanHistory: CleanHistoryRecord | undefined) => {
+    if (!cleanHistory?.start_time || !cleanHistory?.end_time) {
+      return { progress: 0, isComplete: false, timeRemaining: null }
     }
     
     const now = new Date()
+    const startTime = new Date(cleanHistory.start_time)
     const endTime = new Date(cleanHistory.end_time)
     
-    if (now > endTime) {
-      return { enabled: true, text: "Complete Order", message: null }
-    } else {
-      const hoursRemaining = Math.ceil((endTime.getTime() - now.getTime()) / (1000 * 60 * 60))
-      return {
-        enabled: false,
-        text: "Drying in Progress",
-        message: `Can complete in ${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''}`
-      }
+    if (now < startTime) {
+      return { progress: 0, isComplete: false, timeRemaining: null }
+    }
+    
+    if (now >= endTime) {
+      return { progress: 100, isComplete: true, timeRemaining: null }
+    }
+    
+    const totalDuration = endTime.getTime() - startTime.getTime()
+    const elapsed = now.getTime() - startTime.getTime()
+    const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100))
+    
+    const remainingMs = endTime.getTime() - now.getTime()
+    const hoursRemaining = Math.ceil(remainingMs / (1000 * 60 * 60))
+    
+    return {
+      progress: Math.round(progress),
+      isComplete: false,
+      timeRemaining: hoursRemaining
     }
   }
 
@@ -245,6 +257,19 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     )
   }
 
+  // Merge and sort all orders
+  const allOrders = [...acceptedOrders, ...nearbyOrders].sort((a, b) => {
+    // Sort by status priority: accepted/in_progress first, then available, then completed
+    const statusPriority = {
+      'accepted': 1,
+      'in_progress': 1,
+      'pending': 2,
+      'completed': 3,
+      'cancelled': 4
+    }
+    return statusPriority[a.status] - statusPriority[b.status]
+  })
+
   return (
     <div>
       {/* Welcome Section */}
@@ -258,138 +283,102 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
       </div>
 
       <div className="space-y-8">
-        {/* My Service Requests */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">My Service Requests</h3>
-          {orders.length === 0 ? (
-            <div className="bg-gray-50 rounded-2xl p-12 text-center">
-              <div className="space-y-4">
-                <div className="text-6xl text-gray-400">📦</div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No service requests yet</h3>
-                  <p className="text-gray-500">Your duvet drying requests will appear here</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {orders.map((order) => {
-                const address = addresses.find(a => a.id === order.address_id)
-                return (
-                  <div key={order.id} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        order.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </span>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">Duvet Drying Service</h4>
-                      <p className="text-sm text-gray-600">Professional sun-drying assistance</p>
-                      {address && (
-                        <p className="text-sm text-gray-600">
-                          📍 {address.full_address}
-                        </p>
-                      )}
-                      {order.placed_photo && (
-                        <Image
-                          src={order.placed_photo}
-                          alt="Duvet placement"
-                          width={200}
-                          height={100}
-                          className="w-full h-24 object-cover rounded mt-2"
-                        />
-                      )}
-                    </div>
 
-                    <div className="mt-4 space-y-2">
-                      {order.status === 'pending' && (
-                        <button
-                          onClick={() => handleDeleteOrder(order.id)}
-                          className="w-full px-4 py-2 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
-                        >
-                          Cancel Request
-                        </button>
-                      )}
-                      
-                      {order.status === 'accepted' && (
-                        <div className="text-sm text-blue-600 font-medium">
-                          Accepted by helper
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* My Accepted Orders */}
+        {/* Unified Orders Section */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">My Accepted Orders</h3>
-          {acceptedOrders.length === 0 ? (
+          {allOrders.length === 0 ? (
             <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="text-gray-500">No accepted orders yet</p>
-              <p className="text-sm text-gray-400 mt-1">Orders you&apos;ve accepted to help with will appear here</p>
+              <p className="text-gray-500">No service requests available</p>
+              <p className="text-sm text-gray-400 mt-1">Check back later for opportunities to help others</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {acceptedOrders.map((order) => {
-                const address = addresses.find(a => a.id === order.address_id)
+              {allOrders.map((order) => {
+                const address = acceptedOrders.includes(order) 
+                  ? addresses.find(a => a.id === order.address_id)
+                  : order.address_id ? nearbyOrderAddresses[order.address_id] : null
                 const cleanHistory = cleanHistoryData[order.id]
+                const isAccepted = acceptedOrders.includes(order)
                 
                 return (
-                  <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow min-h-[280px]">
                     <div className="flex items-center justify-between mb-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         order.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
                         order.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
                         order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        order.status === 'pending' ? 'bg-green-100 text-green-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                        {order.status === 'pending' ? 'Available' : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
                       </span>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </p>
                     </div>
                     
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">
-                        {order.duvet_name || 'Duvet Drying Service'}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {cleanHistory && cleanHistory.start_time && cleanHistory.end_time 
-                          ? formatTimeRange(cleanHistory.start_time, cleanHistory.end_time)
-                          : 'Helping with sun-drying'
-                        }
-                      </p>
+                    <div className="space-y-4">
+                      {/* Location - Most Important */}
                       {address && (
-                        <p className="text-sm text-gray-600">
-                          📍 {address.full_address}
-                        </p>
+                        <div className="flex items-start">
+                          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-3 mt-0.5 min-w-0 flex-shrink-0">
+                            Location
+                          </div>
+                          <p className="text-sm font-medium text-gray-900 leading-relaxed">
+                            {isAccepted ? address.full_address : formatLocalAddress(address)}
+                          </p>
+                        </div>
                       )}
+                      
+                      {/* Time Information */}
+                      {isAccepted && cleanHistory && cleanHistory.start_time && cleanHistory.end_time ? (
+                        <div className="flex items-start">
+                          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-3 mt-0.5 min-w-0 flex-shrink-0">
+                            Schedule
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {formatTimeRange(cleanHistory.start_time, cleanHistory.end_time)}
+                          </p>
+                        </div>
+                      ) : order.deadline ? (
+                        <div className="flex items-start">
+                          <div className="text-xs font-medium text-orange-500 uppercase tracking-wide mr-3 mt-0.5 min-w-0 flex-shrink-0">
+                            Deadline
+                          </div>
+                          <p className="text-sm text-orange-600 font-medium leading-relaxed">
+                            {formatRelativeTime(order.deadline)}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-start">
+                          <div className="text-xs font-medium text-blue-500 uppercase tracking-wide mr-3 mt-0.5 min-w-0 flex-shrink-0">
+                            Timing
+                          </div>
+                          <p className="text-sm text-blue-600 font-medium leading-relaxed">
+                            Flexible
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Photo */}
                       {order.placed_photo && (
                         <Image
                           src={order.placed_photo}
                           alt="Duvet placement"
                           width={200}
                           height={100}
-                          className="w-full h-24 object-cover rounded mt-2"
+                          className="w-full h-32 object-cover rounded mt-2"
                         />
                       )}
                     </div>
 
-                    <div className="mt-4">
+                    <div className="mt-6">
+                      {order.status === 'pending' && (
+                        <button
+                          onClick={() => handleAcceptOrder(order.id)}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                        >
+                          Accept Service
+                        </button>
+                      )}
+                      
                       {order.status === 'accepted' && (
                         <>
                           {(() => {
@@ -421,34 +410,44 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
                       {order.status === 'in_progress' && (
                         <>
                           {(() => {
-                            const completionState = getCompletionButtonState(cleanHistory)
-                            return (
-                              <>
+                            const progressData = getDryingProgress(cleanHistory)
+                            
+                            if (progressData.isComplete) {
+                              return (
                                 <button
                                   onClick={() => handleFinalCompleteOrder(order.id)}
-                                  disabled={!completionState.enabled}
-                                  className={`w-full px-4 py-2 rounded font-medium transition-colors ${
-                                    completionState.enabled
-                                      ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
-                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  }`}
+                                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
                                 >
-                                  {completionState.text}
+                                  Complete Order
                                 </button>
-                                {completionState.message && (
-                                  <p className="text-xs text-gray-500 mt-1 text-center">
-                                    {completionState.message}
-                                  </p>
-                                )}
-                              </>
+                              )
+                            }
+                            
+                            return (
+                              <div className="w-full">
+                                <div className="flex justify-between items-center mb-3">
+                                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                    Drying Progress
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700">{progressData.progress}%</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                                    style={{ width: `${progressData.progress}%` }}
+                                  ></div>
+                                </div>
+                              </div>
                             )
                           })()}
                         </>
                       )}
                       
                       {order.status === 'completed' && (
-                        <div className="text-sm text-green-600 font-medium">
-                          ✓ Completed
+                        <div className="flex items-center justify-center py-2 px-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="text-xs font-medium text-green-600 uppercase tracking-wide">
+                            Completed
+                          </div>
                         </div>
                       )}
                     </div>
@@ -459,72 +458,6 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
           )}
         </div>
 
-        {/* Nearby Orders */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Help Others (Nearby Orders)</h3>
-          {nearbyOrders.length === 0 ? (
-            <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="text-gray-500">No nearby service requests available</p>
-              <p className="text-sm text-gray-400 mt-1">Check back later for opportunities to help others</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {nearbyOrders.map((order) => {
-                const address = order.address_id ? nearbyOrderAddresses[order.address_id] : null
-                return (
-                  <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
-                      </span>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">
-                        {order.duvet_name || 'Duvet Drying Service'}
-                      </h4>
-                      {address && (
-                        <p className="text-sm text-gray-600">
-                          📍 {formatLocalAddress(address)}
-                        </p>
-                      )}
-                      {order.deadline ? (
-                        <p className="text-sm text-orange-600 font-medium">
-                          ⏰ {formatRelativeTime(order.deadline)}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-blue-600 font-medium">
-                          ⏰ Flexible timing
-                        </p>
-                      )}
-                      {order.placed_photo && (
-                        <Image
-                          src={order.placed_photo}
-                          alt="Duvet placement"
-                          width={200}
-                          height={100}
-                          className="w-full h-24 object-cover rounded mt-2"
-                        />
-                      )}
-                    </div>
-
-                    <div className="mt-4">
-                      <button
-                        onClick={() => handleAcceptOrder(order.id)}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
-                      >
-                        Accept Service
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Execute Order Modal */}

@@ -56,10 +56,7 @@ export function formatLocalAddress(address: Address): string {
     parts.push(address.city)
   }
   
-  // Use address_line as fallback if no structured parts
-  if (parts.length === 0 && address.address_line) {
-    return address.address_line
-  }
+  // Skip address_line fallback as field was removed
   
   // Use legacy full_address as last resort
   if (parts.length === 0 && address.full_address) {
@@ -93,4 +90,70 @@ export function formatRelativeTime(dateString: string): string {
   } else {
     return `Due in ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`
   }
+}
+
+export interface NavigationInfo {
+  distance: number // in kilometers
+  walkingTime: number // in minutes
+  drivingTime: number // in minutes
+  formattedDistance: string
+  formattedWalkingTime: string
+  formattedDrivingTime: string
+}
+
+export function calculateNavigationInfo(
+  from: Location,
+  to: Location
+): NavigationInfo {
+  const distance = calculateDistance(from, to)
+  
+  // Average speeds: walking 5km/h, city driving 30km/h
+  const walkingTime = Math.round((distance / 5) * 60) // minutes
+  const drivingTime = Math.round((distance / 30) * 60) // minutes
+  
+  const formattedDistance = distance < 1 
+    ? `${Math.round(distance * 1000)}m`
+    : `${distance.toFixed(1)}km`
+  
+  const formattedWalkingTime = walkingTime < 60
+    ? `${walkingTime}min`
+    : `${Math.floor(walkingTime / 60)}h ${walkingTime % 60}min`
+  
+  const formattedDrivingTime = drivingTime < 60
+    ? `${drivingTime}min`
+    : `${Math.floor(drivingTime / 60)}h ${drivingTime % 60}min`
+  
+  return {
+    distance,
+    walkingTime,
+    drivingTime,
+    formattedDistance,
+    formattedWalkingTime,
+    formattedDrivingTime
+  }
+}
+
+export function formatTimeWindow(startTime: string | null, endTime: string | null): string {
+  if (!startTime) return 'Time window not available'
+  
+  const start = new Date(startTime)
+  const end = endTime ? new Date(endTime) : null
+  
+  const startTimeStr = start.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+  
+  if (!end) {
+    return `From ${startTimeStr}`
+  }
+  
+  const endTimeStr = end.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+  
+  return `${startTimeStr} - ${endTimeStr}`
 }

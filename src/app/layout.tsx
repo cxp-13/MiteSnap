@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "MiteSnap",
   description: "A modern web application with Clerk authentication",
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.png',
   },
 };
 

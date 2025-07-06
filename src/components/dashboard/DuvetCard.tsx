@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import LinearProgress from './shared/LinearProgress'
-import { Duvet, Address } from './shared/types'
+import DryingCircularProgress from './shared/DryingCircularProgress'
+import { Duvet, Address, CleanHistoryRecord } from './shared/types'
 import { isCurrentTimeWithinSunrise } from '@/lib/weather-analysis'
 
 interface DuvetCardProps {
@@ -8,6 +9,10 @@ interface DuvetCardProps {
   onSunDryingService: (duvet: Duvet) => void
   onDuvetClick?: (duvet: Duvet) => void
   addresses?: Address[]
+  helpDryingData?: { order: { id: string; status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'; quilt_id: string }; cleanHistory: CleanHistoryRecord | null }
+  onCancelHelpDryingOrder?: (duvet: Duvet) => void
+  duvetSunDryingStatus?: Record<string, CleanHistoryRecord | null>
+  lastCleanDate?: string | null
 }
 
 const getMiteRiskLevel = (score: number) => {
@@ -45,7 +50,11 @@ export default function DuvetCard({
   duvet, 
   onSunDryingService,
   onDuvetClick,
-  addresses
+  addresses,
+  helpDryingData,
+  onCancelHelpDryingOrder,
+  duvetSunDryingStatus,
+  lastCleanDate
 }: DuvetCardProps) {
   const colors = getRiskColor(duvet.mite_score)
   const riskLevel = getMiteRiskLevel(duvet.mite_score)
@@ -69,6 +78,43 @@ export default function DuvetCard({
             {riskLevel}
           </div>
         </div>
+        
+        {/* Status Cards - For all non-normal states */}
+        {duvet.status !== 'normal' && (
+          <div className="absolute top-16 left-4">
+            <div className="bg-white/90 backdrop-blur-sm shadow-sm rounded-lg px-3 py-2 flex items-center space-x-2">
+              {duvet.status === 'help_drying' && helpDryingData ? (
+                <>
+                  <DryingCircularProgress
+                    startTime={helpDryingData.cleanHistory?.start_time || null}
+                    endTime={helpDryingData.cleanHistory?.end_time || null}
+                    status={helpDryingData.order?.status || 'pending'}
+                  />
+                  <span className="text-xs text-gray-600 font-medium whitespace-nowrap">Help Drying</span>
+                </>
+              ) : duvet.status === 'self_drying' ? (
+                <>
+                  <DryingCircularProgress
+                    startTime={duvetSunDryingStatus?.[duvet.id]?.start_time || null}
+                    endTime={duvetSunDryingStatus?.[duvet.id]?.end_time || null}
+                    status="in_progress"
+                  />
+                  <span className="text-xs text-gray-600 font-medium whitespace-nowrap">Self Drying</span>
+                </>
+              ) : duvet.status === 'waiting_pickup' ? (
+                <>
+                  <span className="text-sm">⏳</span>
+                  <span className="text-xs text-gray-600 font-medium whitespace-nowrap">Waiting</span>
+                </>
+              ) : duvet.status === 'waiting_optimal_time' ? (
+                <>
+                  <span className="text-sm">⏰</span>
+                  <span className="text-xs text-gray-600 font-medium whitespace-nowrap">Scheduled</span>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content Section - Bottom 40% */}
@@ -83,6 +129,7 @@ export default function DuvetCard({
           <LinearProgress score={duvet.mite_score} />
         </div>
 
+
         {/* Bottom Row - Split like "Lessons/Level" */}
         <div className="flex items-center justify-between">
           {/* Left Side - Material and Last Clean */}
@@ -91,14 +138,14 @@ export default function DuvetCard({
               <span className="text-gray-600">Material:</span>
               <span className="text-black font-medium">{duvet.material}</span>
             </div>
-            {duvet.last_clean && (
+            {lastCleanDate && (
               <div className="flex items-center space-x-1">
                 <span className="text-gray-600">Last cleaned:</span>
                 <span className="text-black font-medium">
                   {(() => {
-                    const lastCleanDate = new Date(duvet.last_clean)
+                    const cleanDate = new Date(lastCleanDate)
                     const today = new Date()
-                    const diffTime = Math.abs(today.getTime() - lastCleanDate.getTime())
+                    const diffTime = Math.abs(today.getTime() - cleanDate.getTime())
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
                     
                     if (diffDays === 1) return "1 day ago"
@@ -130,41 +177,54 @@ export default function DuvetCard({
               <span>History</span>
             </button>
             
-            {/* Status/Action Button */}
-            {duvet.status === 'waiting_pickup' ? (
-              <div className="flex items-center space-x-1 text-sm">
-                <span>⏳</span>
-                <span className="text-gray-600">Waiting</span>
-              </div>
-            ) : duvet.status === 'waiting_optimal_time' ? (
-              <div className="flex items-center space-x-1 text-sm">
-                <span>⏰</span>
-                <span className="text-gray-600">Scheduled</span>
-              </div>
-            ) : duvet.status === 'self_drying' ? (
-              <div className="flex items-center space-x-1 text-sm">
-                <span>🌞</span>
-                <span className="text-gray-600">Drying</span>
-              </div>
-            ) : duvet.status === 'help_drying' ? (
-              <div className="flex items-center space-x-1 text-sm">
-                <span>🤝</span>
-                <span className="text-gray-600">Helping</span>
-              </div>
-            ) : duvet.status === 'normal' && isSunriseTime ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSunDryingService(duvet)
-                }}
-                className="flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 text-sm font-semibold shadow-md"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                <span>Dry it</span>
-              </button>
-            ) : null}
+            {/* Action Button */}
+            {(() => {
+              // Show cancel button for pending help drying orders
+              if (duvet.status === 'help_drying' && helpDryingData && helpDryingData.order?.status === 'pending' && onCancelHelpDryingOrder) {
+                return (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onCancelHelpDryingOrder(duvet)
+                    }}
+                    className="px-3 py-1.5 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )
+              }
+              
+              // Show dry it button for normal status during sunrise time
+              if (duvet.status === 'normal' && isSunriseTime) {
+                return (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSunDryingService(duvet)
+                    }}
+                    className="flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 text-sm font-semibold shadow-md"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Dry it</span>
+                  </button>
+                )
+              }
+              
+              // Show night time indicator for normal status during night
+              if (duvet.status === 'normal' && !isSunriseTime) {
+                return (
+                  <div className="flex items-center space-x-1 text-sm">
+                    <span>🌙</span>
+                    <span className="text-gray-500">Night Time</span>
+                  </div>
+                )
+              }
+              
+              // No action button for other states (status shown in image area)
+              return null
+            })()}
           </div>
         </div>
       </div>

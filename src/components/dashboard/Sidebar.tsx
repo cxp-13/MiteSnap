@@ -27,7 +27,7 @@ export default function Sidebar() {
       <div className="p-6 border-b border-gray-300">
         <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
           <Image 
-            src="/logo_bg_black.png" 
+            src="/logo_line_black_bg_transport.png" 
             alt="MiteSnap Logo" 
             width={36} 
             height={36}

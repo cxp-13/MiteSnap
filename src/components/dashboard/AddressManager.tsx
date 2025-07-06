@@ -8,7 +8,7 @@ interface AddressManagerProps {
   onCreateAddress: (addressData: AddressFormData) => Promise<void>
   onUpdateAddress: (id: string, addressData: AddressFormData) => Promise<void>
   onDeleteAddress: (id: string) => Promise<void>
-  onSetDefaultAddress: (id: string) => Promise<void>
+  onSetDefaultAddress: (id: string, preventReload?: boolean) => Promise<void>
 }
 
 export default function AddressManager({
@@ -21,6 +21,8 @@ export default function AddressManager({
 }: AddressManagerProps) {
   const [showModal, setShowModal] = useState(false)
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null)
 
   const handleNewAddress = () => {
     setEditingAddress(null)
@@ -45,10 +47,22 @@ export default function AddressManager({
     }
   }
 
-  const handleDeleteAddress = async (id: string) => {
-    if (confirm('Are you sure you want to delete this address?')) {
-      await onDeleteAddress(id)
+  const handleDeleteAddress = (id: string) => {
+    setDeletingAddressId(id)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteAddress = async () => {
+    if (deletingAddressId) {
+      await onDeleteAddress(deletingAddressId)
+      setShowDeleteConfirm(false)
+      setDeletingAddressId(null)
     }
+  }
+
+  const cancelDeleteAddress = () => {
+    setShowDeleteConfirm(false)
+    setDeletingAddressId(null)
   }
 
   const getInternationalAddress = (address: Address) => {
@@ -105,12 +119,19 @@ export default function AddressManager({
 
       {addresses.length === 0 ? (
         <div className="bg-gray-50 rounded-2xl p-12 text-center">
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="text-6xl text-gray-400">📍</div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">No addresses yet</h3>
-              <p className="text-gray-500">Add your first address to get started with location-based services</p>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Add Your First Address</h3>
+              <p className="text-gray-500 mb-4">Set up your address to enable location-based services like help-drying</p>
             </div>
+            <button
+              onClick={handleNewAddress}
+              className="inline-flex items-center px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors space-x-2"
+            >
+              <span>📍</span>
+              <span>Add Address</span>
+            </button>
           </div>
         </div>
       ) : (
@@ -145,7 +166,7 @@ export default function AddressManager({
                   <div className="flex items-center space-x-2 ml-6">
                     {!address.is_default && (
                       <button
-                        onClick={() => onSetDefaultAddress(address.id)}
+                        onClick={() => onSetDefaultAddress(address.id, showModal)}
                         className="flex items-center space-x-1.5 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium shadow-sm transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -208,6 +229,39 @@ export default function AddressManager({
         editingAddress={editingAddress}
         title={editingAddress ? 'Edit Address' : 'Add New Address'}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Address</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this address? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelDeleteAddress}
+                className="flex-1 px-4 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteAddress}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500/30 transition-all"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

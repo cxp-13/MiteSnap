@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Address, AddressFormData, GeolocationPosition, GeolocationError, GeocodingResult } from '../shared/types'
 import { getCurrentPosition, getLocationErrorMessage } from '@/lib/geolocation'
 import { reverseGeocode } from '@/lib/geocoding'
@@ -26,7 +26,6 @@ export default function AddressModal({
     road: '',
     house_number: '',
     neighbourhood: '',
-    address_line: '',
     longitude: undefined,
     latitude: undefined,
     is_default: false
@@ -36,10 +35,14 @@ export default function AddressModal({
   const [isGeocoding, setIsGeocoding] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const userModifiedFieldsRef = useRef<Set<keyof AddressFormData>>(new Set())
 
   // Initialize form data when editing
   useEffect(() => {
     if (!isOpen) return
+
+    // Reset user modified fields tracking
+    userModifiedFieldsRef.current = new Set()
 
     if (editingAddress) {
       setFormData({
@@ -50,10 +53,11 @@ export default function AddressModal({
         road: editingAddress.road || '',
         house_number: editingAddress.house_number || '',
         neighbourhood: editingAddress.neighbourhood || '',
-        address_line: editingAddress.address_line || '',
         longitude: editingAddress.longitude || undefined,
         latitude: editingAddress.latitude || undefined,
-        is_default: editingAddress.is_default || false
+        is_default: editingAddress.is_default || false,
+        floor_number: editingAddress.floor_number || undefined,
+        has_elevator: editingAddress.has_elevator ?? undefined
       })
     } else {
       // Reset form for new address
@@ -65,10 +69,11 @@ export default function AddressModal({
         road: '',
         house_number: '',
         neighbourhood: '',
-        address_line: '',
         longitude: undefined,
         latitude: undefined,
-        is_default: false
+        is_default: false,
+        floor_number: undefined,
+        has_elevator: undefined
       })
     }
     setLocationError(null)
@@ -95,18 +100,32 @@ export default function AddressModal({
       )
 
       if (geocodingResult) {
-        setFormData({
-          country: geocodingResult.country || '',
-          state: geocodingResult.state || '',
-          city: geocodingResult.city || '',
-          district: geocodingResult.district || '',
-          road: geocodingResult.road || '',
-          house_number: geocodingResult.house_number || '',
-          neighbourhood: geocodingResult.neighbourhood || '',
-          address_line: geocodingResult.address_line || '',
-          longitude: geocodingResult.longitude,
-          latitude: geocodingResult.latitude,
-          is_default: formData.is_default
+        // Clean up state/province names to remove common suffixes
+        let cleanState = geocodingResult.state || ''
+        if (cleanState.toLowerCase().includes('province')) {
+          cleanState = cleanState.replace(/\s*province$/i, '')
+        }
+        if (cleanState.toLowerCase().includes('autonomous region')) {
+          cleanState = cleanState.replace(/\s*autonomous region$/i, '')
+        }
+
+        setFormData(prev => {
+          // Only update fields that the user hasn't manually modified
+          const newData = { ...prev }
+          
+          if (!userModifiedFieldsRef.current.has('country')) newData.country = geocodingResult.country || ''
+          if (!userModifiedFieldsRef.current.has('state')) newData.state = cleanState
+          if (!userModifiedFieldsRef.current.has('city')) newData.city = geocodingResult.city || ''
+          if (!userModifiedFieldsRef.current.has('district')) newData.district = geocodingResult.district || ''
+          if (!userModifiedFieldsRef.current.has('road')) newData.road = geocodingResult.road || ''
+          if (!userModifiedFieldsRef.current.has('house_number')) newData.house_number = geocodingResult.house_number || ''
+          if (!userModifiedFieldsRef.current.has('neighbourhood')) newData.neighbourhood = geocodingResult.neighbourhood || ''
+          
+          // Always update coordinates as they come from GPS
+          newData.longitude = geocodingResult.longitude
+          newData.latitude = geocodingResult.latitude
+          
+          return newData
         })
       } else {
         // If geocoding fails, just set coordinates
@@ -124,7 +143,7 @@ export default function AddressModal({
       setIsGettingLocation(false)
       setIsGeocoding(false)
     }
-  }, [formData.is_default])
+  }, [])
 
   // Auto-fetch location for new addresses
   useEffect(() => {
@@ -133,21 +152,61 @@ export default function AddressModal({
     }
   }, [isOpen, editingAddress, handleGetCurrentLocation])
 
-  const handleInputChange = (field: keyof AddressFormData, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
+  const handleInputChange = (field: keyof AddressFormData, value: string | boolean | number | undefined) => {
+    console.log(`🔄 AddressModal handleInputChange: ${field} = ${value} (type: ${typeof value})`)
+    
+    // Track that this field was manually modified by user
+    userModifiedFieldsRef.current.add(field)
+    
+    // Special logging for has_elevator field
+    if (field === 'has_elevator') {
+      console.log('🏗️ AddressModal ELEVATOR FIELD CHANGE:', {
+        field,
+        value,
+        type: typeof value,
+        isTrue: value === true,
+        isFalse: value === false,
+        isUndefined: value === undefined,
+        isNull: value === null
+      })
+    }
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      }
+      console.log('📝 AddressModal formData updated:', newData)
+      
+      // Special logging for has_elevator field
+      if (field === 'has_elevator') {
+        console.log('🏗️ AddressModal ELEVATOR IN NEW FORM DATA:', {
+          has_elevator: newData.has_elevator,
+          type: typeof newData.has_elevator
+        })
+      }
+      
+      return newData
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.address_line && !formData.city) {
-      setLocationError('Please provide at least a city or complete address')
+    console.log('🚀 AddressModal handleSubmit called with formData:', formData)
+    console.log('🏗️ AddressModal has_elevator value:', formData.has_elevator, 'type:', typeof formData.has_elevator)
+    
+    if (!formData.city) {
+      setLocationError('Please provide at least a city')
       return
     }
 
+    if (formData.has_elevator === undefined) {
+      setLocationError('Please specify if the building has an elevator')
+      return
+    }
+
+    console.log('✅ AddressModal validation passed, calling onSave with:', formData)
     setIsSaving(true)
     try {
       await onSave(formData)
@@ -229,8 +288,8 @@ export default function AddressModal({
                     type="text"
                     value={formData.house_number || ''}
                     onChange={(e) => handleInputChange('house_number', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="123"
+                    className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                    placeholder=""
                   />
                 </div>
                 
@@ -240,8 +299,8 @@ export default function AddressModal({
                     type="text"
                     value={formData.road || ''}
                     onChange={(e) => handleInputChange('road', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="Main Street"
+                    className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                    placeholder=""
                   />
                 </div>
 
@@ -251,8 +310,8 @@ export default function AddressModal({
                     type="text"
                     value={formData.neighbourhood || ''}
                     onChange={(e) => handleInputChange('neighbourhood', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="Downtown"
+                    className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                    placeholder=""
                   />
                 </div>
 
@@ -263,8 +322,8 @@ export default function AddressModal({
                     type="text"
                     value={formData.district || ''}
                     onChange={(e) => handleInputChange('district', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="Central District"
+                    className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                    placeholder=""
                   />
                 </div>
 
@@ -276,8 +335,8 @@ export default function AddressModal({
                     type="text"
                     value={formData.city || ''}
                     onChange={(e) => handleInputChange('city', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="New York"
+                    className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                    placeholder=""
                     required
                   />
                 </div>
@@ -288,34 +347,70 @@ export default function AddressModal({
                     type="text"
                     value={formData.state || ''}
                     onChange={(e) => handleInputChange('state', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="NY"
+                    className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                    placeholder=""
                   />
                 </div>
               </div>
 
-              {/* Row 3 - Country and Full Address */}
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              {/* Row 3 - Country */}
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                   <input
                     type="text"
                     value={formData.country || ''}
                     onChange={(e) => handleInputChange('country', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="United States"
+                    className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                    placeholder=""
                   />
                 </div>
+              </div>
 
-                <div className="lg:col-span-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Address Line</label>
-                  <input
-                    type="text"
-                    value={formData.address_line || ''}
-                    onChange={(e) => handleInputChange('address_line', e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-all"
-                    placeholder="123 Main Street, Downtown, New York, NY"
-                  />
+              {/* Row 4 - Floor and Elevator Info for Help-Drying Service */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-3">Building Information (For Help-Drying Service)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Floor Number</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={formData.floor_number || ''}
+                      onChange={(e) => handleInputChange('floor_number', e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="w-full bg-gray-100 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-50 transition-all"
+                      placeholder=""
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Building Has Elevator <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center space-x-6 mt-2">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="has_elevator"
+                          checked={formData.has_elevator === true}
+                          onChange={() => handleInputChange('has_elevator', true)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Yes</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="has_elevator"
+                          checked={formData.has_elevator === false}
+                          onChange={() => handleInputChange('has_elevator', false)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">No</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -350,8 +445,8 @@ export default function AddressModal({
             </button>
             <button
               type="submit"
-              disabled={isSaving || (!formData.city && !formData.address_line) || (isGettingLocation || isGeocoding)}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/30 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
+              disabled={isSaving || !formData.city || formData.has_elevator === undefined || (isGettingLocation || isGeocoding)}
+              className="flex-1 px-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 focus:outline-none disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
             >
               {isSaving ? (
                 <div className="flex items-center justify-center space-x-2">

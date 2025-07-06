@@ -1,12 +1,21 @@
 import React from 'react'
 import Image from 'next/image'
-import { Duvet } from '@/lib/database'
+import { Duvet, Address } from '@/lib/database'
+import { CostBreakdown as CostBreakdownType } from '@/lib/pricing'
+import CostBreakdown from '@/components/dashboard/shared/CostBreakdown'
+import SimplePriceDisplay from '@/components/dashboard/shared/SimplePriceDisplay'
+
+interface AIAnalysis {
+  beforeMiteScore: number
+  afterMiteScore: number
+  reductionPoints: number
+}
 
 interface OrderRequestModalProps {
   isOpen: boolean
   onClose: () => void
   duvet: Duvet | null
-  currentStep: 1 | 2 | 3
+  currentStep: 1 | 2 | 3 | 4
   selectedPhoto: File | null
   photoPreview: string | null
   isUploadingPhoto: boolean
@@ -14,6 +23,10 @@ interface OrderRequestModalProps {
   onCreateOrder: () => void
   onNextStep?: () => void
   onPrevStep?: () => void
+  aiAnalysis?: AIAnalysis | null
+  isAnalyzing?: boolean
+  address?: Address | null
+  costBreakdown?: CostBreakdownType | null
 }
 
 export default function OrderRequestModal({
@@ -27,13 +40,25 @@ export default function OrderRequestModal({
   onPhotoUpload,
   onCreateOrder,
   onNextStep,
-  onPrevStep
+  onPrevStep,
+  aiAnalysis,
+  isAnalyzing,
+  costBreakdown
 }: OrderRequestModalProps) {
   if (!isOpen || !duvet) return null
 
+  // Debug logging for cost breakdown
+  console.log('OrderRequestModal render:', {
+    currentStep,
+    hasCostBreakdown: !!costBreakdown,
+    costBreakdown,
+    hasAiAnalysis: !!aiAnalysis,
+    isAnalyzing
+  })
+
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-8 w-full mx-4 shadow-lg max-w-md max-h-[90vh] overflow-y-auto">
+      <div className={`bg-white rounded-xl p-8 w-full mx-4 shadow-lg max-h-[90vh] overflow-y-auto ${currentStep === 3 ? 'max-w-4xl' : 'max-w-md'}`}>
         <div className="flex justify-between items-start mb-6">
           <h3 className="text-lg font-medium text-black">
             Hire Drying Helper - {duvet.name}
@@ -49,7 +74,7 @@ export default function OrderRequestModal({
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-4">
-            {[1, 2, 3].map((step) => (
+            {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
@@ -60,7 +85,7 @@ export default function OrderRequestModal({
                 >
                   {step}
                 </div>
-                {step < 3 && (
+                {step < 4 && (
                   <div
                     className={`w-12 h-px mx-2 transition-all duration-200 ${
                       currentStep > step ? 'bg-gray-900' : 'bg-gray-200'
@@ -116,74 +141,141 @@ export default function OrderRequestModal({
 
           {currentStep === 2 && (
             <div className="text-center space-y-6">
-              {isUploadingPhoto ? (
-                <div className="py-12 space-y-6">
-                  <div className="flex flex-col items-center justify-center space-y-6">
-                    <div className="relative">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center animate-pulse">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full animate-spin"></div>
-                      </div>
-                      <div className="absolute inset-0 w-16 h-16 border-2 border-blue-300 rounded-full animate-ping opacity-20"></div>
-                    </div>
-                    
-                    <div className="text-center space-y-2">
-                      <h4 className="text-lg font-medium text-gray-900">Creating Your Request</h4>
-                      <p className="text-gray-600 text-sm">
-                        Please wait while we process your order...
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-4">
-                    <h4 className="text-xl font-semibold text-gray-900">Take a Photo</h4>
-                    <p className="text-gray-600">
-                    Please take a photo of the position of the prepared blanket for the convenience of the staff to locate.
-                    </p>
-                  </div>
+              <div className="space-y-4">
+                <h4 className="text-xl font-semibold text-gray-900">Take a Photo</h4>
+                <p className="text-gray-600">
+                Please take a photo of the position of the prepared blanket for the convenience of the staff to locate.
+                </p>
+              </div>
 
-                  <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-blue-500 transition-colors cursor-pointer group">
-                    {photoPreview ? (
-                      <div className="relative">
-                        <Image 
-                          src={photoPreview} 
-                          alt="Duvet placement preview" 
-                          width={300}
-                          height={200}
-                          className="max-h-48 mx-auto rounded-xl shadow-md object-contain"
-                        />
-                        
-                        {/* Hover Overlay */}
-                        <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                          <div className="text-white text-sm font-medium bg-black/60 px-3 py-1 rounded-lg">
-                            Click to change photo
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="text-6xl text-gray-400">📷</div>
-                        <div>
-                          <p className="text-xl text-gray-600 font-medium">Click to upload a photo</p>
-                          <p className="text-sm text-gray-500 mt-2">JPG, PNG or HEIC format</p>
-                        </div>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={onPhotoUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      disabled={isUploadingPhoto}
+              <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-blue-500 transition-colors cursor-pointer group">
+                {photoPreview ? (
+                  <div className="relative">
+                    <Image 
+                      src={photoPreview} 
+                      alt="Duvet placement preview" 
+                      width={300}
+                      height={200}
+                      className="max-h-48 mx-auto rounded-xl shadow-md object-contain"
                     />
+                    
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                      <div className="text-white text-sm font-medium bg-black/60 px-3 py-1 rounded-lg">
+                        Click to change photo
+                      </div>
+                    </div>
                   </div>
-                </>
-              )}
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-6xl text-gray-400">📷</div>
+                    <div>
+                      <p className="text-xl text-gray-600 font-medium">Click to upload a photo</p>
+                      <p className="text-sm text-gray-500 mt-2">JPG, PNG or HEIC format</p>
+                    </div>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onPhotoUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={isUploadingPhoto}
+                />
+              </div>
             </div>
           )}
 
           {currentStep === 3 && (
+            <div>
+              {isAnalyzing ? (
+                <div className="py-12 space-y-6">
+                  <div className="flex flex-col items-center justify-center space-y-6">
+                    <div className="relative">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center animate-pulse">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full animate-spin"></div>
+                      </div>
+                      <div className="absolute inset-0 w-20 h-20 border-2 border-blue-300 rounded-full animate-ping opacity-30"></div>
+                      <div className="absolute inset-2 w-16 h-16 border-2 border-indigo-200 rounded-full animate-ping opacity-20" style={{animationDelay: '0.5s'}}></div>
+                    </div>
+                    
+                    <div className="text-center space-y-3">
+                      <h4 className="text-xl font-semibold text-gray-900">AI Analysis in Progress</h4>
+                      <div className="space-y-2">
+                        <p className="text-gray-600 text-sm">
+                          🔍 Analyzing your duvet image with advanced AI...
+                        </p>
+                        <p className="text-blue-600 text-xs font-medium">
+                          This may take 10-30 seconds for accurate results
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : aiAnalysis ? (
+                <>
+                  {/* Header */}
+                  <div className="text-center space-y-4 mb-8">
+                    <h4 className="text-xl font-semibold text-gray-900">Analysis Complete</h4>
+                    <p className="text-gray-600">
+                      Review the AI predictions and service cost below
+                    </p>
+                  </div>
+
+                  {/* Left-Right Layout */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Side - AI Results */}
+                    <div className="space-y-4">
+                      <h5 className="text-lg font-semibold text-gray-900 text-center">AI Predicted Results</h5>
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-center space-x-6">
+                            <div className="text-center bg-white/60 rounded-xl p-4">
+                              <div className="text-3xl font-bold text-gray-800">
+                                {aiAnalysis.beforeMiteScore}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">Current Mite Score</div>
+                            </div>
+                            <div className="text-gray-500 text-2xl">→</div>
+                            <div className="text-center bg-white/60 rounded-xl p-4">
+                              <div className="text-3xl font-bold text-green-600">
+                                {aiAnalysis.afterMiteScore}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">Predicted After Drying</div>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                              -{aiAnalysis.reductionPoints} points reduction predicted
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Side - Price Display */}
+                    <div className="space-y-4">
+                      <h5 className="text-lg font-semibold text-gray-900 text-center">Service Cost</h5>
+                      {costBreakdown ? (
+                        <SimplePriceDisplay costBreakdown={costBreakdown} />
+                      ) : (
+                        <div className="bg-gray-50 rounded-2xl p-6 text-center">
+                          <p className="text-gray-500">Cost calculation not available</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center space-y-4">
+                  <h4 className="text-xl font-semibold text-gray-900">Analysis Required</h4>
+                  <p className="text-gray-600">Please wait for AI analysis to complete.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentStep === 4 && (
             <div className="text-center space-y-6">
               <div className="space-y-4">
                 <div className="text-6xl text-green-400 mb-4">✅</div>
@@ -230,8 +322,27 @@ export default function OrderRequestModal({
                 Back
               </button>
               <button
+                onClick={onNextStep}
+                disabled={!selectedPhoto}
+                className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors text-sm"
+              >
+                Analyze with AI
+              </button>
+            </>
+          )}
+
+          {currentStep === 3 && (
+            <>
+              <button
+                onClick={onPrevStep}
+                disabled={isAnalyzing}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
                 onClick={onCreateOrder}
-                disabled={!selectedPhoto || isUploadingPhoto}
+                disabled={isAnalyzing || !aiAnalysis}
                 className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors text-sm"
               >
                 Create Request
@@ -239,7 +350,7 @@ export default function OrderRequestModal({
             </>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 4 && (
             <button
               onClick={onClose}
               className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors w-full text-sm"

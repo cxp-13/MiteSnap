@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createOrder, getUserOrders, getUserAcceptedOrders, getNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet } from '@/lib/database'
+import { createOrder, getUserOrders, getUserAcceptedOrders, getNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet, getAddressById } from '@/lib/database'
 import { getCurrentPosition } from '@/lib/geolocation'
+import { calculateTotalCostByThickness } from '@/lib/pricing'
+import { supabase } from '@/lib/supabase'
 
 export function useOrders(userId: string | undefined) {
   const [orders, setOrders] = useState<Order[]>([])
@@ -71,7 +73,39 @@ export function useOrders(userId: string | undefined) {
     if (!userId) return false
 
     try {
-      const order = await createOrder(userId, duvetId, addressId, placedPhoto, deadline, undefined, optimalStartTime, optimalEndTime, aiAnalysis)
+      // Calculate cost based on duvet and address information
+      let calculatedCost: number | null = null
+      
+      try {
+        // Get duvet information
+        const { data: duvet } = await supabase
+          .from('quilts')
+          .select('thickness')
+          .eq('id', duvetId)
+          .single()
+
+        // Get address information  
+        const address = await getAddressById(addressId)
+
+        if (duvet && address && duvet.thickness && address.floor_number !== null && address.has_elevator !== null) {
+          calculatedCost = calculateTotalCostByThickness(
+            duvet.thickness, 
+            address.floor_number || 1, 
+            address.has_elevator || false
+          )
+          console.log('Calculated cost:', calculatedCost, 'for thickness:', duvet.thickness, 'floor:', address.floor_number, 'elevator:', address.has_elevator)
+        } else {
+          console.warn('Missing data for cost calculation:', { 
+            duvet: duvet?.thickness, 
+            floor: address?.floor_number, 
+            elevator: address?.has_elevator 
+          })
+        }
+      } catch (costError) {
+        console.error('Error calculating cost:', costError)
+      }
+
+      const order = await createOrder(userId, duvetId, addressId, placedPhoto, deadline, undefined, optimalStartTime, optimalEndTime, aiAnalysis, calculatedCost)
       if (order) {
         await loadOrders()
         return true
@@ -118,24 +152,14 @@ export function useOrders(userId: string | undefined) {
         // Handle clean history update for completed help-drying orders
         if (status === 'completed' && order.clean_history_id) {
           try {
-            // Get the actual duvet to obtain current mite score
-            const { getUserDuvets } = await import('@/lib/database')
-            const duvets = await getUserDuvets(order.user_id)
-            const duvet = duvets.find(d => d.id === order.quilt_id)
+            // Complete the sun dry record (only set end_time, preserve AI-predicted after_mite_score)
+            const { completeSunDryRecord } = await import('@/lib/clean-history')
+            const completedRecord = await completeSunDryRecord(order.clean_history_id)
             
-            if (duvet) {
-              // Calculate mite score reduction for help-drying (10-25 point reduction)
-              const currentMiteScore = duvet.mite_score || 50
-              const estimatedReduction = Math.floor(Math.random() * 15) + 10
-              const newMiteScore = Math.max(0, currentMiteScore - estimatedReduction)
-              
-              // Update the clean history record
-              const { updateSunDryRecord } = await import('@/lib/clean-history')
-              await updateSunDryRecord(order.clean_history_id, newMiteScore)
-              
-              // Also update the duvet's mite score
+            if (completedRecord && completedRecord.after_mite_score !== null) {
+              // Update the duvet's mite score using the AI-predicted value
               const { updateDuvetMiteScore } = await import('@/lib/clean-history')
-              await updateDuvetMiteScore(order.quilt_id, newMiteScore)
+              await updateDuvetMiteScore(order.quilt_id, completedRecord.after_mite_score)
             }
           } catch (error) {
             console.error('Error updating clean history for completed help-drying order:', error)

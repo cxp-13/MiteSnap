@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { type Duvet, updateDuvetStatus } from '@/lib/database'
+import { type Duvet, updateDuvetStatus, type Address } from '@/lib/database'
 import { useDuvets } from '@/hooks/dashboard/useDuvets'
 import { useWeather } from '@/hooks/dashboard/useWeather'
 import { useAddresses } from '@/hooks/dashboard/useAddresses'
 import { useOrders } from '@/hooks/dashboard/useOrders'
+import { getCleanHistoryRecord, type CleanHistoryRecord } from '@/lib/clean-history'
+import type { OrderWithDuvet } from '@/lib/database'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import { uploadDuvetImage } from '@/lib/storage'
+import { getCostBreakdown, type CostBreakdown } from '@/lib/pricing'
 import DuvetList from '@/components/dashboard/DuvetList'
 import NewDuvetModal from '@/components/dashboard/modals/NewDuvetModal'
 import OrderRequestModal from '@/components/dashboard/modals/OrderRequestModal'
@@ -27,16 +30,31 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
   // Order request modal state
   const [showOrderRequestModal, setShowOrderRequestModal] = useState(false)
-  const [orderRequestStep, setOrderRequestStep] = useState<1 | 2 | 3>(1)
+  const [orderRequestStep, setOrderRequestStep] = useState<1 | 2 | 3 | 4>(1)
   const [orderPhoto, setOrderPhoto] = useState<File | null>(null)
   const [orderPhotoPreview, setOrderPhotoPreview] = useState<string | null>(null)
   const [isUploadingOrderPhoto, setIsUploadingOrderPhoto] = useState(false)
+  
+  // AI Analysis state for order request
+  const [isAnalyzingOrder, setIsAnalyzingOrder] = useState(false)
+  const [orderAiAnalysis, setOrderAiAnalysis] = useState<{
+    beforeMiteScore: number
+    afterMiteScore: number
+    reductionPoints: number
+  } | null>(null)
+
+  // Cost calculation state
+  const [orderCostBreakdown, setOrderCostBreakdown] = useState<CostBreakdown | null>(null)
+  const [orderSelectedAddress, setOrderSelectedAddress] = useState<Address | null>(null)
 
   // Custom hooks
   const duvetsHook = useDuvets(userId)
   const weatherHook = useWeather()
   const addressesHook = useAddresses(userId)
   const ordersHook = useOrders(userId)
+
+  // State for help-drying orders and clean history data
+  const [helpDryingData, setHelpDryingData] = useState<Record<string, { order: OrderWithDuvet; cleanHistory: CleanHistoryRecord | null }>>({})
 
   const {
     duvets,
@@ -89,7 +107,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   } = weatherHook
 
   const { addresses, getDefaultAddress } = addressesHook
-  const { handleCreateOrder } = ordersHook
+  const { orders, handleCreateOrder, handleDeleteOrder } = ordersHook
 
   // Analysis messages for the animation
   const analysisMessages = [
@@ -111,6 +129,41 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       if (interval) clearInterval(interval)
     }
   }, [sunDryStep, sunDryingAnalysis, analysisMessages.length])
+
+  // Load help-drying data for duvets that have help_drying status
+  useEffect(() => {
+    const loadHelpDryingData = async () => {
+      if (!duvets || !orders) return
+
+      const helpDryingDuvets = duvets.filter(duvet => duvet.status === 'help_drying')
+      if (helpDryingDuvets.length === 0) {
+        setHelpDryingData({})
+        return
+      }
+
+      try {
+        const helpDryingMap: Record<string, { order: OrderWithDuvet; cleanHistory: CleanHistoryRecord | null }> = {}
+
+        for (const duvet of helpDryingDuvets) {
+          // Find the order for this duvet
+          const order = orders.find(o => o.quilt_id === duvet.id)
+          if (order) {
+            let cleanHistory = null
+            if (order.clean_history_id) {
+              cleanHistory = await getCleanHistoryRecord(order.clean_history_id)
+            }
+            helpDryingMap[duvet.id] = { order, cleanHistory }
+          }
+        }
+
+        setHelpDryingData(helpDryingMap)
+      } catch (error) {
+        console.error('Error loading help-drying data:', error)
+      }
+    }
+
+    loadHelpDryingData()
+  }, [duvets, orders])
 
 
 
@@ -178,6 +231,64 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       return
     }
 
+    // Calculate cost breakdown if we have all the required data
+    let costBreakdown: CostBreakdown | null = null
+    console.log('Cost calculation check:', {
+      duvetWeight: selectedDuvet.weight,
+      addressFloor: defaultAddress.floor_number,
+      addressElevator: defaultAddress.has_elevator,
+      duvetId: selectedDuvet.id,
+      addressId: defaultAddress.id
+    })
+
+    if (selectedDuvet.weight && defaultAddress.floor_number !== null && defaultAddress.has_elevator !== null) {
+      try {
+        costBreakdown = getCostBreakdown(
+          selectedDuvet.weight,
+          defaultAddress.floor_number || 1,
+          defaultAddress.has_elevator || false
+        )
+        console.log('✅ Cost breakdown calculated successfully:', costBreakdown)
+      } catch (error) {
+        console.error('❌ Error calculating cost breakdown:', error)
+      }
+    } else {
+      console.warn('⚠️ Missing data for cost calculation:', {
+        hasWeight: !!selectedDuvet.weight,
+        hasFloor: defaultAddress.floor_number !== null,
+        hasElevator: defaultAddress.has_elevator !== null,
+        weight: selectedDuvet.weight,
+        floor: defaultAddress.floor_number,
+        elevator: defaultAddress.has_elevator
+      })
+      
+      // Create a fallback cost breakdown with default values for demonstration
+      if (!selectedDuvet.weight) {
+        console.warn('⚠️ Duvet missing weight, using default Medium weight')
+      }
+      if (defaultAddress.floor_number === null) {
+        console.warn('⚠️ Address missing floor number, using default floor 1')
+      }
+      if (defaultAddress.has_elevator === null) {
+        console.warn('⚠️ Address missing elevator info, assuming no elevator')
+      }
+
+      try {
+        costBreakdown = getCostBreakdown(
+          selectedDuvet.weight || 'Medium',
+          defaultAddress.floor_number || 1,
+          defaultAddress.has_elevator || false
+        )
+        console.log('✅ Fallback cost breakdown calculated:', costBreakdown)
+      } catch (error) {
+        console.error('❌ Error calculating fallback cost breakdown:', error)
+      }
+    }
+
+    // Set cost breakdown and address for the modal
+    setOrderCostBreakdown(costBreakdown)
+    setOrderSelectedAddress(defaultAddress)
+
     // Close sun dry modal UI only (preserve weather data for order creation)
     closeSunDryModalUIOnly()
     setShowOrderRequestModal(true)
@@ -219,7 +330,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   }
 
   const handleCreateOrderRequest = async () => {
-    if (!selectedDuvet || !orderPhoto) return
+    if (!selectedDuvet || !orderPhoto || !orderAiAnalysis) return
 
     const defaultAddress = getDefaultAddress()
     if (!defaultAddress) {
@@ -247,18 +358,16 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
       // Calculate actual drying duration from the effective window
       const startTime = new Date(effectiveWindow.startTime)
-      const endTime = new Date(effectiveWindow.endTime)
-      const durationInHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
 
-      // Import and run AI analysis
-      const { calculateBasicSunDryingReduction } = await import('@/lib/sun-drying-ai')
-      const aiAnalysis = calculateBasicSunDryingReduction(
-        selectedDuvet.mite_score || 50,
-        effectiveWindow,
-        durationInHours
-      )
+      // Use pre-calculated AI analysis from orderAiAnalysis state
+      const aiAnalysis = {
+        finalMiteScore: orderAiAnalysis.afterMiteScore
+      }
 
-      console.log('Help-drying AI analysis:', aiAnalysis)
+      console.log('DEBUG: DuvetsPage - orderAiAnalysis state:', orderAiAnalysis)
+      console.log('DEBUG: DuvetsPage - formatted aiAnalysis for createOrder:', aiAnalysis)
+      console.log('DEBUG: DuvetsPage - finalMiteScore value:', aiAnalysis.finalMiteScore)
+      console.log('DEBUG: DuvetsPage - finalMiteScore type:', typeof aiAnalysis.finalMiteScore)
 
       // Calculate deadline (30 minutes before optimal start time)
       const deadline = new Date(startTime.getTime() - 30 * 60 * 1000).toISOString()
@@ -287,7 +396,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         // Refresh the duvets list to show updated status
         await loadDuvets()
 
-        setOrderRequestStep(3)
+        setOrderRequestStep(4) // Move to success step (now step 4)
         // Clear weather data after successful order creation
         setTimeout(() => {
           closeSunDryModal()
@@ -309,19 +418,103 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     setOrderPhoto(null)
     setOrderPhotoPreview(null)
     setSelectedDuvet(null)
+    setOrderAiAnalysis(null)
+    setIsAnalyzingOrder(false)
+    setOrderCostBreakdown(null)
+    setOrderSelectedAddress(null)
     // Clear weather data when completely done with the process
     closeSunDryModal()
   }
 
-  const handleOrderNextStep = () => {
-    if (orderRequestStep < 3) {
-      setOrderRequestStep((prev) => (prev + 1) as 1 | 2 | 3)
+  const handleOrderNextStep = async () => {
+    if (orderRequestStep === 2) {
+      // Moving from step 2 to step 3: start AI analysis
+      await handleAnalyzeOrder()
+    } else if (orderRequestStep < 4) {
+      setOrderRequestStep((prev) => (prev + 1) as 1 | 2 | 3 | 4)
     }
   }
 
   const handleOrderPrevStep = () => {
     if (orderRequestStep > 1) {
-      setOrderRequestStep((prev) => (prev - 1) as 1 | 2 | 3)
+      setOrderRequestStep((prev) => (prev - 1) as 1 | 2 | 3 | 4)
+    }
+  }
+
+  const handleAnalyzeOrder = async () => {
+    if (!selectedDuvet || !orderPhoto) return
+
+    try {
+      setIsAnalyzingOrder(true)
+      setOrderRequestStep(3) // Move to analysis step
+      
+      // First upload the photo to get a URL for AI analysis
+      const uploadResult = await uploadDuvetImage(orderPhoto, userId, 'ai-analysis')
+      if (!uploadResult) {
+        throw new Error('Failed to upload photo for AI analysis')
+      }
+
+      // Get effective time window (weather analysis or manual selection)
+      const effectiveWindow = isManualMode && manualTimeWindow 
+        ? manualTimeWindow 
+        : weatherAnalysis?.optimalWindows?.[0]
+      
+      if (!effectiveWindow) {
+        console.error('No effective time window available')
+        alert('No optimal drying time available for today')
+        setOrderRequestStep(2) // Go back to photo step
+        return
+      }
+
+      const startTime = new Date(effectiveWindow.startTime)
+      const endTime = new Date(effectiveWindow.endTime)
+      const durationInHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+
+      // Import and run REAL AI analysis
+      const { analyzeSunDryingEffectiveness } = await import('@/lib/sun-drying-ai')
+      const aiAnalysis = await analyzeSunDryingEffectiveness(
+        uploadResult.url,
+        selectedDuvet.mite_score || 50,
+        effectiveWindow,
+        durationInHours
+      )
+
+      if (!aiAnalysis) {
+        throw new Error('AI analysis failed')
+      }
+
+      // Set AI analysis result
+      setOrderAiAnalysis({
+        beforeMiteScore: selectedDuvet.mite_score || 50,
+        afterMiteScore: aiAnalysis.finalMiteScore,
+        reductionPoints: aiAnalysis.miteScoreReduction
+      })
+
+      console.log('Order AI analysis completed:', aiAnalysis)
+    } catch (error) {
+      console.error('Error analyzing order:', error)
+      alert('Failed to analyze duvet. Please try again.')
+      setOrderRequestStep(2) // Go back to photo step
+    } finally {
+      setIsAnalyzingOrder(false)
+    }
+  }
+
+  // Handle canceling help-drying order
+  const handleCancelHelpDryingOrder = async (duvet: Duvet) => {
+    const helpData = helpDryingData[duvet.id]
+    if (!helpData?.order) return
+
+    try {
+      const success = await handleDeleteOrder(helpData.order.id)
+      if (success) {
+        // Refresh duvets to update status
+        await loadDuvets()
+        // This will trigger the useEffect to reload help-drying data
+      }
+    } catch (error) {
+      console.error('Error canceling help-drying order:', error)
+      alert('Failed to cancel service request. Please try again.')
     }
   }
 
@@ -331,7 +524,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   return (
     <div>
       {/* Welcome Section */}
-      <div className="mb-12">
+      <div className="mb-6">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
           Welcome{user?.name ? ` ${user.name}` : ''}
         </h1>
@@ -341,7 +534,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       </div>
 
       {/* Divider */}
-      <div className="border-b border-gray-200 mb-12"></div>
+      <div className="border-b border-gray-200 mb-8"></div>
 
       {/* Latest Duvets Section */}
       <div className="mb-10">
@@ -366,6 +559,8 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         onSunDryingService={handleSunDryingService}
         duvetSunDryingStatus={duvetSunDryingStatus}
         addresses={addresses}
+        helpDryingData={helpDryingData}
+        onCancelHelpDryingOrder={handleCancelHelpDryingOrder}
       />
 
       {/* Address Prompt Modal */}
@@ -726,6 +921,10 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         onCreateOrder={handleCreateOrderRequest}
         onNextStep={handleOrderNextStep}
         onPrevStep={handleOrderPrevStep}
+        aiAnalysis={orderAiAnalysis}
+        isAnalyzing={isAnalyzingOrder}
+        address={orderSelectedAddress}
+        costBreakdown={orderCostBreakdown}
         // optimalTimeText={
         //   (() => {
         //     const effectiveWindow = isManualMode && manualTimeWindow 

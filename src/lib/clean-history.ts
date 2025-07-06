@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import { updateDuvetStatus } from './database'
 
 export interface CleanHistoryRecord {
   id: string
@@ -23,17 +22,35 @@ export async function createSunDryRecord(
   isSelf: boolean = true
 ): Promise<CleanHistoryRecord | null> {
   try {
+    console.log('DEBUG: createSunDryRecord - received parameters:')
+    console.log('- quiltId:', quiltId)
+    console.log('- userId:', userId)
+    console.log('- beforeMiteScore:', beforeMiteScore)
+    console.log('- startTime:', startTime)
+    console.log('- endTime:', endTime)
+    console.log('- afterMiteScore:', afterMiteScore)
+    console.log('- afterMiteScore type:', typeof afterMiteScore)
+    console.log('- isSelf:', isSelf)
+    
+    // Fix: Use nullish coalescing to handle 0 values correctly
+    const finalAfterMiteScore = afterMiteScore ?? null
+    console.log('DEBUG: createSunDryRecord - finalAfterMiteScore:', finalAfterMiteScore)
+    
+    const insertData = {
+      quilt_id: quiltId,
+      user_id: userId,
+      start_time: startTime || new Date().toISOString(),
+      end_time: endTime || null,
+      is_self: isSelf,
+      before_mite_score: beforeMiteScore,
+      after_mite_score: finalAfterMiteScore
+    }
+    
+    console.log('DEBUG: createSunDryRecord - insertData:', insertData)
+
     const { data, error } = await supabase
       .from('clean_history')
-      .insert({
-        quilt_id: quiltId,
-        user_id: userId,
-        start_time: startTime || new Date().toISOString(),
-        end_time: endTime || null,
-        is_self: isSelf,
-        before_mite_score: beforeMiteScore,
-        after_mite_score: afterMiteScore || null
-      })
+      .insert(insertData)
       .select()
       .single()
 
@@ -42,6 +59,7 @@ export async function createSunDryRecord(
       return null
     }
 
+    console.log('DEBUG: createSunDryRecord - created record:', data)
     return data
   } catch (error) {
     console.error('Error creating sun dry record:', error)
@@ -72,6 +90,31 @@ export async function updateSunDryRecord(
     return data
   } catch (error) {
     console.error('Error updating sun dry record:', error)
+    return null
+  }
+}
+
+export async function completeSunDryRecord(
+  recordId: string
+): Promise<CleanHistoryRecord | null> {
+  try {
+    const { data, error } = await supabase
+      .from('clean_history')
+      .update({
+        end_time: new Date().toISOString()
+      })
+      .eq('id', recordId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error completing sun dry record:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error completing sun dry record:', error)
     return null
   }
 }
@@ -119,34 +162,13 @@ export async function getDuvetSunDryHistory(duvetId: string): Promise<CleanHisto
   }
 }
 
-export async function updateDuvetLastClean(duvetId: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('quilts')
-      .update({
-        last_clean: new Date().toISOString()
-      })
-      .eq('id', duvetId)
-
-    if (error) {
-      console.error('Error updating duvet last clean:', error)
-      return false
-    }
-
-    return true
-  } catch (error) {
-    console.error('Error updating duvet last clean:', error)
-    return false
-  }
-}
 
 export async function updateDuvetMiteScore(duvetId: string, newMiteScore: number): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('quilts')
       .update({
-        mite_score: newMiteScore,
-        last_clean: new Date().toISOString()
+        mite_score: newMiteScore
       })
       .eq('id', duvetId)
 
@@ -159,6 +181,36 @@ export async function updateDuvetMiteScore(duvetId: string, newMiteScore: number
   } catch (error) {
     console.error('Error updating duvet mite score:', error)
     return false
+  }
+}
+
+/**
+ * Get the last cleaning date for a duvet from clean history
+ */
+export async function getDuvetLastCleanDate(duvetId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('clean_history')
+      .select('end_time')
+      .eq('quilt_id', duvetId)
+      .not('end_time', 'is', null)
+      .order('end_time', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No completed cleaning records found
+        return null
+      }
+      console.error('Error fetching last clean date:', error)
+      return null
+    }
+
+    return data?.end_time || null
+  } catch (error) {
+    console.error('Error fetching last clean date:', error)
+    return null
   }
 }
 
@@ -235,57 +287,43 @@ export async function getCurrentSunDryingStatus(
   }
 }
 
-
-export async function checkAndCompleteExpiredSunDrying(duvetId: string): Promise<boolean> {
+export async function deleteCleanHistoryRecord(recordId: string): Promise<boolean> {
   try {
-    // Get latest sun drying record
-    const currentRecord = await getCurrentSunDryingStatus(duvetId)
-    
-    if (!currentRecord || !currentRecord.start_time || !currentRecord.end_time) {
+    const { error } = await supabase
+      .from('clean_history')
+      .delete()
+      .eq('id', recordId)
+
+    if (error) {
+      console.error('Error deleting clean history record:', error)
       return false
     }
 
-    const now = new Date()
-    const startTime = new Date(currentRecord.start_time)
-    const endTime = new Date(currentRecord.end_time)
-    
-    // Get current duvet to check status
-    const { data: duvet, error } = await supabase
-      .from('quilts')
-      .select('mite_score, last_clean, status')
-      .eq('id', duvetId)
-      .single()
-      
-    if (error || !duvet) {
-      console.error('Error fetching duvet for status check:', error)
-      return false
-    }
-    
-    // Handle status transitions based on time
-    if (now >= startTime && now < endTime && duvet.status === 'waiting_optimal_time') {
-      // Transition to self_drying when optimal window starts
-      console.log(`Starting self-drying for duvet ${duvetId}`)
-      await updateDuvetStatus(duvetId, 'self_drying')
-      return true
-    } else if (now >= endTime && duvet.status === 'self_drying' && currentRecord.after_mite_score !== null) {
-      // Complete drying and update mite score when window ends
-      console.log(`Completing self-drying for duvet ${duvetId}`)
-      
-      // Only update if the duvet's mite score is different from the predicted score
-      if (duvet.mite_score !== currentRecord.after_mite_score) {
-        console.log(`Updating duvet ${duvetId} mite score from ${duvet.mite_score} to ${currentRecord.after_mite_score}`)
-        await updateDuvetMiteScore(duvetId, currentRecord.after_mite_score)
-      }
-      
-      // Reset status to normal (normal state)
-      await updateDuvetStatus(duvetId, 'normal')
-      
-      return true
-    }
-
-    return false
+    return true
   } catch (error) {
-    console.error('Error checking and completing expired sun drying:', error)
+    console.error('Error deleting clean history record:', error)
     return false
   }
 }
+
+export async function deleteCleanHistoryByDuvetId(duvetId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('clean_history')
+      .delete()
+      .eq('quilt_id', duvetId)
+      .is('end_time', null)
+
+    if (error) {
+      console.error('Error deleting clean history records by duvet ID:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting clean history records by duvet ID:', error)
+    return false
+  }
+}
+
+

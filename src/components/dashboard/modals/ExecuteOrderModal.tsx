@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { OrderWithDuvet } from '@/lib/database'
+import { OrderWithDuvet, getAddressById, type Address } from '@/lib/database'
 import { getCleanHistoryRecord, type CleanHistoryRecord } from '@/lib/clean-history'
+import { getCurrentPosition } from '@/lib/geolocation'
+import { calculateNavigationInfo, formatLocalAddress, formatTimeWindow, type NavigationInfo } from '@/lib/address-utils'
 
 interface ExecuteOrderModalProps {
   isOpen: boolean
@@ -32,58 +34,85 @@ export default function ExecuteOrderModal({
 }: ExecuteOrderModalProps) {
   const [cleanHistory, setCleanHistory] = useState<CleanHistoryRecord | null>(null)
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+  const [orderAddress, setOrderAddress] = useState<Address | null>(null)
+  const [navigationInfo, setNavigationInfo] = useState<NavigationInfo | null>(null)
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false)
 
-  // Load clean history record when modal opens
+  // Load clean history record and navigation data when modal opens
   useEffect(() => {
-    const loadCleanHistory = async () => {
-      if (!isOpen || !order?.clean_history_id) {
+    const loadOrderData = async () => {
+      if (!isOpen || !order) {
         setCleanHistory(null)
+        setOrderAddress(null)
+        setNavigationInfo(null)
         setIsLoadingHistory(false)
         return
       }
 
       setIsLoadingHistory(true)
       try {
-        const history = await getCleanHistoryRecord(order.clean_history_id)
-        setCleanHistory(history)
+        // Load clean history if available
+        let history = null
+        if (order.clean_history_id) {
+          history = await getCleanHistoryRecord(order.clean_history_id)
+          setCleanHistory(history)
+        }
+
+        // Load order address
+        let address = null
+        if (order.address_id) {
+          address = await getAddressById(order.address_id)
+          setOrderAddress(address)
+        }
+
+        // Get user location for navigation
+        if (address?.latitude && address?.longitude) {
+          setIsLoadingLocation(true)
+          try {
+            const position = await getCurrentPosition({ timeout: 5000 })
+            const userLoc = {
+              latitude: position.latitude,
+              longitude: position.longitude
+            }
+
+            // Calculate navigation info
+            const destinationLoc = {
+              latitude: address.latitude,
+              longitude: address.longitude
+            }
+            const navInfo = calculateNavigationInfo(userLoc, destinationLoc)
+            setNavigationInfo(navInfo)
+          } catch (locationError) {
+            console.warn('Could not get user location:', locationError)
+          } finally {
+            setIsLoadingLocation(false)
+          }
+        }
       } catch (error) {
-        console.error('Error loading clean history:', error)
+        console.error('Error loading order data:', error)
         setCleanHistory(null)
+        setOrderAddress(null)
       } finally {
         setIsLoadingHistory(false)
       }
     }
 
-    loadCleanHistory()
-  }, [isOpen, order?.clean_history_id])
+    loadOrderData()
+  }, [isOpen, order])
 
   if (!isOpen || !order) return null
 
-  // Check if current time is within optimal drying window using clean_history
-  const isWithinOptimalTime = () => {
-    if (!cleanHistory?.start_time || !cleanHistory?.end_time) {
-      return true // If no optimal time specified, allow execution
-    }
-    
-    const now = new Date()
-    const startTime = new Date(cleanHistory.start_time)
-    const endTime = new Date(cleanHistory.end_time)
-    
-    return now >= startTime && now <= endTime
-  }
-
-  const canExecuteOrder = !isLoadingHistory && isWithinOptimalTime()
 
   return (
-    <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-8 w-full mx-6 shadow-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-8 w-full mx-6 shadow-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-start mb-8">
-          <h3 className="text-2xl font-light text-black tracking-tight">
+          <h3 className="text-2xl font-semibold text-gray-900">
             Execute Order - {order.duvet_name}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl font-thin ml-6 mt-1"
+            className="text-gray-400 hover:text-gray-600 text-2xl font-light ml-6 mt-1 transition-colors"
           >
             ×
           </button>
@@ -94,18 +123,18 @@ export default function ExecuteOrderModal({
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex items-center">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
                   currentStep >= step
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-500'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-400'
                 }`}
               >
                 {step}
               </div>
               {step < 3 && (
                 <div
-                  className={`w-20 h-0.5 ${
-                    currentStep > step ? 'bg-green-500' : 'bg-gray-200'
+                  className={`w-20 h-1 rounded-full transition-colors ${
+                    currentStep > step ? 'bg-blue-500' : 'bg-gray-200'
                   }`}
                 />
               )}
@@ -116,124 +145,124 @@ export default function ExecuteOrderModal({
         {/* Step Content */}
         <div className="space-y-6">
           {currentStep === 1 && (
-            <div className="text-center space-y-6">
-              <div className="space-y-4">
-                <h4 className="text-xl font-semibold text-gray-900">Duvet Location Information</h4>
-                <p className="text-gray-600">
-                  Here are the details for the duvet you&apos;ll be helping to dry:
-                </p>
+            <div className="space-y-6">
+              {/* Navigation-Style Header */}
+              <div className="text-center space-y-2">
+                <h4 className="text-xl font-semibold text-gray-900">Navigate to Pickup Location</h4>
+                <p className="text-gray-500 text-sm">Essential information for your drying service</p>
               </div>
 
-              <div className="bg-blue-50 rounded-xl p-6 space-y-4">
-                <div className="space-y-4 text-left">
-                  <div>
-                    <h5 className="font-medium text-gray-900 mb-2">Duvet Placement Photo</h5>
-                    {order.placed_photo ? (
-                      <div className="relative">
-                        <Image
-                          src={order.placed_photo}
-                          alt="Duvet placement location"
-                          width={400}
-                          height={300}
-                          className="w-full h-48 object-cover rounded-lg shadow-md"
-                        />
-                        <div className="mt-2 text-sm text-gray-600">
-                          This photo shows where the duvet is placed for pickup
-                        </div>
+              {/* Navigation Info Card */}
+              {isLoadingLocation || isLoadingHistory ? (
+                <div className="bg-gray-50 rounded-2xl p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading navigation info...</p>
+                </div>
+              ) : navigationInfo && orderAddress ? (
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 space-y-4">
+                  {/* Distance and Time - Navigation App Style */}
+                  <div className="text-center space-y-2">
+                    <div className="text-4xl font-bold text-blue-600">
+                      {navigationInfo.formattedDistance}
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div className="flex items-center justify-center space-x-4">
+                        <span className="flex items-center space-x-1">
+                          <span>🚶</span>
+                          <span>{navigationInfo.formattedWalkingTime}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <span>🚗</span>
+                          <span>{navigationInfo.formattedDrivingTime}</span>
+                        </span>
                       </div>
-                    ) : (
-                      <div className="bg-gray-100 rounded-lg p-4 text-center text-gray-500">
-                        No placement photo available
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <h5 className="font-medium text-gray-900 mb-2">Order Details</h5>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <p><strong>Duvet:</strong> {order.duvet_name || 'Duvet Drying Service'}</p>
-                      <p><strong>Requested on:</strong> {new Date(order.created_at).toLocaleDateString()}</p>
-                      {order.deadline && (
-                        <p><strong>Deadline:</strong> {new Date(order.deadline).toLocaleString()}</p>
-                      )}
                     </div>
                   </div>
+
+                  {/* Address */}
+                  <div className="bg-white/70 rounded-xl p-4 text-center">
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <span className="text-lg">📍</span>
+                      <span className="font-medium text-gray-900">Destination</span>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {formatLocalAddress(orderAddress)}
+                    </p>
+                  </div>
                 </div>
+              ) : orderAddress ? (
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6">
+                  <div className="text-center space-y-3">
+                    <div className="text-3xl text-gray-400">📍</div>
+                    <div>
+                      <h5 className="font-medium text-gray-900 mb-2">Pickup Location</h5>
+                      <p className="text-gray-700 text-sm">{formatLocalAddress(orderAddress)}</p>
+                    </div>
+                    <p className="text-xs text-gray-500">Location access needed for navigation</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-2xl p-6 text-center text-gray-500">
+                  <span className="text-2xl">❌</span>
+                  <p className="mt-2">Address information not available</p>
+                </div>
+              )}
+
+              {/* Drying Time Window */}
+              {cleanHistory && (
+                <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6">
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-lg">⏰</span>
+                      <span className="font-medium text-gray-900">Drying Time</span>
+                    </div>
+                    <div className="text-xl font-semibold text-orange-600">
+                      {formatTimeWindow(cleanHistory.start_time, cleanHistory.end_time)}
+                    </div>
+                    <p className="text-xs text-gray-600">Optimal sun drying period</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Duvet Placement Photo */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">📷</span>
+                  <span className="font-medium text-gray-900">Duvet Location</span>
+                </div>
+                {order.placed_photo ? (
+                  <div className="relative">
+                    <Image
+                      src={order.placed_photo}
+                      alt="Duvet placement location"
+                      width={400}
+                      height={240}
+                      className="w-full h-48 object-cover rounded-xl shadow-lg"
+                    />
+                    <div className="mt-2 text-xs text-gray-500 text-center">
+                      Owner&apos;s photo showing duvet placement
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-100 rounded-xl p-8 text-center text-gray-500">
+                    <span className="text-3xl block mb-2">📷</span>
+                    <p className="text-sm">No placement photo provided</p>
+                  </div>
+                )}
               </div>
-
-              {/* AI Analysis Results */}
-              {!isLoadingHistory && cleanHistory?.before_mite_score && cleanHistory?.after_mite_score && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                  <h5 className="font-medium text-gray-900 mb-4">AI Predicted Results</h5>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center space-x-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-800">
-                          {cleanHistory.before_mite_score}
-                        </div>
-                        <div className="text-xs text-gray-500">Current Mite Score</div>
-                      </div>
-                      <div className="text-gray-500 text-xl">→</div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">
-                          {cleanHistory.after_mite_score}
-                        </div>
-                        <div className="text-xs text-gray-500">Predicted After Drying</div>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                        -{cleanHistory.before_mite_score - cleanHistory.after_mite_score} points reduction predicted
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Time validation section */}
-              {!isLoadingHistory && cleanHistory?.start_time && cleanHistory?.end_time && (
-                <div className={`rounded-xl p-6 ${canExecuteOrder ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                  <h5 className="font-medium text-gray-900 mb-2">Optimal Drying Time Window</h5>
-                  <div className="space-y-2 text-sm">
-                    <p>
-                      <strong>Optimal Time:</strong>{' '}
-                      {new Date(cleanHistory.start_time).toLocaleString()} -{' '}
-                      {new Date(cleanHistory.end_time).toLocaleString()}
-                    </p>
-                    <p>
-                      <strong>Current Time:</strong> {new Date().toLocaleString()}
-                    </p>
-                    {canExecuteOrder ? (
-                      <p className="text-green-700 font-medium">
-                        ✓ Current time is within the optimal drying window
-                      </p>
-                    ) : (
-                      <p className="text-red-700 font-medium">
-                        ⚠ Current time is outside the optimal drying window. Please wait for the optimal time to execute this order.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {isLoadingHistory && (
-                <div className="rounded-xl p-6 bg-gray-50 border border-gray-200">
-                  <p className="text-gray-600">Loading optimal time information...</p>
-                </div>
-              )}
             </div>
           )}
 
           {currentStep === 2 && (
-            <div className="text-center space-y-6">
-              <div className="space-y-4">
-                <h4 className="text-xl font-semibold text-gray-900">Upload Drying Photo</h4>
-                <p className="text-gray-600">
+            <div className="space-y-6">
+              <div className="text-center space-y-3">
+                <h4 className="text-2xl font-semibold text-gray-900">Upload Drying Photo</h4>
+                <p className="text-gray-600 text-lg">
                   After successfully drying the duvet, please take a photo to confirm completion.
                 </p>
               </div>
 
-              <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors cursor-pointer">
+              <div className="relative border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-500 transition-all duration-200 cursor-pointer bg-gradient-to-br from-gray-50 to-blue-50">
                 {photoPreview ? (
                   <div className="space-y-4">
                     <Image 
@@ -241,15 +270,15 @@ export default function ExecuteOrderModal({
                       alt="Dried duvet photo" 
                       width={300}
                       height={200}
-                      className="max-h-48 mx-auto rounded-xl shadow-md object-contain"
+                      className="max-h-56 mx-auto rounded-xl shadow-lg object-contain"
                     />
-                    <p className="text-base text-green-600 font-medium">Photo uploaded successfully</p>
+                    <p className="text-lg text-green-600 font-semibold bg-green-50 rounded-lg p-3">Photo uploaded successfully</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="text-6xl text-gray-400">📷</div>
                     <div>
-                      <p className="text-xl text-gray-600 font-medium">Click to upload completion photo</p>
+                      <p className="text-xl text-gray-700 font-semibold">Click to upload completion photo</p>
                       <p className="text-sm text-gray-500 mt-2">JPG, PNG or HEIC format</p>
                     </div>
                   </div>
@@ -264,7 +293,9 @@ export default function ExecuteOrderModal({
               </div>
 
               {isUploadingPhoto && (
-                <p className="text-blue-600">Uploading photo...</p>
+                <div className="text-center">
+                  <p className="text-blue-600 font-medium">Uploading photo...</p>
+                </div>
               )}
             </div>
           )}
@@ -272,19 +303,28 @@ export default function ExecuteOrderModal({
           {currentStep === 3 && (
             <div className="text-center space-y-6">
               <div className="space-y-4">
-                <div className="text-6xl text-green-400 mb-4">✅</div>
-                <h4 className="text-xl font-semibold text-gray-900">Order Completed Successfully!</h4>
-                <p className="text-gray-600">
+                <div className="text-6xl text-green-500 mb-4">✅</div>
+                <h4 className="text-2xl font-semibold text-gray-900">Order Completed Successfully!</h4>
+                <p className="text-gray-600 text-lg">
                   Thank you for helping with the duvet drying service. The order has been marked as completed.
                 </p>
               </div>
 
-              <div className="bg-gray-50 rounded-xl p-6 space-y-4">
-                <h5 className="font-medium text-gray-900">What happens next?</h5>
-                <div className="space-y-2 text-sm text-gray-600 text-left">
-                  <p>• The duvet owner will be notified of completion</p>
-                  <p>• Your service record has been updated</p>
-                  <p>• You can view this order in your completed orders</p>
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 space-y-4">
+                <h5 className="font-semibold text-gray-900 text-lg">What happens next?</h5>
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <p>The duvet owner will be notified of completion</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <p>Your service record has been updated</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <p>You can view this order in your completed orders</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -297,20 +337,15 @@ export default function ExecuteOrderModal({
             <>
               <button
                 onClick={onClose}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={onNextStep}
-                disabled={!canExecuteOrder}
-                className={`px-6 py-3 rounded-xl font-semibold transition-colors ${
-                  canExecuteOrder 
-                    ? 'bg-green-500 text-white hover:bg-green-600' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
-                {canExecuteOrder ? 'Start Drying Process' : 'Wait for Optimal Time'}
+                Arrive & Start Drying
               </button>
             </>
           )}
@@ -319,14 +354,14 @@ export default function ExecuteOrderModal({
             <>
               <button
                 onClick={onPrevStep}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium"
               >
                 Back
               </button>
               <button
                 onClick={onCompleteOrder}
                 disabled={!selectedPhoto || isUploadingPhoto}
-                className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+                className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-green-600 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 Complete Order
               </button>
@@ -336,7 +371,7 @@ export default function ExecuteOrderModal({
           {currentStep === 3 && (
             <button
               onClick={onClose}
-              className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-colors w-full"
+              className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition-all duration-200 w-full shadow-lg hover:shadow-xl"
             >
               Done
             </button>

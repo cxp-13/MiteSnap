@@ -10,8 +10,8 @@ export interface Duvet {
   image_url: string
   user_id: string
   address_id: string | null
-  last_clean: string | null
   status: DuvetStatus
+  thickness?: string | null
 }
 
 export interface Address {
@@ -27,8 +27,9 @@ export interface Address {
   road: string | null
   house_number: string | null
   neighbourhood: string | null
-  address_line: string | null
   created_at: string
+  floor_number?: number | null
+  has_elevator?: boolean | null
   // Legacy fields for backward compatibility
   apartment?: string | null
   unit?: string | null
@@ -47,6 +48,7 @@ export interface Order {
   status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
   deadline: string | null
   dry_photo?: string | null
+  cost?: number | null
 }
 
 export async function createDuvet(
@@ -69,8 +71,8 @@ export async function createDuvet(
         image_url: imageUrl,
         user_id: userId,
         address_id: addressId || null,
-        last_clean: null,
-        status: 'normal'
+        status: 'normal',
+        thickness: thickness
       })
       .select()
       .single()
@@ -135,10 +137,11 @@ export async function createAddress(
     road?: string | null
     house_number?: string | null
     neighbourhood?: string | null
-    address_line?: string | null
     longitude?: number | null
     latitude?: number | null
     is_default?: boolean
+    floor_number?: number | null
+    has_elevator?: boolean | null
     // Legacy support
     apartment?: string | null
     unit?: string | null
@@ -147,6 +150,19 @@ export async function createAddress(
   userId: string
 ): Promise<Address | null> {
   try {
+    console.log('💾 database.ts createAddress called with addressData:', addressData)
+    console.log('🏗️ database.ts has_elevator received:', addressData.has_elevator, 'type:', typeof addressData.has_elevator)
+    
+    // DETAILED ELEVATOR DEBUGGING
+    console.log('🔍 DETAILED ELEVATOR DEBUG:')
+    console.log('  - Raw value:', addressData.has_elevator)
+    console.log('  - Type:', typeof addressData.has_elevator)
+    console.log('  - === true:', addressData.has_elevator === true)
+    console.log('  - === false:', addressData.has_elevator === false)
+    console.log('  - === undefined:', addressData.has_elevator === undefined)
+    console.log('  - === null:', addressData.has_elevator === null)
+    console.log('  - Boolean(value):', Boolean(addressData.has_elevator))
+    
     if (addressData.is_default) {
       await supabase
         .from('addresses')
@@ -154,22 +170,37 @@ export async function createAddress(
         .eq('user_id', userId)
     }
 
+    const insertData = {
+      user_id: userId,
+      is_default: addressData.is_default || false,
+      longitude: addressData.longitude || null,
+      latitude: addressData.latitude || null,
+      country: addressData.country || null,
+      state: addressData.state || null,
+      city: addressData.city || null,
+      district: addressData.district || null,
+      road: addressData.road || null,
+      house_number: addressData.house_number || null,
+      neighbourhood: addressData.neighbourhood || null,
+      floor_number: addressData.floor_number || null,
+      has_elevator: addressData.has_elevator ?? null
+    }
+    
+    console.log('📊 database.ts insertData being sent to database:', insertData)
+    console.log('🏗️ database.ts insertData has_elevator:', insertData.has_elevator, 'type:', typeof insertData.has_elevator)
+    
+    // DETAILED INSERT DATA DEBUGGING
+    console.log('🔍 DETAILED INSERT DATA DEBUG:')
+    console.log('  - insertData.has_elevator raw:', insertData.has_elevator)
+    console.log('  - insertData.has_elevator type:', typeof insertData.has_elevator)
+    console.log('  - insertData.has_elevator === true:', insertData.has_elevator === true)
+    console.log('  - insertData.has_elevator === false:', insertData.has_elevator === false)
+    console.log('  - insertData.has_elevator === null:', insertData.has_elevator === null)
+    console.log('  - JSON.stringify(insertData):', JSON.stringify(insertData, null, 2))
+
     const { data, error } = await supabase
       .from('addresses')
-      .insert({
-        user_id: userId,
-        is_default: addressData.is_default || false,
-        longitude: addressData.longitude || null,
-        latitude: addressData.latitude || null,
-        country: addressData.country || null,
-        state: addressData.state || null,
-        city: addressData.city || null,
-        district: addressData.district || null,
-        road: addressData.road || null,
-        house_number: addressData.house_number || null,
-        neighbourhood: addressData.neighbourhood || null,
-        address_line: addressData.address_line || null
-      })
+      .insert(insertData)
       .select()
       .single()
 
@@ -177,6 +208,9 @@ export async function createAddress(
       console.error('Error creating address:', error)
       return null
     }
+
+    console.log('✅ database.ts address created successfully, returned data:', data)
+    console.log('🏗️ database.ts returned has_elevator:', data?.has_elevator, 'type:', typeof data?.has_elevator)
 
     return data
   } catch (error) {
@@ -216,10 +250,11 @@ export async function updateAddress(
     road?: string | null
     house_number?: string | null
     neighbourhood?: string | null
-    address_line?: string | null
     longitude?: number | null
     latitude?: number | null
     is_default?: boolean
+    floor_number?: number | null
+    has_elevator?: boolean | null
     // Legacy support
     apartment?: string | null
     unit?: string | null
@@ -245,10 +280,11 @@ export async function updateAddress(
     if (addressData.road !== undefined) updateData.road = addressData.road
     if (addressData.house_number !== undefined) updateData.house_number = addressData.house_number
     if (addressData.neighbourhood !== undefined) updateData.neighbourhood = addressData.neighbourhood
-    if (addressData.address_line !== undefined) updateData.address_line = addressData.address_line
     if (addressData.longitude !== undefined) updateData.longitude = addressData.longitude
     if (addressData.latitude !== undefined) updateData.latitude = addressData.latitude
     if (addressData.is_default !== undefined) updateData.is_default = addressData.is_default
+    if (addressData.floor_number !== undefined) updateData.floor_number = addressData.floor_number
+    if (addressData.has_elevator !== undefined) updateData.has_elevator = addressData.has_elevator
 
     const { data, error } = await supabase
       .from('addresses')
@@ -324,7 +360,8 @@ export async function createOrder(
   cleanHistoryId?: string | null,
   optimalStartTime?: string | null,
   optimalEndTime?: string | null,
-  aiAnalysis?: { finalMiteScore: number } | null
+  aiAnalysis?: { finalMiteScore: number } | null,
+  cost?: number | null
 ): Promise<Order | null> {
   try {
     let finalCleanHistoryId = cleanHistoryId
@@ -344,13 +381,22 @@ export async function createOrder(
       } else if (duvet) {
         // Create a help-drying clean history record
         const { createSunDryRecord } = await import('./clean-history')
+        
+        console.log('DEBUG: database.ts - aiAnalysis received:', aiAnalysis)
+        console.log('DEBUG: database.ts - aiAnalysis?.finalMiteScore:', aiAnalysis?.finalMiteScore)
+        console.log('DEBUG: database.ts - finalMiteScore type:', typeof aiAnalysis?.finalMiteScore)
+        
+        // Fix: Use nullish coalescing instead of logical OR to handle 0 values correctly
+        const afterMiteScore = aiAnalysis?.finalMiteScore ?? undefined
+        console.log('DEBUG: database.ts - afterMiteScore for createSunDryRecord:', afterMiteScore)
+        
         const cleanRecord = await createSunDryRecord(
           duvetId,
           userId,
           duvet.mite_score || 50,
           optimalStartTime || new Date().toISOString(), // start_time - optimal start or current time
           optimalEndTime || undefined, // end_time - optimal end time or will be set when completed
-          aiAnalysis?.finalMiteScore || undefined, // after_mite_score - use AI prediction if available
+          afterMiteScore, // after_mite_score - use AI prediction if available
           false // is_self = false for help-drying
         )
         
@@ -369,7 +415,8 @@ export async function createOrder(
         placed_photo: placedPhoto,
         deadline: deadline || null,
         clean_history_id: finalCleanHistoryId || null,
-        status: 'pending'
+        status: 'pending',
+        cost: cost || null
       })
       .select()
       .single()
@@ -443,6 +490,29 @@ export async function getUserAcceptedOrders(userId: string): Promise<OrderWithDu
 
 export interface OrderWithDuvet extends Order {
   duvet_name?: string
+}
+
+export async function getAddressById(addressId: string): Promise<Address | null> {
+  try {
+    const { data, error } = await supabase
+      .from('addresses')
+      .select('*')
+      .eq('id', addressId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      console.error('Error fetching address:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error fetching address:', error)
+    return null
+  }
 }
 
 export async function getAddressesByIds(addressIds: string[]): Promise<Record<string, Address>> {

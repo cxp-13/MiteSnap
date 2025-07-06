@@ -9,13 +9,18 @@ interface DuvetListProps {
   isLoading: boolean
   onSunDryingService: (duvet: Duvet) => void
   addresses?: Address[]
+  helpDryingData?: Record<string, { order: { id: string; status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'; quilt_id: string }; cleanHistory: CleanHistoryRecord | null }>
+  onCancelHelpDryingOrder?: (duvet: Duvet) => void
 }
 
 export default function DuvetList({
   duvets,
+  duvetSunDryingStatus,
   isLoading,
   onSunDryingService,
-  addresses
+  addresses,
+  helpDryingData,
+  onCancelHelpDryingOrder
 }: DuvetListProps) {
   const [selectedDuvet, setSelectedDuvet] = useState<Duvet | null>(null)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -60,6 +65,9 @@ export default function DuvetList({
               onSunDryingService={onSunDryingService}
               onDuvetClick={handleDuvetClick}
               addresses={addresses}
+              helpDryingData={helpDryingData?.[duvet.id]}
+              onCancelHelpDryingOrder={onCancelHelpDryingOrder}
+              duvetSunDryingStatus={duvetSunDryingStatus}
             />
           ))}
         </div>

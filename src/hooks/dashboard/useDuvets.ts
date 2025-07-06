@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createDuvet, getUserDuvets, type Duvet } from '@/lib/database'
 import { uploadDuvetImage } from '@/lib/storage'
 import { analyzeDuvet } from '@/lib/ai-analysis'
-import { getCurrentSunDryingStatus, checkAndCompleteExpiredSunDrying, type CleanHistoryRecord } from '@/lib/clean-history'
+import { getCurrentSunDryingStatus, type CleanHistoryRecord } from '@/lib/clean-history'
 
 export interface DuvetFormData {
   name: string
@@ -51,8 +51,7 @@ export function useDuvets(userId: string | undefined) {
       // Also refresh sun drying status for all duvets and check for expired sessions
       if (userDuvets.length > 0) {
         const statusPromises = userDuvets.map(async (duvet) => {
-          // First check if any sessions have expired and need mite score updates
-          await checkAndCompleteExpiredSunDrying(duvet.id)
+
           
           // Then get the current status
           const status = await getCurrentSunDryingStatus(duvet.id)
@@ -87,8 +86,7 @@ export function useDuvets(userId: string | undefined) {
     
     try {
       const statusPromises = targetDuvets.map(async (duvetId) => {
-        // First check if any sessions have expired and need mite score updates
-        await checkAndCompleteExpiredSunDrying(duvetId)
+
         
         // Then get the current status
         const status = await getCurrentSunDryingStatus(duvetId)
