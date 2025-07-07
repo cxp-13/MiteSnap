@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createOrder, getUserOrders, getUserAcceptedOrders, getNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet, getAddressById } from '@/lib/database'
+import { createOrder, getUserOrders, getUserAcceptedOrders, getNearbyOrders, getAllNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet, getAddressById } from '@/lib/database'
 import { getCurrentPosition } from '@/lib/geolocation'
 import { calculateTotalCostByThickness } from '@/lib/pricing'
 import { supabase } from '@/lib/supabase'
@@ -8,6 +8,7 @@ export function useOrders(userId: string | undefined) {
   const [orders, setOrders] = useState<Order[]>([])
   const [acceptedOrders, setAcceptedOrders] = useState<OrderWithDuvet[]>([])
   const [nearbyOrders, setNearbyOrders] = useState<OrderWithDuvet[]>([])
+  const [allNearbyOrders, setAllNearbyOrders] = useState<OrderWithDuvet[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(false)
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null)
 
@@ -34,15 +35,31 @@ export function useOrders(userId: string | undefined) {
       // Check and cancel expired orders first
       await checkAndCancelExpiredOrders()
       
-      const [userOrders, acceptedOrdersData, nearby] = await Promise.all([
+      const [userOrders, acceptedOrdersData, nearby, allNearby] = await Promise.all([
         getUserOrders(userId),
         getUserAcceptedOrders(userId),
-        getNearbyOrders(userId, userLocation || undefined)
+        getNearbyOrders(userId, userLocation || undefined),
+        getAllNearbyOrders(userId, userLocation || undefined)
       ])
       
       setOrders(userOrders)
       setAcceptedOrders(acceptedOrdersData)
       setNearbyOrders(nearby)
+      setAllNearbyOrders(allNearby)
+      
+      console.log('📊 Orders loaded:', {
+        userOrders: userOrders.length,
+        acceptedOrders: acceptedOrdersData.length,
+        nearbyOrders: nearby.length,
+        allNearbyOrders: allNearby.length
+      })
+      console.log('📋 All nearby orders details:', allNearby.map(o => ({
+        id: o.id,
+        status: o.status,
+        user_id: o.user_id,
+        service_user_id: o.service_user_id,
+        duvet_name: o.duvet_name
+      })))
     } catch (error) {
       console.error('Error loading orders:', error)
     } finally {
@@ -65,7 +82,6 @@ export function useOrders(userId: string | undefined) {
     duvetId: string,
     addressId: string,
     placedPhoto: string | null,
-    deadline?: string | null,
     optimalStartTime?: string | null,
     optimalEndTime?: string | null,
     aiAnalysis?: { finalMiteScore: number } | null
@@ -105,7 +121,7 @@ export function useOrders(userId: string | undefined) {
         console.error('Error calculating cost:', costError)
       }
 
-      const order = await createOrder(userId, duvetId, addressId, placedPhoto, deadline, undefined, optimalStartTime, optimalEndTime, aiAnalysis, calculatedCost)
+      const order = await createOrder(userId, duvetId, addressId, placedPhoto, undefined, optimalStartTime, optimalEndTime, aiAnalysis, calculatedCost)
       if (order) {
         await loadOrders()
         return true
@@ -134,6 +150,7 @@ export function useOrders(userId: string | undefined) {
         let duvetStatus: string | null = null
         switch (status) {
           case 'accepted':
+          case 'in_progress':
             duvetStatus = 'help_drying'
             break
           case 'completed':
@@ -142,7 +159,7 @@ export function useOrders(userId: string | undefined) {
           case 'cancelled':
             duvetStatus = 'normal'
             break
-          // 'pending' and 'in_progress' don't change duvet status
+          // 'pending' doesn't change duvet status
         }
         
         if (duvetStatus !== undefined) {
@@ -221,7 +238,7 @@ export function useOrders(userId: string | undefined) {
 
     try {
       // Find the order to get the duvet ID
-      const order = [...orders, ...acceptedOrders, ...nearbyOrders].find(o => o.id === orderId)
+      const order = allNearbyOrders.find(o => o.id === orderId)
       
       const success = await updateOrderStatus(orderId, 'accepted', userId)
       if (success && order) {
@@ -236,13 +253,42 @@ export function useOrders(userId: string | undefined) {
       console.error('Error accepting order:', error)
       return false
     }
-  }, [userId, loadOrders, orders, acceptedOrders, nearbyOrders])
+  }, [userId, loadOrders, allNearbyOrders])
+
+  // Cancel an accepted order
+  const handleCancelAcceptedOrder = useCallback(async (orderId: string) => {
+    if (!userId) return false
+
+    try {
+      // Find the order to get the duvet ID
+      const order = allNearbyOrders.find(o => o.id === orderId)
+      console.log('🔄 Canceling order:', orderId, 'Current service_user_id:', order?.service_user_id)
+      
+      const success = await updateOrderStatus(orderId, 'pending', null) // Remove helper and reset service_user_id
+      if (success && order) {
+        console.log('✅ Order status updated to pending with service_user_id reset to null')
+        
+        // Update duvet status to waiting_pickup when order is cancelled
+        await updateDuvetStatus(order.quilt_id, 'waiting_pickup')
+        console.log('✅ Duvet status updated to waiting_pickup')
+        
+        await loadOrders()
+        console.log('✅ Orders reloaded after cancellation')
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Error canceling order:', error)
+      return false
+    }
+  }, [userId, loadOrders, allNearbyOrders])
 
   return {
     // State
     orders,
     acceptedOrders,
     nearbyOrders,
+    allNearbyOrders,
     isLoadingOrders,
     
     // Actions
@@ -251,6 +297,7 @@ export function useOrders(userId: string | undefined) {
     handleUpdateOrderStatus,
     handleDeleteOrder,
     handleAcceptOrder,
+    handleCancelAcceptedOrder,
     getPendingOrder
   }
 }

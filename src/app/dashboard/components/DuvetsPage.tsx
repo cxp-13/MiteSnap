@@ -356,8 +356,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         throw new Error(isManualMode ? 'Manual time window is no longer available. Please try again.' : 'Weather analysis is no longer available. Please try again.')
       }
 
-      // Calculate actual drying duration from the effective window
-      const startTime = new Date(effectiveWindow.startTime)
+      // Effective window is valid, proceed with order creation
 
       // Use pre-calculated AI analysis from orderAiAnalysis state
       const aiAnalysis = {
@@ -369,21 +368,16 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       console.log('DEBUG: DuvetsPage - finalMiteScore value:', aiAnalysis.finalMiteScore)
       console.log('DEBUG: DuvetsPage - finalMiteScore type:', typeof aiAnalysis.finalMiteScore)
 
-      // Calculate deadline (30 minutes before optimal start time)
-      const deadline = new Date(startTime.getTime() - 30 * 60 * 1000).toISOString()
-
       console.log('Order creation debug:')
       console.log('- Is manual mode:', isManualMode)
       console.log('- Effective window:', effectiveWindow)
       console.log('- AI Analysis:', aiAnalysis)
-      console.log('- Calculated deadline:', deadline)
 
       // Create order with effective time window and AI analysis information
       const success = await handleCreateOrder(
         selectedDuvet.id,
         defaultAddress.id,
         uploadResult.url,
-        deadline,
         effectiveWindow.startTime,
         effectiveWindow.endTime,
         aiAnalysis

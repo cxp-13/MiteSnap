@@ -46,7 +46,6 @@ export interface Order {
   user_id: string
   quilt_id: string
   status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
-  deadline: string | null
   dry_photo?: string | null
   cost?: number | null
 }
@@ -356,7 +355,6 @@ export async function createOrder(
   duvetId: string,
   addressId: string | null,
   placedPhoto: string | null,
-  deadline?: string | null,
   cleanHistoryId?: string | null,
   optimalStartTime?: string | null,
   optimalEndTime?: string | null,
@@ -413,7 +411,6 @@ export async function createOrder(
         quilt_id: duvetId,
         address_id: addressId,
         placed_photo: placedPhoto,
-        deadline: deadline || null,
         clean_history_id: finalCleanHistoryId || null,
         status: 'pending',
         cost: cost || null
@@ -646,6 +643,125 @@ export async function getNearbyOrders(
   }
 }
 
+export async function getAllNearbyOrders(
+  excludeUserId: string, 
+  userLocation?: { latitude: number; longitude: number },
+  radiusKm: number = 5
+): Promise<OrderWithDuvet[]> {
+  try {
+    console.log('🔍 getAllNearbyOrders called with:', {
+      excludeUserId,
+      userLocation,
+      radiusKm
+    })
+
+    // Get all active orders (not cancelled) excluding current user's own orders
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*')
+      .neq('user_id', excludeUserId)
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false })
+
+    if (ordersError) {
+      console.error('❌ Error fetching all nearby orders:', ordersError)
+      return []
+    }
+
+    console.log(`📊 Initial query returned ${orders?.length || 0} orders`)
+    if (!orders || orders.length === 0) {
+      console.log('📝 No orders found in initial query')
+      return []
+    }
+
+    console.log('📋 Orders found:', orders.map(o => ({
+      id: o.id,
+      status: o.status,
+      user_id: o.user_id,
+      address_id: o.address_id
+    })))
+
+    // Get unique address IDs from orders
+    const addressIds = [...new Set(orders.map(order => order.address_id).filter(Boolean))]
+    console.log(`📍 Found ${addressIds.length} unique address IDs:`, addressIds)
+    
+    // Fetch addresses for these orders
+    const { data: addresses, error: addressError } = await supabase
+      .from('addresses')
+      .select('id, latitude, longitude')
+      .in('id', addressIds)
+
+    if (addressError) {
+      console.error('❌ Error fetching addresses for all nearby orders:', addressError)
+      return []
+    }
+
+    console.log(`🏠 Address query returned ${addresses?.length || 0} addresses`)
+    console.log('🏠 Addresses:', addresses?.map(a => ({
+      id: a.id,
+      lat: a.latitude,
+      lng: a.longitude
+    })))
+
+    // Create address lookup map
+    const addressMap: Record<string, { latitude: number; longitude: number }> = {}
+    addresses?.forEach(addr => {
+      if (addr.latitude && addr.longitude) {
+        addressMap[addr.id] = { latitude: addr.latitude, longitude: addr.longitude }
+      }
+    })
+    console.log(`🗺️ Address map created with ${Object.keys(addressMap).length} valid addresses`)
+
+    // Filter orders by distance if user location is available
+    let filteredOrders = orders
+    if (userLocation) {
+      console.log('📍 User location available, applying distance filter')
+      try {
+        const { calculateDistance } = await import('./address-utils')
+        filteredOrders = orders.filter(order => {
+          if (!order.address_id || !addressMap[order.address_id]) {
+            console.log(`⚠️ Order ${order.id} kept despite missing address data (address_id: ${order.address_id})`)
+            return true // KEEP orders without address data instead of filtering them out
+          }
+          
+          const orderLocation = addressMap[order.address_id]
+          const distance = calculateDistance(userLocation, orderLocation)
+          console.log(`📐 Order ${order.id} distance: ${distance.toFixed(2)}km (limit: ${radiusKm}km)`)
+          return distance <= radiusKm
+        })
+        console.log(`📊 Distance filtering: ${orders.length} → ${filteredOrders.length} orders`)
+      } catch (error) {
+        console.error('❌ Error during distance filtering, keeping all orders:', error)
+        filteredOrders = orders // Fallback: keep all orders if distance calculation fails
+      }
+    } else {
+      console.log('📍 No user location, skipping distance filter (showing all orders)')
+    }
+
+    // Get duvet names for filtered orders
+    const duvetIds = [...new Set(filteredOrders.map(order => order.quilt_id).filter(Boolean))]
+    console.log(`🧾 Getting duvet names for ${duvetIds.length} duvets`)
+    const duvetMap = await getDuvetsByIds(duvetIds)
+
+    // Combine orders with duvet names
+    const ordersWithDuvets: OrderWithDuvet[] = filteredOrders.map(order => ({
+      ...order,
+      duvet_name: duvetMap[order.quilt_id] || undefined
+    }))
+
+    console.log(`✅ getAllNearbyOrders returning ${ordersWithDuvets.length} orders for user ${excludeUserId}`)
+    console.log('📋 Final orders:', ordersWithDuvets.map(o => ({
+      id: o.id,
+      status: o.status,
+      duvet_name: o.duvet_name
+    })))
+    return ordersWithDuvets
+  } catch (error) {
+    console.error('Error fetching all nearby orders:', error)
+    return []
+  }
+}
+
 export async function updateOrderStatus(
   orderId: string,
   status: Order['status'],
@@ -720,26 +836,70 @@ export async function getPendingOrderForDuvet(duvetId: string, userId: string): 
 }
 
 /**
- * Checks and cancels expired orders by updating their status to 'cancelled'.
- * An order is considered expired if its deadline is in the past and its status is 'pending'.
+ * Checks and cancels expired orders based on clean history start time.
+ * An order is considered expired if it has a clean_history_id with a start_time in the past but is still pending.
  * @returns {Promise<boolean>} True if the operation succeeded, false otherwise.
  */
 export async function checkAndCancelExpiredOrders(): Promise<boolean> {
   try {
     const now = new Date().toISOString()
     
-    const { error } = await supabase
+    // Get orders that have clean history but are still pending
+    const { data: ordersToCheck, error: fetchError } = await supabase
       .from('orders')
-      .update({ status: 'cancelled' })
+      .select('id, clean_history_id')
       .eq('status', 'pending')
-      .lt('deadline', now)
-      .not('deadline', 'is', null)
+      .not('clean_history_id', 'is', null)
 
-    if (error) {
-      console.error('Error cancelling expired orders:', error)
+    if (fetchError) {
+      console.error('Error fetching orders for expiry check:', fetchError)
       return false
     }
 
+    if (!ordersToCheck || ordersToCheck.length === 0) {
+      return true // No orders to check
+    }
+
+    // Get clean history records for these orders
+    const cleanHistoryIds = ordersToCheck.map(o => o.clean_history_id).filter(Boolean)
+    const { data: cleanHistories, error: cleanError } = await supabase
+      .from('clean_history')
+      .select('id, start_time')
+      .in('id', cleanHistoryIds)
+      .lt('start_time', now)
+
+    if (cleanError) {
+      console.error('Error fetching clean histories for expiry check:', cleanError)
+      return false
+    }
+
+    if (!cleanHistories || cleanHistories.length === 0) {
+      return true // No expired clean histories
+    }
+
+    // Get orders that need to be cancelled
+    const expiredCleanHistoryIds = cleanHistories.map(ch => ch.id)
+    const ordersToCancel = ordersToCheck.filter(o => 
+      o.clean_history_id && expiredCleanHistoryIds.includes(o.clean_history_id)
+    )
+
+    if (ordersToCancel.length === 0) {
+      return true
+    }
+
+    // Cancel the expired orders
+    const orderIdsToCancel = ordersToCancel.map(o => o.id)
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled' })
+      .in('id', orderIdsToCancel)
+
+    if (updateError) {
+      console.error('Error cancelling expired orders:', updateError)
+      return false
+    }
+
+    console.log(`Cancelled ${orderIdsToCancel.length} expired orders based on clean history start time`)
     return true
   } catch (error) {
     console.error('Error checking expired orders:', error)

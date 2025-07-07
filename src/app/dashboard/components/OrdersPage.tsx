@@ -1,23 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useOrders } from '@/hooks/dashboard/useOrders'
-import { useAddresses } from '@/hooks/dashboard/useAddresses'
-import { formatLocalAddress, formatRelativeTime } from '@/lib/address-utils'
+import { formatLocalAddress } from '@/lib/address-utils'
 import { getAddressesByIds, type Address, type OrderWithDuvet } from '@/lib/database'
 import { uploadDuvetImage } from '@/lib/storage'
 import { getCleanHistoryRecord, type CleanHistoryRecord } from '@/lib/clean-history'
-import { formatCost } from '@/lib/pricing'
 import ExecuteOrderModal from '@/components/dashboard/modals/ExecuteOrderModal'
-import AcceptOrderModal from '@/components/dashboard/modals/AcceptOrderModal'
+import { MdCalendarToday, MdAttachMoney, MdApartment, MdElevator, MdStairs } from 'react-icons/md'
 
 interface OrdersPageProps {
   userId: string
 }
 
 export default function OrdersPage({ userId }: OrdersPageProps) {
-  const { acceptedOrders, nearbyOrders, isLoadingOrders, handleAcceptOrder, handleUpdateOrderStatus } = useOrders(userId)
-  const { addresses } = useAddresses(userId)
+  const { allNearbyOrders, isLoadingOrders, handleAcceptOrder, handleUpdateOrderStatus, handleCancelAcceptedOrder } = useOrders(userId)
   const [nearbyOrderAddresses, setNearbyOrderAddresses] = useState<Record<string, Address>>({})
   const [cleanHistoryData, setCleanHistoryData] = useState<Record<string, CleanHistoryRecord>>({})
   
@@ -29,46 +27,42 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
   const [dryPhotoPreview, setDryPhotoPreview] = useState<string | null>(null)
   const [isUploadingDryPhoto, setIsUploadingDryPhoto] = useState(false)
 
-  // Accept order modal state
-  const [showAcceptOrderModal, setShowAcceptOrderModal] = useState(false)
-  const [selectedAcceptOrder, setSelectedAcceptOrder] = useState<OrderWithDuvet | null>(null)
 
-  // Load addresses for nearby orders
+  // Load addresses for all orders
   useEffect(() => {
-    const loadNearbyOrderAddresses = async () => {
-      if (nearbyOrders.length === 0) return
+    const loadOrderAddresses = async () => {
+      if (allNearbyOrders.length === 0) return
       
-      const addressIds = [...new Set(nearbyOrders.map(order => order.address_id).filter((id): id is string => Boolean(id)))]
+      const addressIds = [...new Set(allNearbyOrders.map(order => order.address_id).filter((id): id is string => Boolean(id)))]
       if (addressIds.length === 0) return
       
       try {
         const addressMap = await getAddressesByIds(addressIds)
         setNearbyOrderAddresses(addressMap)
+        console.log('Loaded address data for orders:', addressMap)
       } catch (error) {
-        console.error('Error loading nearby order addresses:', error)
+        console.error('Error loading order addresses:', error)
       }
     }
 
-    loadNearbyOrderAddresses()
-  }, [nearbyOrders])
+    loadOrderAddresses()
+  }, [allNearbyOrders])
 
-  // Load clean history data for all orders (accepted + nearby)
+  // Load clean history data for all orders
   useEffect(() => {
     const loadCleanHistoryData = async () => {
       console.log('🔍 [OrdersPage] loadCleanHistoryData called')
-      console.log('  Accepted orders count:', acceptedOrders.length)
-      console.log('  Nearby orders count:', nearbyOrders.length)
+      console.log('  All nearby orders count:', allNearbyOrders.length)
       
-      // Combine all orders that might have clean history
-      const allOrders = [...acceptedOrders, ...nearbyOrders]
-      console.log('  Total orders to check:', allOrders.length)
+      // Use the unified orders list
+      console.log('  Total orders to check:', allNearbyOrders.length)
       
-      if (allOrders.length === 0) {
+      if (allNearbyOrders.length === 0) {
         console.log('  No orders, skipping clean history load')
         return
       }
       
-      const ordersWithCleanHistory = allOrders.filter(order => order.clean_history_id)
+      const ordersWithCleanHistory = allNearbyOrders.filter(order => order.clean_history_id)
       console.log('  Orders with clean_history_id:', ordersWithCleanHistory.length)
       console.log('  Orders with clean_history_id details:', ordersWithCleanHistory.map(o => ({
         id: o.id,
@@ -110,7 +104,7 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     }
 
     loadCleanHistoryData()
-  }, [acceptedOrders, nearbyOrders])
+  }, [allNearbyOrders])
 
   // Helper function to format time range
   const formatTimeRange = (startTime: string, endTime: string) => {
@@ -127,7 +121,24 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     return `${start} - ${end}`
   }
 
-
+  // Helper function to check if current time is within execution window
+  const isWithinExecutionTime = (cleanHistory: CleanHistoryRecord | undefined) => {
+    if (!cleanHistory?.start_time) {
+      return { canExecute: false, minutesUntilStart: null }
+    }
+    
+    const now = new Date()
+    const startTime = new Date(cleanHistory.start_time)
+    
+    if (now >= startTime) {
+      return { canExecute: true, minutesUntilStart: null }
+    }
+    
+    const timeDiff = startTime.getTime() - now.getTime()
+    const minutesUntilStart = Math.ceil(timeDiff / (1000 * 60))
+    
+    return { canExecute: false, minutesUntilStart }
+  }
 
   // Helper function to calculate drying progress
   const getDryingProgress = (cleanHistory: CleanHistoryRecord | undefined) => {
@@ -168,16 +179,32 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     setShowExecuteOrderModal(true)
   }
 
-  // Accept order modal handlers
-  const handleShowAcceptOrderModal = (order: OrderWithDuvet) => {
-    setSelectedAcceptOrder(order)
-    setShowAcceptOrderModal(true)
+  // Direct accept order handler
+  const handleAcceptOrderDirect = async (order: OrderWithDuvet) => {
+    try {
+      const success = await handleAcceptOrder(order.id)
+      if (!success) {
+        alert('Failed to accept order. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error accepting order:', error)
+      alert('Failed to accept order. Please try again.')
+    }
   }
 
-  const handleCloseAcceptOrderModal = () => {
-    setShowAcceptOrderModal(false)
-    setSelectedAcceptOrder(null)
+  // Cancel order handler
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      const success = await handleCancelAcceptedOrder(orderId)
+      if (!success) {
+        alert('Failed to cancel order. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error canceling order:', error)
+      alert('Failed to cancel order. Please try again.')
+    }
   }
+
 
   const handleDryPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -207,7 +234,7 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
       const success = await handleUpdateOrderStatus(selectedOrder.id, 'in_progress', undefined, uploadResult.url)
       
       if (success) {
-        setExecuteOrderStep(3)
+        setExecuteOrderStep(2)
         // The order will be refreshed automatically through handleUpdateOrderStatus
       } else {
         throw new Error('Failed to complete order')
@@ -217,6 +244,26 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
       alert('Failed to complete order. Please try again.')
     } finally {
       setIsUploadingDryPhoto(false)
+    }
+  }
+
+  const handleModalFinalComplete = async () => {
+    if (!selectedOrder) return
+    
+    try {
+      // Actually complete the order by updating status to 'completed'
+      const success = await handleUpdateOrderStatus(selectedOrder.id, 'completed')
+      
+      if (success) {
+        // Close the modal after successful completion
+        handleCloseExecuteOrderModal()
+        console.log('Order completed successfully from modal')
+      } else {
+        throw new Error('Failed to complete order')
+      }
+    } catch (error) {
+      console.error('Error completing order from modal:', error)
+      alert('Failed to complete order. Please try again.')
     }
   }
 
@@ -246,17 +293,6 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     setDryPhotoPreview(null)
   }
 
-  const handleExecuteOrderNextStep = () => {
-    if (executeOrderStep < 3) {
-      setExecuteOrderStep((prev) => (prev + 1) as 1 | 2 | 3)
-    }
-  }
-
-  const handleExecuteOrderPrevStep = () => {
-    if (executeOrderStep > 1) {
-      setExecuteOrderStep((prev) => (prev - 1) as 1 | 2 | 3)
-    }
-  }
 
   if (isLoadingOrders) {
     return (
@@ -269,8 +305,8 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     )
   }
 
-  // Merge and sort all orders
-  const allOrders = [...acceptedOrders, ...nearbyOrders].sort((a, b) => {
+  // Use the unified nearby orders (includes all statuses)
+  const allOrders = allNearbyOrders.sort((a, b) => {
     // Sort by status priority: accepted/in_progress first, then available, then completed
     const statusPriority = {
       'accepted': 1,
@@ -281,6 +317,8 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     }
     return statusPriority[a.status] - statusPriority[b.status]
   })
+  
+  console.log('📋 Displaying orders:', allOrders.map(o => ({ id: o.id, status: o.status, duvet_name: o.duvet_name })))
 
   return (
     <div>
@@ -306,118 +344,199 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {allOrders.map((order) => {
-                const address = acceptedOrders.includes(order) 
-                  ? addresses.find(a => a.id === order.address_id)
-                  : order.address_id ? nearbyOrderAddresses[order.address_id] : null
+                // Use nearbyOrderAddresses as unified data source for all orders
+                const address = order.address_id ? nearbyOrderAddresses[order.address_id] : null
                 const cleanHistory = cleanHistoryData[order.id]
-                const isAccepted = acceptedOrders.includes(order)
+                const isAccepted = order.status === 'accepted' || order.status === 'in_progress'
                 
-                // Calculate display price (use order cost if available, otherwise default)
-                const displayPrice = order.cost ? formatCost(order.cost) : '$20.00'
+                // Debug logging for address data
+                if (order.address_id && !address) {
+                  console.log(`Missing address data for order ${order.id} with address_id: ${order.address_id}`)
+                  console.log('Available addresses:', Object.keys(nearbyOrderAddresses))
+                }
+                if (address) {
+                  console.log(`Address data for order ${order.id}:`, {
+                    floor_number: address.floor_number,
+                    has_elevator: address.has_elevator,
+                    full_address: address.full_address
+                  })
+                }
+                
                 
                 return (
-                  <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow duration-200">
-                    {/* Status Badge and Price */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-300 ${
-                        order.status === 'accepted' ? 'bg-blue-100 text-blue-800 animate-breathe' :
-                        order.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800 animate-breathe-yellow' :
-                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        order.status === 'pending' ? 'bg-orange-100 text-orange-800 animate-breathe-orange' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status === 'pending' ? 'Available' : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
-                      </span>
-                      <span className="text-lg font-bold text-orange-600">{displayPrice}</span>
-                    </div>
-                    
-                    {/* Location */}
-                    {address && (
-                      <div className="mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          {isAccepted ? address.full_address : formatLocalAddress(address)}
-                        </h3>
+                  <div key={order.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-200 group">
+                    {/* Large Duvet Photo - 60-70% height */}
+                    {order.placed_photo && (
+                      <div className="w-full h-72 relative bg-gray-100">
+                        <Image
+                          src={order.placed_photo}
+                          alt={`${order.duvet_name || 'Duvet'} photo`}
+                          fill
+                          className="object-cover"
+                        />
+                        {/* Status Badge - Top Left Corner with Breathing Animation */}
+                        <div className="absolute top-3 left-3 z-10">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 ${
+                            order.status === 'accepted' ? 'bg-blue-500/90 text-white animate-breathe' :
+                            order.status === 'in_progress' ? 'bg-yellow-500/90 text-white animate-breathe-yellow' :
+                            order.status === 'completed' ? 'bg-green-500/90 text-white' :
+                            order.status === 'pending' ? 'bg-orange-500/90 text-white animate-breathe-orange' :
+                            'bg-gray-500/90 text-white'
+                          }`}>
+                            {order.status === 'pending' ? 'Available' : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                          </span>
+                        </div>
                       </div>
                     )}
                     
-                    {/* Time Information */}
-                    <div className="mb-6">
-                      {isAccepted && cleanHistory && cleanHistory.start_time && cleanHistory.end_time ? (
-                        <p className="text-gray-600">
-                          {formatTimeRange(cleanHistory.start_time, cleanHistory.end_time)}
+                    <div className="p-4">
+                      {/* Tags Section - First, right below image */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {/* Date/Time Tag */}
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                          <MdCalendarToday className="w-3 h-3" />
+                          {isAccepted && cleanHistory && cleanHistory.start_time && cleanHistory.end_time ? (
+                            formatTimeRange(cleanHistory.start_time, cleanHistory.end_time)
+                          ) : (
+                            'Flexible timing'
+                          )}
+                        </span>
+                        
+                        {/* Price Tag - Remove $ symbol since icon represents currency */}
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                          <MdAttachMoney className="w-3 h-3" />
+                          {order.cost ? order.cost.toFixed(2) : '20.00'}
+                        </span>
+                        
+                        {/* Floor Tag */}
+                        {address?.floor_number !== undefined && address?.floor_number !== null && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                            <MdApartment className="w-3 h-3" />
+                            Floor {address.floor_number}
+                          </span>
+                        )}
+                        
+                        {/* Elevator Tag */}
+                        {address?.has_elevator !== undefined && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                            {address.has_elevator ? <MdElevator className="w-3 h-3" /> : <MdStairs className="w-3 h-3" />}
+                            {address.has_elevator ? 'Elevator' : 'No Elevator'}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Main Title - Duvet Name */}
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                        {order.duvet_name || 'Duvet Service Request'}
+                      </h3>
+                      
+                      {/* Description - Address */}
+                      {address && (
+                        <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                          {address.full_address || formatLocalAddress(address)}
                         </p>
-                      ) : order.deadline ? (
-                        <p className="text-gray-700 font-medium">
-                          {formatRelativeTime(order.deadline)}
-                        </p>
-                      ) : (
-                        <p className="text-gray-600">
-                          Flexible timing
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* Action Section */}
-                    <div className="mt-auto">
-                      {order.status === 'pending' && (
-                        <button
-                          onClick={() => handleShowAcceptOrderModal(order)}
-                          className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                        >
-                          Accept
-                        </button>
                       )}
                       
-                      {order.status === 'accepted' && (
-                        <button
-                          onClick={() => handleExecuteOrder(order)}
-                          className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                        >
-                          Execute Order
-                        </button>
-                      )}
-                      
-                      {order.status === 'in_progress' && (
-                        <>
-                          {(() => {
-                            const progressData = getDryingProgress(cleanHistory)
-                            
-                            if (progressData.isComplete) {
+                      {/* Action Section */}
+                      <div className="mt-auto">
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={() => handleAcceptOrderDirect(order)}
+                            className="w-full px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm"
+                          >
+                            Accept Order
+                          </button>
+                        )}
+                        
+                        {order.status === 'accepted' && (
+                          <>
+                            {(() => {
+                              const executionCheck = isWithinExecutionTime(cleanHistory)
+                              
+                              if (executionCheck.canExecute) {
+                                return (
+                                  <div className="space-y-2">
+                                    <button
+                                      onClick={() => handleExecuteOrder(order)}
+                                      className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium text-sm"
+                                    >
+                                      Execute Order
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancelOrder(order.id)}
+                                      className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
+                                    >
+                                      Cancel Order
+                                    </button>
+                                  </div>
+                                )
+                              }
+                              
                               return (
-                                <button
-                                  onClick={() => handleFinalCompleteOrder(order.id)}
-                                  className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                                >
-                                  Complete Order
-                                </button>
+                                <div className="space-y-2">
+                                  <button
+                                    disabled
+                                    className="w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-xl cursor-not-allowed font-medium text-sm"
+                                  >
+                                    {executionCheck.minutesUntilStart && executionCheck.minutesUntilStart > 60 
+                                      ? `${Math.ceil(executionCheck.minutesUntilStart / 60)}h ${executionCheck.minutesUntilStart % 60}m until start`
+                                      : `${executionCheck.minutesUntilStart || 0}m until start`
+                                    }
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelOrder(order.id)}
+                                    className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
+                                  >
+                                    Cancel Order
+                                  </button>
+                                </div>
                               )
-                            }
-                            
-                            return (
-                              <div>
-                                <div className="flex justify-between items-center mb-2">
-                                  <span className="text-sm text-gray-600">Drying Progress</span>
-                                  <span className="text-sm font-medium text-gray-700">{progressData.progress}%</span>
+                            })()}
+                          </>
+                        )}
+                        
+                        {order.status === 'in_progress' && (
+                          <>
+                            {(() => {
+                              const progressData = getDryingProgress(cleanHistory)
+                              
+                              if (progressData.isComplete) {
+                                return (
+                                  <button
+                                    onClick={() => handleFinalCompleteOrder(order.id)}
+                                    className="w-full px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium text-sm"
+                                  >
+                                    Complete Order
+                                  </button>
+                                )
+                              }
+                              
+                              return (
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">Drying Progress</span>
+                                    <span className="text-sm font-medium text-gray-700">{progressData.progress}%</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-2 rounded-full transition-all duration-500 ease-out"
+                                      style={{ width: `${progressData.progress}%` }}
+                                    ></div>
+                                  </div>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-gray-600 to-gray-800 h-2 rounded-full transition-all duration-500 ease-out"
-                                    style={{ width: `${progressData.progress}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            )
-                          })()}
-                        </>
-                      )}
-                      
-                      {order.status === 'completed' && (
-                        <div className="flex items-center justify-center py-3 px-4 bg-gray-50 border border-gray-200 rounded-lg">
-                          <div className="text-sm font-medium text-gray-700">
-                            ✓ Completed
+                              )
+                            })()}
+                          </>
+                        )}
+                        
+                        {order.status === 'completed' && (
+                          <div className="flex items-center justify-center py-3 px-4 bg-green-50 border border-green-200 rounded-xl">
+                            <div className="text-sm font-medium text-green-700">
+                              ✓ Completed
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -433,34 +552,16 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
         isOpen={showExecuteOrderModal}
         onClose={handleCloseExecuteOrderModal}
         order={selectedOrder}
+        cleanHistory={selectedOrder ? cleanHistoryData[selectedOrder.id] : null}
         currentStep={executeOrderStep}
         selectedPhoto={dryPhoto}
         photoPreview={dryPhotoPreview}
         isUploadingPhoto={isUploadingDryPhoto}
         onPhotoUpload={handleDryPhotoUpload}
         onCompleteOrder={handleCompleteOrder}
-        onNextStep={handleExecuteOrderNextStep}
-        onPrevStep={handleExecuteOrderPrevStep}
+        onFinalComplete={handleModalFinalComplete}
       />
 
-      {/* Accept Order Modal */}
-      <AcceptOrderModal
-        isOpen={showAcceptOrderModal}
-        onClose={handleCloseAcceptOrderModal}
-        order={selectedAcceptOrder}
-        address={selectedAcceptOrder?.address_id ? 
-          nearbyOrderAddresses[selectedAcceptOrder.address_id] || 
-          addresses.find(a => a.id === selectedAcceptOrder.address_id) : null}
-        cleanHistory={(() => {
-          const cleanHistory = selectedAcceptOrder ? cleanHistoryData[selectedAcceptOrder.id] : null
-          console.log('🔍 [OrdersPage] Passing cleanHistory to AcceptOrderModal:')
-          console.log('  Selected order ID:', selectedAcceptOrder?.id)
-          console.log('  CleanHistoryData object:', cleanHistoryData)
-          console.log('  CleanHistory for this order:', cleanHistory)
-          return cleanHistory
-        })()}
-        onAcceptOrder={handleAcceptOrder}
-      />
     </div>
   )
 }
