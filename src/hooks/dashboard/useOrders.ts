@@ -154,7 +154,7 @@ export function useOrders(userId: string | undefined) {
             duvetStatus = 'help_drying'
             break
           case 'completed':
-            duvetStatus = 'self_drying' // Set to drying status when service is completed
+            duvetStatus = 'normal' // Set to normal when service is completed
             break
           case 'cancelled':
             duvetStatus = 'normal'
