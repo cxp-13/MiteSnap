@@ -13,7 +13,9 @@ export default function Sidebar() {
   // Determine active tab from URL path
   const getActiveTab = () => {
     if (pathname.includes('/dashboard/addresses')) return 'addresses'
+    if (pathname.includes('/dashboard/my-orders')) return 'my-orders'
     if (pathname.includes('/dashboard/orders')) return 'orders'
+    if (pathname.includes('/dashboard/payment-methods')) return 'payment-methods'
     return 'duvets'
   }
 
@@ -39,10 +41,10 @@ export default function Sidebar() {
       
       {/* Navigation */}
       <nav className="px-4 py-6">
+        {/* User Section */}
         <div className="space-y-1">
-          {/* Menu Label */}
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-3 py-2">
-            MENU
+            USER
           </p>
           
           <Link
@@ -86,6 +88,53 @@ export default function Sidebar() {
             </div>
           </Link>
 
+          <Link
+            href="/dashboard/my-orders"
+            className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+              currentActiveTab === 'my-orders'
+                ? 'bg-gray-900 text-white shadow-sm'
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`w-5 h-5 flex items-center justify-center ${
+                currentActiveTab === 'my-orders' ? 'text-white' : 'text-gray-500'
+              }`}>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium">My Orders</span>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/payment-methods"
+            className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+              currentActiveTab === 'payment-methods'
+                ? 'bg-gray-900 text-white shadow-sm'
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`w-5 h-5 flex items-center justify-center ${
+                currentActiveTab === 'payment-methods' ? 'text-white' : 'text-gray-500'
+              }`}>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium">Payment Methods</span>
+            </div>
+          </Link>
+        </div>
+
+        {/* Service Provider Section */}
+        <div className="space-y-1 mt-8">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-3 py-2">
+            SERVICE PROVIDER
+          </p>
+          
           <Link
             href="/dashboard/orders"
             className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${

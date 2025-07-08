@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createOrder, getUserOrders, getUserAcceptedOrders, getNearbyOrders, getAllNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet, getAddressById } from '@/lib/database'
+import { createOrder, getUserOrders, getUserOrdersByPaymentStatus, getUserAcceptedOrders, getNearbyOrders, getAllNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet, getAddressById } from '@/lib/database'
 import { getCurrentPosition } from '@/lib/geolocation'
 import { calculateTotalCostByThickness } from '@/lib/pricing'
 import { supabase } from '@/lib/supabase'
@@ -283,6 +283,18 @@ export function useOrders(userId: string | undefined) {
     }
   }, [userId, loadOrders, allNearbyOrders])
 
+  // Get user orders with payment filtering
+  const getUserOrdersWithPaymentFilter = useCallback(async (paymentStatus: 'paid' | 'unpaid' | 'all') => {
+    if (!userId) return []
+    
+    try {
+      return await getUserOrdersByPaymentStatus(userId, paymentStatus)
+    } catch (error) {
+      console.error('Error fetching user orders with payment filter:', error)
+      return []
+    }
+  }, [userId])
+
   return {
     // State
     orders,
@@ -298,6 +310,7 @@ export function useOrders(userId: string | undefined) {
     handleDeleteOrder,
     handleAcceptOrder,
     handleCancelAcceptedOrder,
-    getPendingOrder
+    getPendingOrder,
+    getUserOrdersWithPaymentFilter
   }
 }

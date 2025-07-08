@@ -251,19 +251,12 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
     if (!selectedOrder) return
     
     try {
-      // Actually complete the order by updating status to 'completed'
-      const success = await handleUpdateOrderStatus(selectedOrder.id, 'completed')
-      
-      if (success) {
-        // Close the modal after successful completion
-        handleCloseExecuteOrderModal()
-        console.log('Order completed successfully from modal')
-      } else {
-        throw new Error('Failed to complete order')
-      }
+      // Simply close the modal - the order should remain in 'in_progress' status
+      // The order will be completed automatically when the drying time ends
+      handleCloseExecuteOrderModal()
+      console.log('Execute order flow completed - order remains in progress for drying')
     } catch (error) {
-      console.error('Error completing order from modal:', error)
-      alert('Failed to complete order. Please try again.')
+      console.error('Error closing execute order modal:', error)
     }
   }
 
@@ -421,6 +414,24 @@ export default function OrdersPage({ userId }: OrdersPageProps) {
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
                             {address.has_elevator ? <MdElevator className="w-3 h-3" /> : <MdStairs className="w-3 h-3" />}
                             {address.has_elevator ? 'Elevator' : 'No Elevator'}
+                          </span>
+                        )}
+                        
+                        {/* Payment Status Tag - Only show for completed orders */}
+                        {order.status === 'completed' && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                            order.is_pay === true 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              {order.is_pay === true ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              )}
+                            </svg>
+                            {order.is_pay === true ? 'Paid' : 'Unpaid'}
                           </span>
                         )}
                       </div>

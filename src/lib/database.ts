@@ -48,6 +48,8 @@ export interface Order {
   status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
   dry_photo?: string | null
   cost?: number | null
+  is_pay?: boolean | null
+  pay_method?: string | null
 }
 
 export async function createDuvet(
@@ -450,6 +452,33 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
   }
 }
 
+export async function getUserOrdersByPaymentStatus(userId: string, paymentStatus: 'paid' | 'unpaid' | 'all'): Promise<Order[]> {
+  try {
+    let query = supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+
+    if (paymentStatus === 'paid') {
+      query = query.eq('is_pay', true)
+    } else if (paymentStatus === 'unpaid') {
+      query = query.or('is_pay.is.null,is_pay.eq.false')
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching user orders by payment status:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error fetching user orders by payment status:', error)
+    return []
+  }
+}
+
 export async function getUserAcceptedOrders(userId: string): Promise<OrderWithDuvet[]> {
   try {
     const { data: orders, error } = await supabase
@@ -487,6 +516,15 @@ export async function getUserAcceptedOrders(userId: string): Promise<OrderWithDu
 
 export interface OrderWithDuvet extends Order {
   duvet_name?: string
+}
+
+export interface PaymentMethod {
+  id: string
+  created_at: string
+  user_id: string
+  venmo_handle: string | null
+  cashapp_url: string | null
+  paypal_url: string | null
 }
 
 export async function getAddressById(addressId: string): Promise<Address | null> {
@@ -903,6 +941,133 @@ export async function checkAndCancelExpiredOrders(): Promise<boolean> {
     return true
   } catch (error) {
     console.error('Error checking expired orders:', error)
+    return false
+  }
+}
+
+// Payment Methods functions
+export async function createPaymentMethod(
+  userId: string,
+  venmoHandle?: string | null,
+  cashappUrl?: string | null,
+  paypalUrl?: string | null
+): Promise<PaymentMethod | null> {
+  try {
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .insert({
+        user_id: userId,
+        venmo_handle: venmoHandle || null,
+        cashapp_url: cashappUrl || null,
+        paypal_url: paypalUrl || null
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating payment method:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error creating payment method:', error)
+    return null
+  }
+}
+
+export async function getUserPaymentMethods(userId: string): Promise<PaymentMethod[]> {
+  try {
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching payment methods:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error fetching payment methods:', error)
+    return []
+  }
+}
+
+export async function updatePaymentMethod(
+  paymentMethodId: string,
+  venmoHandle?: string | null,
+  cashappUrl?: string | null,
+  paypalUrl?: string | null
+): Promise<PaymentMethod | null> {
+  try {
+    const updateData: Record<string, unknown> = {}
+    
+    if (venmoHandle !== undefined) updateData.venmo_handle = venmoHandle
+    if (cashappUrl !== undefined) updateData.cashapp_url = cashappUrl
+    if (paypalUrl !== undefined) updateData.paypal_url = paypalUrl
+
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .update(updateData)
+      .eq('id', paymentMethodId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating payment method:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error updating payment method:', error)
+    return null
+  }
+}
+
+export async function deletePaymentMethod(paymentMethodId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('payment_methods')
+      .delete()
+      .eq('id', paymentMethodId)
+
+    if (error) {
+      console.error('Error deleting payment method:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting payment method:', error)
+    return false
+  }
+}
+
+export async function markOrderAsPaid(
+  orderId: string,
+  paymentMethod: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ 
+        is_pay: true, 
+        pay_method: paymentMethod 
+      })
+      .eq('id', orderId)
+
+    if (error) {
+      console.error('Error marking order as paid:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error marking order as paid:', error)
     return false
   }
 }
