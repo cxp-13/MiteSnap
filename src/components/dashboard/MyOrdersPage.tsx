@@ -66,39 +66,39 @@ export function MyOrdersPage({ userId }: MyOrdersPageProps) {
   return (
     <div className="flex-1">
       <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
           <p className="text-gray-600">Manage your service orders</p>
         </div>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${filter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
               All ({ordersWithDetails.length})
             </button>
             <button
               onClick={() => setFilter('pending')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'pending' ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}
+              className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${filter === 'pending' ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}
             >
               Pending ({ordersWithDetails.filter(o => o.status === 'pending').length})
             </button>
             <button
               onClick={() => setFilter('completed')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'completed' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+              className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${filter === 'completed' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
             >
               Completed ({ordersWithDetails.filter(o => o.status === 'completed').length})
             </button>
             <button
               onClick={() => setFilter('paid')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'paid' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+              className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${filter === 'paid' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
             >
               Paid ({ordersWithDetails.filter(o => o.is_pay === true).length})
             </button>
             <button
               onClick={() => setFilter('unpaid')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'unpaid' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+              className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${filter === 'unpaid' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
             >
               Unpaid ({ordersWithDetails.filter(o => o.is_pay === false || o.is_pay === null).length})
             </button>
@@ -121,7 +121,7 @@ export function MyOrdersPage({ userId }: MyOrdersPageProps) {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredOrders.map((order) => (
               <OrderCard
                 key={order.id}

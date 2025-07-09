@@ -50,10 +50,10 @@ export default function AddressesRoute() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Page Content */}
-        <main className="flex-1 p-4 overflow-auto">
-          <div className="w-full mx-auto px-4">
+        <main className="flex-1 p-2 md:p-4 overflow-auto">
+          <div className="w-full mx-auto px-2 md:px-4">
             {/* White rounded container with floating shadow */}
-            <div className="bg-white rounded-2xl p-8" style={{ 
+            <div className="bg-white rounded-2xl p-4 md:p-8" style={{ 
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02)' 
             }}>
               <AddressesPage userId={userId} />

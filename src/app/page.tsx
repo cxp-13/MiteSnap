@@ -165,14 +165,14 @@ export default function Home() {
     <div className="min-h-screen w-full bg-white flex flex-col relative">
       {/* Sticky Navigation Bar */}
       <nav
-        className="fixed top-6 left-1/2 z-50 -translate-x-1/2 w-[98vw] max-w-[1800px] bg-gray-900/95 backdrop-blur-lg border border-gray-700 shadow-xl flex items-center justify-between px-8 md:px-16 py-4 rounded-[2.5rem] transition-all duration-300"
+        className="fixed top-3 md:top-6 left-1/2 z-50 -translate-x-1/2 w-[95vw] md:w-[98vw] max-w-[1800px] bg-gray-900/95 backdrop-blur-lg border border-gray-700 shadow-xl flex items-center justify-between px-4 md:px-8 lg:px-16 py-3 md:py-4 rounded-2xl md:rounded-[2.5rem] transition-all duration-300"
         style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif', boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)' }}
       >
         <div className="flex items-center space-x-2">
-          <Image src="/logo.png" alt="MiteSnap Logo" width={32} height={32} className="mr-2" />
-          <span className="text-2xl font-bold text-white tracking-wide">MiteSnap</span>
-          {/* Nav links group - left, next to logo */}
-          <div className="flex items-center space-x-2 ml-4">
+          <Image src="/logo.png" alt="MiteSnap Logo" width={28} height={28} className="md:w-8 md:h-8 mr-1 md:mr-2" />
+          <span className="text-lg md:text-2xl font-bold text-white tracking-wide">MiteSnap</span>
+          {/* Nav links group - left, next to logo - Hidden on mobile */}
+          <div className="hidden lg:flex items-center space-x-2 ml-4">
             <button onClick={() => scrollToSection(featuresRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">Features</button>
             <button onClick={() => scrollToSection(faqRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">FAQ</button>
             <button onClick={() => scrollToSection(pricingRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">Pricing</button>
@@ -184,17 +184,17 @@ export default function Home() {
         <div className="flex items-center space-x-2 md:space-x-4">
           <SignedOut>
             <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-              <button className="px-6 py-2 rounded-full bg-white text-gray-900 font-semibold text-base shadow hover:bg-gray-100 transition-all">Sign in</button>
+              <button className="px-3 md:px-6 py-2 rounded-full bg-white text-gray-900 font-semibold text-sm md:text-base shadow hover:bg-gray-100 transition-all">Sign in</button>
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <button onClick={() => router.push('/dashboard')} className="px-5 py-2 rounded-full bg-white text-gray-900 font-semibold text-base shadow hover:bg-gray-100 transition-all">Dashboard</button>
+            <button onClick={() => router.push('/dashboard')} className="px-3 md:px-5 py-2 rounded-full bg-white text-gray-900 font-semibold text-sm md:text-base shadow hover:bg-gray-100 transition-all">Dashboard</button>
             <UserButton />
           </SignedIn>
         </div>
       </nav>
       {/* Spacer to prevent content overlap */}
-      <div className="h-28" />
+      <div className="h-20 md:h-28" />
       
       
       {/* Hero Section - Full viewport height with perfect centering */}
@@ -202,7 +202,7 @@ export default function Home() {
         <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto text-center space-y-12">
           {/* Main Headline */}
           <motion.h1
-            className="text-5xl md:text-7xl lg:text-8xl font-light text-black leading-[0.9] tracking-[-0.02em] mb-8"
+            className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-black leading-[0.9] tracking-[-0.02em] mb-6 md:mb-8"
             initial={{ opacity: 0, translateY: 30 }}
             whileInView={{ opacity: 1, translateY: 0 }}
             viewport={{ once: true, amount: 0.3 }}
@@ -214,7 +214,7 @@ export default function Home() {
           
           {/* Subheading */}
           <motion.p
-            className="text-xl md:text-2xl lg:text-3xl font-light text-gray-600 leading-relaxed tracking-[-0.01em] max-w-3xl mx-auto"
+            className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-light text-gray-600 leading-relaxed tracking-[-0.01em] max-w-3xl mx-auto px-4"
             initial={{ opacity: 0, translateY: 30 }}
             whileInView={{ opacity: 1, translateY: 0 }}
             viewport={{ once: true, amount: 0.3 }}
@@ -224,10 +224,10 @@ export default function Home() {
           </motion.p>
           
           {/* CTA Button */}
-          <div className="pt-8">
+          <div className="pt-6 md:pt-8">
             <SignedOut>
               <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-                <button className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
+                <button className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
                   <span className="relative z-10">Get Started</span>
                   <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
                 </button>
@@ -237,7 +237,7 @@ export default function Home() {
             <SignedIn>
               <button 
                 onClick={() => router.push('/dashboard')}
-                className="group relative inline-flex items-center justify-center px-12 py-4 text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
+                className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
               >
                 <span className="relative z-10">Go to Dashboard</span>
                 <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>

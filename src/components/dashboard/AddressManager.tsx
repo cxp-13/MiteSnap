@@ -88,11 +88,11 @@ export default function AddressManager({
     return (
       <div>
         {/* Welcome Section */}
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 mb-3">
+        <div className="mb-8 md:mb-12">
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-semibold text-gray-900 mb-3">
             Your Addresses
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-base md:text-lg text-gray-600">
             Manage your locations for better service
           </p>
         </div>
@@ -108,11 +108,11 @@ export default function AddressManager({
   return (
     <div>
       {/* Welcome Section */}
-      <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 mb-3">
+      <div className="mb-8 md:mb-12">
+        <h1 className="text-2xl md:text-4xl lg:text-5xl font-semibold text-gray-900 mb-3">
           Your Addresses
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base md:text-lg text-gray-600">
           Manage your locations for better service
         </p>
       </div>
@@ -141,43 +141,44 @@ export default function AddressManager({
             return (
               <div
                 key={address.id}
-                className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md hover:border-gray-300 transition-all duration-200"
+                className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 hover:shadow-md hover:border-gray-300 transition-all duration-200"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                   {/* Address Info */}
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-xl font-bold text-gray-900">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mb-2">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 sm:mb-0">
                         {addressData.short}
                       </h3>
                       {address.is_default && (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
                           DEFAULT
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       {addressData.primary}
                     </p>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center space-x-2 ml-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 md:ml-6">
                     {!address.is_default && (
                       <button
                         onClick={() => onSetDefaultAddress(address.id, showModal)}
-                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium shadow-sm transition-colors"
+                        className="flex items-center justify-center space-x-1.5 px-3 md:px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-xs md:text-sm font-medium shadow-sm transition-colors w-full sm:w-auto"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span>Set Default</span>
+                        <span className="hidden sm:inline">Set Default</span>
+                        <span className="sm:hidden">Default</span>
                       </button>
                     )}
                     
                     <button
                       onClick={() => handleEditAddress(address)}
-                      className="flex items-center space-x-1.5 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium shadow-sm transition-colors"
+                      className="flex items-center justify-center space-x-1.5 px-3 md:px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-xs md:text-sm font-medium shadow-sm transition-colors w-full sm:w-auto"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -187,7 +188,7 @@ export default function AddressManager({
                     
                     <button
                       onClick={() => handleDeleteAddress(address.id)}
-                      className="flex items-center space-x-1.5 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium shadow-sm transition-colors"
+                      className="flex items-center justify-center space-x-1.5 px-3 md:px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs md:text-sm font-medium shadow-sm transition-colors w-full sm:w-auto"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

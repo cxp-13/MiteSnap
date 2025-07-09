@@ -287,21 +287,21 @@ export default function MyAcceptedOrdersPage({ userId }: MyAcceptedOrdersPagePro
   return (
     <div>
       {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 mb-3">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-4xl lg:text-5xl font-semibold text-gray-900 mb-3">
           My Accepted Orders
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base md:text-lg text-gray-600">
           Track and manage your service commitments
         </p>
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
               statusFilter === 'all'
                 ? 'bg-gray-900 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -311,7 +311,7 @@ export default function MyAcceptedOrdersPage({ userId }: MyAcceptedOrdersPagePro
           </button>
           <button
             onClick={() => setStatusFilter('accepted')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
               statusFilter === 'accepted'
                 ? 'bg-blue-600 text-white'
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -321,7 +321,7 @@ export default function MyAcceptedOrdersPage({ userId }: MyAcceptedOrdersPagePro
           </button>
           <button
             onClick={() => setStatusFilter('in_progress')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
               statusFilter === 'in_progress'
                 ? 'bg-yellow-600 text-white'
                 : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
@@ -331,7 +331,7 @@ export default function MyAcceptedOrdersPage({ userId }: MyAcceptedOrdersPagePro
           </button>
           <button
             onClick={() => setStatusFilter('completed')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
               statusFilter === 'completed'
                 ? 'bg-green-600 text-white'
                 : 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -358,7 +358,7 @@ export default function MyAcceptedOrdersPage({ userId }: MyAcceptedOrdersPagePro
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {sortedOrders.map((order) => {
                 const address = order.address_id ? nearbyOrderAddresses[order.address_id] : null
                 const cleanHistory = cleanHistoryData[order.id]
