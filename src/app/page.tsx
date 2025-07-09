@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Qwen } from '@lobehub/icons'
 import dynamic from 'next/dynamic'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // Dynamically import Clerk components with SSR disabled
 const SignInButton = dynamic(
@@ -31,18 +31,38 @@ const UserButton = dynamic(
 export default function Home() {
   const router = useRouter()
   const [openFAQ, setOpenFAQ] = useState<number | null>(null)
+  
+  // Dynamic text switching state
+  const dynamicWords = ['Duvets', 'Bed Sheets', 'Bedding']
+  const [currentWordIndex, setCurrentWordIndex] = useState(0)
 
   // Anchor positioning refs
-  const featuresRef = useRef<HTMLDivElement | null>(null)
+  const howItWorksRef = useRef<HTMLDivElement | null>(null)
   const faqRef = useRef<HTMLDivElement | null>(null)
   const pricingRef = useRef<HTMLDivElement | null>(null)
 
-  // Smooth scroll function
+  // Smooth scroll function with proper offset for navigation bar
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
     if (ref.current) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const navHeight = 100 // Height of fixed navigation bar + some padding
+      const elementPosition = ref.current.offsetTop
+      const offsetPosition = elementPosition - navHeight
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
     }
   }
+
+  // Dynamic text switching effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentWordIndex((prev) => (prev + 1) % dynamicWords.length)
+    }, 2000) // Switch every 2 seconds
+    
+    return () => clearInterval(interval)
+  }, [dynamicWords.length])
 
   useEffect(() => {
     const setupRoleSwapAnimations = () => {
@@ -173,15 +193,28 @@ export default function Home() {
           <span className="text-lg md:text-2xl font-bold text-white tracking-wide">MiteSnap</span>
           {/* Nav links group - left, next to logo - Hidden on mobile */}
           <div className="hidden lg:flex items-center space-x-2 ml-4">
-            <button onClick={() => scrollToSection(featuresRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">Features</button>
-            <button onClick={() => scrollToSection(faqRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">FAQ</button>
             <button onClick={() => scrollToSection(pricingRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">Pricing</button>
+            <button onClick={() => scrollToSection(faqRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">FAQ</button>
+            <button onClick={() => scrollToSection(howItWorksRef)} className="text-base font-medium text-gray-300 hover:text-white transition-colors px-3 py-1 rounded focus:outline-none">How it Works</button>
           </div>
         </div>
         {/* Spacer for separation */}
         <div className="flex-1" />
         {/* Account/utility links group - right aligned */}
         <div className="flex items-center space-x-2 md:space-x-4">
+          {/* Twitter Contact Link */}
+          <a
+            href="https://x.com/lantianlaoli"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-300 group"
+            title="Follow us on Twitter"
+          >
+            <svg className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform duration-300" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          
           <SignedOut>
             <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
               <button className="px-3 md:px-6 py-2 rounded-full bg-white text-gray-900 font-semibold text-sm md:text-base shadow hover:bg-gray-100 transition-all">Sign in</button>
@@ -202,14 +235,97 @@ export default function Home() {
         <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto text-center space-y-12">
           {/* Main Headline */}
           <motion.h1
-            className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-black leading-[0.9] tracking-[-0.02em] mb-6 md:mb-8"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-black leading-tight tracking-[-0.02em] mb-6 md:mb-8"
             initial={{ opacity: 0, translateY: 30 }}
             whileInView={{ opacity: 1, translateY: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            Your Smart Solution for<br />
-            <span className="text-gray-700">Mite-Free Living</span>
+            <div className="text-center">
+              {/* Mobile: Two line layout, Desktop: One line layout */}
+              <div className="block sm:hidden">
+                {/* Mobile layout - Two lines */}
+                <div className="mb-2">
+                  <span 
+                    className="font-semibold" 
+                    style={{
+                      fontFamily: "'Inter', 'SF Pro Display', sans-serif",
+                      background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
+                  >
+                    AI has taken over
+                  </span>
+                </div>
+                <div>
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={dynamicWords[currentWordIndex]}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ 
+                        duration: 0.3, 
+                        ease: "easeInOut"
+                      }}
+                      className="font-semibold"
+                      style={{ 
+                        fontFamily: "'Inter', 'SF Pro Display', sans-serif",
+                        background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      }}
+                    >
+                      {dynamicWords[currentWordIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              </div>
+              
+              {/* Desktop layout - One line */}
+              <div className="hidden sm:block">
+                <span 
+                  className="font-semibold" 
+                  style={{
+                    fontFamily: "'Inter', 'SF Pro Display', sans-serif",
+                    background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}
+                >
+                  AI has taken over{' '}
+                </span>
+                
+                <span className="inline-block min-w-[200px] md:min-w-[300px] lg:min-w-[400px] text-left">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={dynamicWords[currentWordIndex]}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ 
+                        duration: 0.3, 
+                        ease: "easeInOut"
+                      }}
+                      className="font-semibold"
+                      style={{ 
+                        fontFamily: "'Inter', 'SF Pro Display', sans-serif",
+                        background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      }}
+                    >
+                      {dynamicWords[currentWordIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
+              </div>
+            </div>
           </motion.h1>
           
           {/* Subheading */}
@@ -220,7 +336,7 @@ export default function Home() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           >
-            Say Goodbye to Dust Mites, Hello to Freshness.
+            Just <span className="underline">take a photo</span>, leave the rest to MiteSnap.
           </motion.p>
           
           {/* CTA Button */}
@@ -247,11 +363,164 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Features Section Anchor */}
-      <div ref={featuresRef}></div>
-      {/* Combined Core Features Section */}
+      {/* Pricing Plans Section Anchor */}
+      <div ref={pricingRef}></div>
+      {/* Pricing Plans Section */}
+      <section className="bg-white py-8 px-2 md:px-4 flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-4xl w-full mx-auto">
+          <div className="text-center mb-8">
+            <motion.h2 
+              className="text-3xl md:text-4xl font-semibold text-black mb-4 tracking-tight"
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              Pricing Plans
+            </motion.h2>
+            <motion.p 
+              className="text-lg text-gray-600" 
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            >
+              Choose the plan that fits your needs. Upgrade anytime.
+            </motion.p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Basic Plan Card */}
+            <motion.div 
+              className="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm p-8 items-center"
+              initial={{ opacity: 0, translateY: 50 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+            >
+              <span className="text-xl font-bold text-black mb-1">Basic</span>
+              <span className="text-3xl font-extrabold text-black mb-2">$0 <span className="text-base font-medium text-gray-500">/ Forever Free</span></span>
+              <span className="text-base text-gray-500 mb-6">Essential tools for initial tracking.</span>
+              <ul className="w-full space-y-4 mb-8">
+                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Manage 1 Duvet Profile</li>
+                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited AI MiteScan Analysis & Self-Drying Recommendations</li>
+                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited Community Drying Request Submissions</li>
+              </ul>
+            </motion.div>
+            {/* Pro Plan Card */}
+            <motion.div 
+              className="flex flex-col rounded-2xl border-2 border-gray-900 bg-gray-50 shadow-xl p-10 items-center relative transform scale-105"
+              initial={{ opacity: 0, translateY: 50 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+            >
+              <span className="absolute -top-5 left-1/2 -translate-x-1/2 bg-black text-white text-xs font-bold px-4 py-1 rounded-full shadow">Highly Recommended</span>
+              <span className="text-xl font-bold text-black mb-1">Pro</span>
+              <span className="text-3xl font-extrabold text-black mb-2">$3.9 <span className="text-base font-medium text-gray-500">/ month</span></span>
+              <span className="text-base text-gray-500 mb-6">Unlock advanced capabilities for comprehensive care.</span>
+              <ul className="w-full space-y-4 mb-8">
+                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Manage up to 5 Duvet Profiles</li>
+                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Ability to Accept Drying Requests from others (unlimited, with tipping & visibility boost)</li>
+                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>All other features are identical to the Basic Plan</li>
+              </ul>
+              <button className="w-full py-3 rounded-xl bg-gray-400 text-white font-semibold text-lg shadow cursor-not-allowed" disabled>Coming Soon</button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section Anchor */}
+      <div ref={faqRef}></div>
+      <section className="bg-white py-8 px-2 md:px-4 min-h-screen flex items-center justify-center">
+        <div className="max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-[900px] mx-auto w-full">
+          <div className="text-center mb-8">
+            <motion.h2
+              className="text-3xl md:text-4xl font-semibold text-black mb-4 tracking-tight"
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              Frequently Asked Questions
+            </motion.h2>
+            <motion.p 
+              className="text-lg text-gray-600" 
+              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            >
+              Everything you need to know about MiteSnap and our services
+            </motion.p>
+          </div>
+          {/* Modern Accordion FAQ */}
+          <div className="space-y-3">
+            {faqs.map((item, idx) => {
+              const isOpen = openFAQ === idx
+              return (
+                <div key={idx} className={`border rounded-2xl overflow-hidden bg-white shadow-sm transition-all duration-300 hover:shadow-md ${
+                  isOpen ? 'border-gray-300 shadow-md' : 'border-gray-200'
+                }`}>
+                  <div
+                    onClick={() => setOpenFAQ(openFAQ === idx ? null : idx)}
+                    className={`w-full px-8 py-6 text-left flex items-center justify-between group cursor-pointer transition-all duration-300 ${
+                      isOpen ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
+                    }`}
+                    style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
+                  >
+                    <h3 className={`text-lg font-semibold pr-6 transition-all duration-300 select-text ${
+                      isOpen ? 'text-black' : 'text-gray-900 group-hover:text-black'
+                    }`}>
+                      {item.q}
+                    </h3>
+                    <span className="ml-2 flex items-center flex-shrink-0">
+                      <svg className={`w-5 h-5 transition-all duration-500 ease-out transform ${
+                        isOpen ? 'rotate-180 text-black' : 'text-gray-400 group-hover:text-gray-600'
+                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div className={`overflow-hidden transition-all duration-500 ease-out ${
+                    isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                  }`}>
+                    <div className="px-8 pb-8 pt-2 bg-white border-t border-gray-100">
+                      <div className="pt-4">
+                        <p className="text-gray-700 leading-[1.75] text-base select-text" style={{ 
+                          fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif',
+                          letterSpacing: '0.01em'
+                        }}>
+                          {item.a}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works Section Anchor */}
+      <div ref={howItWorksRef}></div>
+      {/* How it Works Section */}
       <section className="min-h-screen bg-white py-8 px-2 md:px-4 flex items-center justify-center relative z-10">
         <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto w-full h-full flex flex-col justify-center space-y-8">
+          
+          {/* How it Works Title */}
+          <div className="text-center mb-6">
+            <motion.h2
+              className="text-3xl md:text-4xl font-semibold text-black mb-4 tracking-tight"
+              initial={{ opacity: 0, translateY: 30 }}
+              whileInView={{ opacity: 1, translateY: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              How it Works
+            </motion.h2>
+          </div>
           
           {/* AI MiteScan & Insights Row */}
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-8 lg:space-y-0 lg:space-x-16 h-1/2">
@@ -476,149 +745,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section Anchor */}
-      <div ref={faqRef}></div>
-      <section className="bg-white py-12 px-2 md:px-4 min-h-screen flex items-center justify-center">
-        <div className="max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-[900px] mx-auto w-full">
-          <div className="text-center mb-12">
-            <motion.h2
-              className="text-3xl md:text-4xl font-semibold text-black mb-4"
-              initial={{ opacity: 0, translateY: 30 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
-            >
-              Frequently Asked Questions
-            </motion.h2>
-            <motion.p 
-              className="text-lg text-gray-600" 
-              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
-              initial={{ opacity: 0, translateY: 30 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            >
-              Everything you need to know about MiteSnap and our services
-            </motion.p>
-          </div>
-          {/* Modern Accordion FAQ */}
-          <div className="space-y-3">
-            {faqs.map((item, idx) => {
-              const isOpen = openFAQ === idx
-              return (
-                <div key={idx} className={`border rounded-2xl overflow-hidden bg-white shadow-sm transition-all duration-300 hover:shadow-md ${
-                  isOpen ? 'border-gray-300 shadow-md' : 'border-gray-200'
-                }`}>
-                  <div
-                    onClick={() => setOpenFAQ(openFAQ === idx ? null : idx)}
-                    className={`w-full px-8 py-6 text-left flex items-center justify-between group cursor-pointer transition-all duration-300 ${
-                      isOpen ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                    }`}
-                    style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
-                  >
-                    <h3 className={`text-lg font-semibold pr-6 transition-all duration-300 select-text ${
-                      isOpen ? 'text-black' : 'text-gray-900 group-hover:text-black'
-                    }`}>
-                      {item.q}
-                    </h3>
-                    <span className="ml-2 flex items-center flex-shrink-0">
-                      <svg className={`w-5 h-5 transition-all duration-500 ease-out transform ${
-                        isOpen ? 'rotate-180 text-black' : 'text-gray-400 group-hover:text-gray-600'
-                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </span>
-                  </div>
-                  <div className={`overflow-hidden transition-all duration-500 ease-out ${
-                    isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-                  }`}>
-                    <div className="px-8 pb-8 pt-2 bg-white border-t border-gray-100">
-                      <div className="pt-4">
-                        <p className="text-gray-700 leading-[1.75] text-base select-text" style={{ 
-                          fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif',
-                          letterSpacing: '0.01em'
-                        }}>
-                          {item.a}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Plans Section Anchor */}
-      <div ref={pricingRef}></div>
-      {/* Pricing Plans Section */}
-      <section className="bg-white py-20 px-2 md:px-4 flex items-center justify-center min-h-[60vh]">
-        <div className="max-w-4xl w-full mx-auto">
-          <div className="text-center mb-12">
-            <motion.h2 
-              className="text-3xl md:text-4xl font-semibold text-black mb-4" 
-              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
-              initial={{ opacity: 0, translateY: 30 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            >
-              Pricing Plans
-            </motion.h2>
-            <motion.p 
-              className="text-lg text-gray-600" 
-              style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif' }}
-              initial={{ opacity: 0, translateY: 30 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            >
-              Choose the plan that fits your needs. Upgrade anytime.
-            </motion.p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Basic Plan Card */}
-            <motion.div 
-              className="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm p-8 items-center"
-              initial={{ opacity: 0, translateY: 50 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-            >
-              <span className="text-xl font-bold text-black mb-1">Basic</span>
-              <span className="text-3xl font-extrabold text-black mb-2">$0 <span className="text-base font-medium text-gray-500">/ Forever Free</span></span>
-              <span className="text-base text-gray-500 mb-6">Essential tools for initial tracking.</span>
-              <ul className="w-full space-y-4 mb-8">
-                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Manage 1 Duvet Profile</li>
-                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited AI MiteScan Analysis & Self-Drying Recommendations</li>
-                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited Community Drying Request Submissions</li>
-              </ul>
-            </motion.div>
-            {/* Pro Plan Card */}
-            <motion.div 
-              className="flex flex-col rounded-2xl border-2 border-gray-900 bg-gray-50 shadow-lg p-8 items-center relative"
-              initial={{ opacity: 0, translateY: 50 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-            >
-              <span className="absolute -top-5 left-1/2 -translate-x-1/2 bg-black text-white text-xs font-bold px-4 py-1 rounded-full shadow">Highly Recommended</span>
-              <span className="text-xl font-bold text-black mb-1">Pro</span>
-              <span className="text-3xl font-extrabold text-black mb-2">$3.9 <span className="text-base font-medium text-gray-500">/ month</span></span>
-              <span className="text-base text-gray-500 mb-6">Unlock advanced capabilities for comprehensive care.</span>
-              <ul className="w-full space-y-4 mb-8">
-                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Manage up to 5 Duvet Profiles</li>
-                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Ability to Accept Drying Requests from others (unlimited, with tipping & visibility boost)</li>
-                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>All other features are identical to the Basic Plan</li>
-              </ul>
-              <button className="w-full py-3 rounded-xl bg-gray-400 text-white font-semibold text-lg shadow cursor-not-allowed" disabled>Coming Soon</button>
-            </motion.div>
           </div>
         </div>
       </section>
