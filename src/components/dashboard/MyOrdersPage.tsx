@@ -2,20 +2,26 @@
 
 import { useOrders } from '@/hooks/dashboard/useOrders'
 import { useState } from 'react'
-import { type Order, markOrderAsPaid } from '@/lib/database'
+import { type OrderWithDetails, markOrderAsPaid } from '@/lib/database'
 import { PaymentModal } from './modals/PaymentModal'
+import { OrderCard } from './OrderCard'
 
 interface MyOrdersPageProps {
   userId: string
 }
 
 export function MyOrdersPage({ userId }: MyOrdersPageProps) {
-  const { orders, isLoadingOrders, loadOrders } = useOrders(userId)
-  const [filter, setFilter] = useState<'all' | 'paid' | 'unpaid'>('all')
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const { ordersWithDetails, isLoadingOrders, loadOrders } = useOrders(userId)
+  const [filter, setFilter] = useState<'all' | 'paid' | 'unpaid' | 'pending' | 'completed'>('all')
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
 
-  const handleOpenPaymentModal = (order: Order) => {
+  // Debug logging
+  console.log('🏠 [MyOrdersPage] Component rendered with userId:', userId)
+  console.log('📦 [MyOrdersPage] ordersWithDetails:', ordersWithDetails)
+  console.log('🔄 [MyOrdersPage] isLoadingOrders:', isLoadingOrders)
+
+  const handleOpenPaymentModal = (order: OrderWithDetails) => {
     setSelectedOrder(order)
     setIsPaymentModalOpen(true)
   }
@@ -36,35 +42,15 @@ export function MyOrdersPage({ userId }: MyOrdersPageProps) {
     }
   }
 
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = ordersWithDetails.filter(order => {
     if (filter === 'all') return true
     if (filter === 'paid') return order.is_pay === true
     if (filter === 'unpaid') return order.is_pay === false || order.is_pay === null
+    if (filter === 'pending') return order.status === 'pending'
+    if (filter === 'completed') return order.status === 'completed'
     return true
   })
 
-  const getStatusColor = (status: Order['status']) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'accepted': return 'bg-blue-100 text-blue-800'
-      case 'in_progress': return 'bg-purple-100 text-purple-800'
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getPaymentStatusColor = (isPaid: boolean | null | undefined) => {
-    if (isPaid === true) return 'bg-green-100 text-green-800'
-    if (isPaid === false) return 'bg-red-100 text-red-800'
-    return 'bg-gray-100 text-gray-800'
-  }
-
-  const getPaymentStatusText = (isPaid: boolean | null | undefined) => {
-    if (isPaid === true) return 'Paid'
-    if (isPaid === false) return 'Unpaid'
-    return 'Unknown'
-  }
 
   if (isLoadingOrders) {
     return (
@@ -84,25 +70,37 @@ export function MyOrdersPage({ userId }: MyOrdersPageProps) {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
           <p className="text-gray-600">Manage your service orders</p>
         </div>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div className="flex space-x-2">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
-              All ({orders.length})
+              All ({ordersWithDetails.length})
+            </button>
+            <button
+              onClick={() => setFilter('pending')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'pending' ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}
+            >
+              Pending ({ordersWithDetails.filter(o => o.status === 'pending').length})
+            </button>
+            <button
+              onClick={() => setFilter('completed')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'completed' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+            >
+              Completed ({ordersWithDetails.filter(o => o.status === 'completed').length})
             </button>
             <button
               onClick={() => setFilter('paid')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'paid' ? 'bg-green-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'paid' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
             >
-              Paid ({orders.filter(o => o.is_pay === true).length})
+              Paid ({ordersWithDetails.filter(o => o.is_pay === true).length})
             </button>
             <button
               onClick={() => setFilter('unpaid')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'unpaid' ? 'bg-red-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'unpaid' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
             >
-              Unpaid ({orders.filter(o => o.is_pay === false || o.is_pay === null).length})
+              Unpaid ({ordersWithDetails.filter(o => o.is_pay === false || o.is_pay === null).length})
             </button>
           </div>
         </div>
@@ -123,55 +121,13 @@ export function MyOrdersPage({ userId }: MyOrdersPageProps) {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-md ${getStatusColor(order.status)}`}>{order.status.replace('_', ' ').toUpperCase()}</span>
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-md ${getPaymentStatusColor(order.is_pay)}`}>{getPaymentStatusText(order.is_pay)}</span>
-                    {order.pay_method && (
-                      <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-md">{order.pay_method}</span>
-                    )}
-                  </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-6">
-                        <div>
-                          <p className="text-sm text-gray-500">Order ID</p>
-                          <p className="text-sm font-medium text-gray-900">{order.id.slice(0, 8)}...</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Created</p>
-                          <p className="text-sm font-medium text-gray-900">{new Date(order.created_at).toLocaleDateString()}</p>
-                        </div>
-                        {order.cost && (
-                          <div>
-                            <p className="text-sm text-gray-500">Cost</p>
-                            <p className="text-sm font-medium text-gray-900">${order.cost}</p>
-                          </div>
-                        )}
-                        {order.service_user_id && (
-                          <div>
-                            <p className="text-sm text-gray-500">Service Provider</p>
-                            <p className="text-sm font-medium text-gray-900">{order.service_user_id.slice(0, 8)}...</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                  {(order.is_pay === false || order.is_pay === null) && order.cost && (
-                    <button
-                      onClick={() => handleOpenPaymentModal(order)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                    >
-                      Pay Now
-                    </button>
-                  )}
-                  </div>
-                </div>
-              </div>
+              <OrderCard
+                key={order.id}
+                order={order}
+                onPayment={handleOpenPaymentModal}
+              />
             ))}
           </div>
         )}

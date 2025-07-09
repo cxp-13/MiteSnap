@@ -107,7 +107,7 @@ export function useDuvets(userId: string | undefined) {
     } catch (error) {
       console.error('Error refreshing sun drying status:', error)
     }
-  }, [userId, duvets, duvetSunDryingStatus])
+  }, [userId, duvets, duvetSunDryingStatus, loadDuvets])
 
   // Load duvets on mount and when userId changes
   useEffect(() => {

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createOrder, getUserOrders, getUserOrdersByPaymentStatus, getUserAcceptedOrders, getNearbyOrders, getAllNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet, getAddressById } from '@/lib/database'
+import { createOrder, getUserOrders, getUserOrdersWithDetails, getUserOrdersByPaymentStatus, getUserAcceptedOrders, getNearbyOrders, getAllNearbyOrders, updateOrderStatus, deleteOrder, checkAndCancelExpiredOrders, getPendingOrderForDuvet, updateDuvetStatus, type Order, type OrderWithDuvet, type OrderWithDetails, getAddressById } from '@/lib/database'
 import { getCurrentPosition } from '@/lib/geolocation'
 import { calculateTotalCostByThickness } from '@/lib/pricing'
 import { supabase } from '@/lib/supabase'
 
 export function useOrders(userId: string | undefined) {
   const [orders, setOrders] = useState<Order[]>([])
+  const [ordersWithDetails, setOrdersWithDetails] = useState<OrderWithDetails[]>([])
   const [acceptedOrders, setAcceptedOrders] = useState<OrderWithDuvet[]>([])
   const [nearbyOrders, setNearbyOrders] = useState<OrderWithDuvet[]>([])
   const [allNearbyOrders, setAllNearbyOrders] = useState<OrderWithDuvet[]>([])
@@ -35,14 +36,21 @@ export function useOrders(userId: string | undefined) {
       // Check and cancel expired orders first
       await checkAndCancelExpiredOrders()
       
-      const [userOrders, acceptedOrdersData, nearby, allNearby] = await Promise.all([
+      console.log('🔧 [useOrders] Loading orders for userId:', userId)
+      
+      const [userOrders, userOrdersWithDetails, acceptedOrdersData, nearby, allNearby] = await Promise.all([
         getUserOrders(userId),
+        getUserOrdersWithDetails(userId),
         getUserAcceptedOrders(userId),
         getNearbyOrders(userId, userLocation || undefined),
         getAllNearbyOrders(userId, userLocation || undefined)
       ])
       
+      console.log('📥 [useOrders] Received userOrdersWithDetails:', userOrdersWithDetails)
+      console.log('📊 [useOrders] Setting ordersWithDetails count:', userOrdersWithDetails.length)
+      
       setOrders(userOrders)
+      setOrdersWithDetails(userOrdersWithDetails)
       setAcceptedOrders(acceptedOrdersData)
       setNearbyOrders(nearby)
       setAllNearbyOrders(allNearby)
@@ -298,6 +306,7 @@ export function useOrders(userId: string | undefined) {
   return {
     // State
     orders,
+    ordersWithDetails,
     acceptedOrders,
     nearbyOrders,
     allNearbyOrders,

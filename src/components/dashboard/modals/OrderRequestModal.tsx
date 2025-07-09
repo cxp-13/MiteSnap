@@ -1,8 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { Duvet, Address } from '@/lib/database'
-import { CostBreakdown as CostBreakdownType } from '@/lib/pricing'
-import CostBreakdown from '@/components/dashboard/shared/CostBreakdown'
+import { type CostBreakdown as CostBreakdownType } from '@/lib/pricing'
 import SimplePriceDisplay from '@/components/dashboard/shared/SimplePriceDisplay'
 
 interface AIAnalysis {

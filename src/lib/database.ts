@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { formatLocalAddress } from './address-utils'
 
 export type DuvetStatus = 'waiting_optimal_time' | 'self_drying' | 'waiting_pickup' | 'help_drying' | 'normal'
 
@@ -452,6 +453,130 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
   }
 }
 
+export async function getUserOrdersWithDetails(userId: string): Promise<OrderWithDetails[]> {
+  try {
+    console.log('🔍 [getUserOrdersWithDetails] Starting query for userId:', userId)
+    
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('❌ [getUserOrdersWithDetails] Error fetching user orders:', error)
+      return []
+    }
+
+    console.log('📋 [getUserOrdersWithDetails] Raw orders result:', orders)
+    console.log('📊 [getUserOrdersWithDetails] Orders count:', orders?.length || 0)
+
+    if (!orders || orders.length === 0) {
+      console.log('⚠️ [getUserOrdersWithDetails] No orders found for userId:', userId)
+      return []
+    }
+
+    // Get duvet information for all orders
+    const duvetIds = [...new Set(orders.map(order => order.quilt_id).filter(Boolean))]
+    const { data: duvets, error: duvetError } = await supabase
+      .from('quilts')
+      .select('id, name, image_url, material')
+      .in('id', duvetIds)
+
+    if (duvetError) {
+      console.error('Error fetching duvet details:', duvetError)
+    }
+
+    const duvetMap = (duvets || []).reduce((acc, duvet) => {
+      acc[duvet.id] = duvet
+      return acc
+    }, {} as Record<string, { id: string; name: string; image_url: string; material: string }>)
+
+    // Get address information for all orders
+    const addressIds = [...new Set(orders.map(order => order.address_id).filter(Boolean))]
+    const addressMap = addressIds.length > 0 ? await getAddressesByIds(addressIds) : {}
+
+    // Get clean history information for time windows
+    const cleanHistoryIds = [...new Set(orders.map(order => order.clean_history_id).filter(Boolean))]
+    console.log('🕒 [getUserOrdersWithDetails] Clean history IDs to fetch:', cleanHistoryIds)
+    let cleanHistoryMap: Record<string, { id: string; start_time: string | null; end_time: string | null }> = {}
+    
+    if (cleanHistoryIds.length > 0) {
+      const { data: cleanHistories, error: cleanHistoryError } = await supabase
+        .from('clean_history')
+        .select('id, start_time, end_time')
+        .in('id', cleanHistoryIds)
+      
+      if (cleanHistoryError) {
+        console.error('❌ [getUserOrdersWithDetails] Error fetching clean history details:', cleanHistoryError)
+      } else {
+        console.log('🕒 [getUserOrdersWithDetails] Fetched clean histories:', cleanHistories)
+        cleanHistoryMap = (cleanHistories || []).reduce((acc, history) => {
+          acc[history.id] = history
+          return acc
+        }, {} as Record<string, { id: string; start_time: string | null; end_time: string | null }>)
+        console.log('🗂️ [getUserOrdersWithDetails] Clean history map:', cleanHistoryMap)
+      }
+    } else {
+      console.log('⚠️ [getUserOrdersWithDetails] No clean history IDs found in orders')
+    }
+
+    // Helper function to format time range
+    const formatTimeRange = (startTime: string, endTime: string) => {
+      const start = new Date(startTime).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+      const end = new Date(endTime).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+      return `${start} - ${end}`
+    }
+
+    // Combine orders with duvet, address, and time information
+    const ordersWithDetails: OrderWithDetails[] = orders.map(order => {
+      const duvet = duvetMap[order.quilt_id]
+      const address = order.address_id ? addressMap[order.address_id] : null
+      const cleanHistory = order.clean_history_id ? cleanHistoryMap[order.clean_history_id] : null
+      
+      console.log(`🔍 [getUserOrdersWithDetails] Processing order ${order.id}:`)
+      console.log(`  - clean_history_id: ${order.clean_history_id}`)
+      console.log(`  - cleanHistory found:`, cleanHistory)
+      console.log(`  - start_time: ${cleanHistory?.start_time}`)
+      console.log(`  - end_time: ${cleanHistory?.end_time}`)
+      
+      let serviceTimeWindow = 'Flexible timing'
+      if (cleanHistory?.start_time && cleanHistory?.end_time) {
+        serviceTimeWindow = formatTimeRange(cleanHistory.start_time, cleanHistory.end_time)
+        console.log(`  ✅ Formatted time window: ${serviceTimeWindow}`)
+      } else {
+        console.log(`  ⚠️ Using flexible timing (missing start/end time)`)
+      }
+      
+      return {
+        ...order,
+        duvet_name: duvet?.name,
+        duvet_image: duvet?.image_url,
+        duvet_material: duvet?.material,
+        address_info: address ? formatLocalAddress(address) : undefined,
+        service_time_window: serviceTimeWindow,
+        clean_history_data: cleanHistory
+      }
+    })
+
+    console.log('✅ [getUserOrdersWithDetails] Final orders with details:', ordersWithDetails)
+    console.log('📈 [getUserOrdersWithDetails] Returning', ordersWithDetails.length, 'orders')
+
+    return ordersWithDetails
+  } catch (error) {
+    console.error('Error fetching user orders with details:', error)
+    return []
+  }
+}
+
 export async function getUserOrdersByPaymentStatus(userId: string, paymentStatus: 'paid' | 'unpaid' | 'all'): Promise<Order[]> {
   try {
     let query = supabase
@@ -516,6 +641,19 @@ export async function getUserAcceptedOrders(userId: string): Promise<OrderWithDu
 
 export interface OrderWithDuvet extends Order {
   duvet_name?: string
+}
+
+export interface OrderWithDetails extends Order {
+  duvet_name?: string
+  duvet_image?: string
+  duvet_material?: string
+  address_info?: string
+  service_time_window?: string
+  clean_history_data?: {
+    id: string
+    start_time: string | null
+    end_time: string | null
+  }
 }
 
 export interface PaymentMethod {

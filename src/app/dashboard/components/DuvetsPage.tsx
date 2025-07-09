@@ -234,17 +234,17 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     // Calculate cost breakdown if we have all the required data
     let costBreakdown: CostBreakdown | null = null
     console.log('Cost calculation check:', {
-      duvetWeight: selectedDuvet.weight,
+      duvetThickness: selectedDuvet.thickness,
       addressFloor: defaultAddress.floor_number,
       addressElevator: defaultAddress.has_elevator,
       duvetId: selectedDuvet.id,
       addressId: defaultAddress.id
     })
 
-    if (selectedDuvet.weight && defaultAddress.floor_number !== null && defaultAddress.has_elevator !== null) {
+    if (selectedDuvet.thickness && defaultAddress.floor_number !== null && defaultAddress.has_elevator !== null) {
       try {
         costBreakdown = getCostBreakdown(
-          selectedDuvet.weight,
+          selectedDuvet.thickness,
           defaultAddress.floor_number || 1,
           defaultAddress.has_elevator || false
         )
@@ -254,17 +254,17 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       }
     } else {
       console.warn('⚠️ Missing data for cost calculation:', {
-        hasWeight: !!selectedDuvet.weight,
+        hasThickness: !!selectedDuvet.thickness,
         hasFloor: defaultAddress.floor_number !== null,
         hasElevator: defaultAddress.has_elevator !== null,
-        weight: selectedDuvet.weight,
+        thickness: selectedDuvet.thickness,
         floor: defaultAddress.floor_number,
         elevator: defaultAddress.has_elevator
       })
       
       // Create a fallback cost breakdown with default values for demonstration
-      if (!selectedDuvet.weight) {
-        console.warn('⚠️ Duvet missing weight, using default Medium weight')
+      if (!selectedDuvet.thickness) {
+        console.warn('⚠️ Duvet missing thickness, using default Medium thickness')
       }
       if (defaultAddress.floor_number === null) {
         console.warn('⚠️ Address missing floor number, using default floor 1')
@@ -275,7 +275,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
 
       try {
         costBreakdown = getCostBreakdown(
-          selectedDuvet.weight || 'Medium',
+          selectedDuvet.thickness || 'Medium',
           defaultAddress.floor_number || 1,
           defaultAddress.has_elevator || false
         )

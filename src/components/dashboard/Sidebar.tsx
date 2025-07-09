@@ -14,6 +14,7 @@ export default function Sidebar() {
   const getActiveTab = () => {
     if (pathname.includes('/dashboard/addresses')) return 'addresses'
     if (pathname.includes('/dashboard/my-orders')) return 'my-orders'
+    if (pathname.includes('/dashboard/my-accepted-orders')) return 'my-accepted-orders'
     if (pathname.includes('/dashboard/orders')) return 'orders'
     if (pathname.includes('/dashboard/payment-methods')) return 'payment-methods'
     return 'duvets'
@@ -153,6 +154,26 @@ export default function Sidebar() {
                 </svg>
               </div>
               <span className="text-sm font-medium">View Nearby Orders</span>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/my-accepted-orders"
+            className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+              currentActiveTab === 'my-accepted-orders'
+                ? 'bg-gray-900 text-white shadow-sm'
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`w-5 h-5 flex items-center justify-center ${
+                currentActiveTab === 'my-accepted-orders' ? 'text-white' : 'text-gray-500'
+              }`}>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium">My Accepted Orders</span>
             </div>
           </Link>
         </div>
