@@ -324,158 +324,484 @@ export default function Home() {
       <div className="h-20 md:h-28" />
       
       
-      {/* Hero Section - Full viewport height with perfect centering */}
-      <main className="min-h-[70vh] flex flex-col items-center justify-center px-2 md:px-4 relative z-10">
-        <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto text-center space-y-12">
-          {/* Main Headline - H1 for SEO */}
-          <motion.h1
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-black leading-tight tracking-[-0.02em] mb-6 md:mb-8"
-            initial={{ opacity: 0, translateY: 30 }}
-            whileInView={{ opacity: 1, translateY: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <div className="text-center">
-              {/* Mobile: Two line layout, Desktop: One line layout */}
-              <div className="block sm:hidden">
-                {/* Mobile layout - Two lines */}
-                <div className="mb-2">
-                  <span 
-                    className="font-semibold" 
-                    style={{
-                      fontFamily: "'Inter', 'SF Pro Display', sans-serif",
-                      background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text'
-                    }}
-                  >
-                    AI has taken over
-                  </span>
-                </div>
-                <div>
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={dynamicWords[currentWordIndex]}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ 
-                        duration: 0.3, 
-                        ease: "easeInOut"
-                      }}
-                      className="font-semibold"
-                      style={{ 
-                        fontFamily: "'Inter', 'SF Pro Display', sans-serif",
-                        background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
-                      }}
-                    >
-                      {dynamicWords[currentWordIndex]}
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-              </div>
-              
-              {/* Desktop layout - One line */}
-              <div className="hidden sm:block">
-                <span 
-                  className="font-semibold" 
+      {/* Hero Section - Left-Right Split Layout */}
+      <main className="min-h-[85vh] flex items-center px-2 md:px-4 relative z-10">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-center min-h-[80vh]">
+            
+            {/* Left Side - Content Area */}
+            <div className="lg:col-span-6 order-2 lg:order-1">
+              <div className="p-6 md:p-8 lg:p-12">
+                {/* Main Headline - H1 for SEO */}
+                <motion.h1
+                  className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-black leading-tight tracking-[-0.02em] mb-6"
                   style={{
-                    fontFamily: "'Inter', 'SF Pro Display', sans-serif",
-                    background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    background: 'linear-gradient(135deg, #1f2937 0%, #000000 50%, #374151 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text'
                   }}
+                  initial={{ opacity: 0, translateY: 30 }}
+                  whileInView={{ opacity: 1, translateY: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
                 >
-                  AI has taken over{' '}
-                </span>
+                  <div>
+                    {/* Mobile: Two line layout, Desktop: One line layout */}
+                    <div className="block sm:hidden">
+                      {/* Mobile layout - Two lines */}
+                      <div className="mb-2">
+                        <span 
+                          className="font-bold" 
+                          style={{
+                            fontFamily: "'Inter', 'SF Pro Display', sans-serif"
+                          }}
+                        >
+                          AI has taken over
+                        </span>
+                      </div>
+                      <div>
+                        <AnimatePresence mode="wait">
+                          <motion.span
+                            key={dynamicWords[currentWordIndex]}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ 
+                              duration: 0.3, 
+                              ease: "easeInOut"
+                            }}
+                            className="font-bold text-black"
+                            style={{ 
+                              fontFamily: "'Inter', 'SF Pro Display', sans-serif"
+                            }}
+                          >
+                            {dynamicWords[currentWordIndex]}
+                          </motion.span>
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                    
+                    {/* Desktop layout - One line */}
+                    <div className="hidden sm:block">
+                      <span 
+                        className="font-bold" 
+                        style={{
+                          fontFamily: "'Inter', 'SF Pro Display', sans-serif"
+                        }}
+                      >
+                        AI has taken over{' '}
+                      </span>
+                      
+                      <span className="inline-block min-w-[200px] md:min-w-[300px] lg:min-w-[400px] text-left">
+                        <AnimatePresence mode="wait">
+                          <motion.span
+                            key={dynamicWords[currentWordIndex]}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ 
+                              duration: 0.3, 
+                              ease: "easeInOut"
+                            }}
+                            className="font-bold text-black"
+                            style={{ 
+                              fontFamily: "'Inter', 'SF Pro Display', sans-serif"
+                            }}
+                          >
+                            {dynamicWords[currentWordIndex]}
+                          </motion.span>
+                        </AnimatePresence>
+                      </span>
+                    </div>
+                  </div>
+                </motion.h1>
                 
-                <span className="inline-block min-w-[200px] md:min-w-[300px] lg:min-w-[400px] text-left">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={dynamicWords[currentWordIndex]}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ 
-                        duration: 0.3, 
-                        ease: "easeInOut"
-                      }}
-                      className="font-semibold"
-                      style={{ 
-                        fontFamily: "'Inter', 'SF Pro Display', sans-serif",
-                        background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
+                {/* Subheading */}
+                <motion.p
+                  className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium text-black leading-relaxed tracking-[-0.01em] max-w-3xl mb-8"
+                  style={{
+                    fontFamily: "'Inter', 'SF Pro Display', sans-serif",
+                    textShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                  initial={{ opacity: 0, translateY: 30 }}
+                  whileInView={{ opacity: 1, translateY: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                >
+                  Just <span 
+                    className="font-bold relative text-black"
+                    style={{
+                      textDecoration: 'underline',
+                      textDecorationColor: '#000000',
+                      textUnderlineOffset: '4px',
+                      textDecorationThickness: '2px'
+                    }}
+                  >
+                    take a photo
+                  </span>, leave the rest to <span 
+                    className="font-bold text-black"
+                  >
+                    MiteSnap
+                  </span>.
+                </motion.p>
+                
+                {/* CTA Button */}
+                <motion.div
+                  className="flex items-center space-x-4"
+                  initial={{ opacity: 0, translateY: 30 }}
+                  whileInView={{ opacity: 1, translateY: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+                >
+                  <SignedOut>
+                    <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                      <button className="group relative inline-flex items-center justify-center px-8 md:px-12 lg:px-16 py-4 md:py-5 lg:py-6 text-base md:text-lg lg:text-xl font-bold text-white bg-gradient-to-r from-gray-900 via-black to-gray-800 rounded-2xl border-2 border-transparent transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-black/30 transform-gpu shadow-xl"
+                      style={{
+                        background: 'linear-gradient(135deg, #1f2937 0%, #000000 50%, #374151 100%)',
+                        boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
+                      }}>
+                        <span className="relative z-10 flex items-center space-x-3">
+                          <span>Get Started</span>
+                          <svg className="w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        </span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out rounded-2xl"></div>
+                        <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </button>
+                    </SignInButton>
+                  </SignedOut>
+                  
+                  <SignedIn>
+                    <button 
+                      onClick={() => router.push('/dashboard')}
+                      className="group relative inline-flex items-center justify-center px-8 md:px-12 lg:px-16 py-4 md:py-5 lg:py-6 text-base md:text-lg lg:text-xl font-bold text-white bg-gradient-to-r from-gray-900 via-black to-gray-800 rounded-2xl border-2 border-transparent transition-all duration-500 ease-out hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-black/30 transform-gpu shadow-xl"
+                      style={{
+                        background: 'linear-gradient(135deg, #1f2937 0%, #000000 50%, #374151 100%)',
+                        boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
                       }}
                     >
-                      {dynamicWords[currentWordIndex]}
-                    </motion.span>
-                  </AnimatePresence>
-                </span>
+                      <span className="relative z-10 flex items-center space-x-3">
+                        <span>Go to Dashboard</span>
+                        <svg className="w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out rounded-2xl"></div>
+                      <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </button>
+                  </SignedIn>
+                </motion.div>
               </div>
             </div>
-          </motion.h1>
-          
-          {/* Subheading */}
-          <motion.p
-            className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-light text-gray-600 leading-relaxed tracking-[-0.01em] max-w-3xl mx-auto px-4"
-            initial={{ opacity: 0, translateY: 30 }}
-            whileInView={{ opacity: 1, translateY: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-          >
-            Just <span className="underline">take a photo</span>, leave the rest to MiteSnap.
-          </motion.p>
-          
-          {/* CTA Button and Product Hunt Badge */}
-          <div className="pt-6 md:pt-8 space-y-4">
-            <div>
-              <SignedOut>
-                <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-                  <button className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
-                    <span className="relative z-10">Get Started</span>
-                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
-                  </button>
-                </SignInButton>
-              </SignedOut>
-              
-              <SignedIn>
-                <button 
-                  onClick={() => router.push('/dashboard')}
-                  className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
-                >
-                  <span className="relative z-10">Go to Dashboard</span>
-                  <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
-                </button>
-              </SignedIn>
-            </div>
-            
-            {/* Product Hunt Badge */}
-            <div className="flex justify-center">
-              <a 
-                href="https://www.producthunt.com/products/mitesnap?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-mitesnap" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-block transition-transform duration-300 hover:scale-105"
+
+            {/* Right Side - Scrolling Image Gallery with Blur Edges */}
+            <div className="lg:col-span-6 order-1 lg:order-2 relative">
+              <motion.div
+                className="relative h-[800px] overflow-hidden w-full"
+                initial={{ opacity: 0, translateX: 50 }}
+                whileInView={{ opacity: 1, translateX: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
               >
-                <Image 
-                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=990814&theme=dark&t=1752123295100" 
-                  alt="MiteSnap - Track the mites on your bedding, sheets, and other items. | Product Hunt" 
-                  width={250} 
-                  height={54}
-                  unoptimized
-                />
-              </a>
+                {/* Gradient overlays for natural blur edges */}
+                <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-white to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent z-10 pointer-events-none"></div>
+                
+                {/* Left Column - Scrolling Up */}
+                <div className="absolute left-0 w-[47%] pr-3">
+                  <motion.div
+                    className="space-y-12"
+                    animate={{
+                      y: [0, -800]
+                    }}
+                    transition={{
+                      duration: 35,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                  >
+                    {/* First set of images */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-[3/4] relative h-96">
+                        <Image
+                          src="/duvet1.png"
+                          alt="Freshly sun-dried duvet"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold">
+                            Mite Score: 15
+                          </span>
+                          <div className="flex text-yellow-400">
+                            <span className="text-base">⭐⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <div className="border-t border-gray-100 pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold text-gray-900 text-sm">Sarah Mitchell</span>
+                            <span className="text-xs text-gray-500">2 days ago</span>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            &ldquo;Incredible! My duvet looked terrible before MiteSnap&rsquo;s analysis. Following their sun-drying recommendations for just one week made such a difference. The AI really knows what it&rsquo;s talking about!&rdquo;
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-square relative h-80">
+                        <Image
+                          src="/duvet3.png"
+                          alt="Duvet analysis"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 45
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Very helpful!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-[4/3] relative h-88">
+                        <Image
+                          src="/duvet5.png"
+                          alt="Bedding health check"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 72
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Early detection!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Duplicate set for seamless loop */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-[3/4] relative h-96">
+                        <Image
+                          src="/duvet1.png"
+                          alt="Freshly sun-dried duvet"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold">
+                            Mite Score: 15
+                          </span>
+                          <div className="flex text-yellow-400">
+                            <span className="text-base">⭐⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <div className="border-t border-gray-100 pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold text-gray-900 text-sm">Sarah Mitchell</span>
+                            <span className="text-xs text-gray-500">2 days ago</span>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            &ldquo;Amazing results! My duvet has never looked better.&rdquo;
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-square relative h-80">
+                        <Image
+                          src="/duvet3.png"
+                          alt="Duvet analysis"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 45
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Very helpful!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Right Column - Scrolling Down */}
+                <div className="absolute right-0 w-[47%] pl-3">
+                  <motion.div
+                    className="space-y-12"
+                    style={{ paddingTop: '200px' }}
+                    animate={{
+                      y: [-800, 0]
+                    }}
+                    transition={{
+                      duration: 35,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                  >
+                    {/* First set of images */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-square relative h-80">
+                        <Image
+                          src="/duvet2.png"
+                          alt="Well-maintained duvet"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 32
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Great improvement!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-[5/3] relative h-72">
+                        <Image
+                          src="/duvet4.jpg"
+                          alt="Duvet requiring attention"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 58
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Issues detected!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-square relative h-80">
+                        <Image
+                          src="/duvet6.png"
+                          alt="Duvet requiring immediate cleaning"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 85
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Action needed!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Duplicate set for seamless loop */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-square relative h-80">
+                        <Image
+                          src="/duvet2.png"
+                          alt="Well-maintained duvet"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 32
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Great improvement!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="aspect-[5/3] relative h-72">
+                        <Image
+                          src="/duvet4.jpg"
+                          alt="Duvet requiring attention"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">
+                            Score: 58
+                          </span>
+                          <div className="flex text-yellow-400 text-sm">
+                            <span>⭐⭐⭐⭐</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          &ldquo;Issues detected!&rdquo;
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>
       </main>
+
 
       {/* Pricing Plans Section Anchor */}
       <div ref={pricingRef}></div>
@@ -865,6 +1191,24 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </div>
+
+      {/* Fixed Product Hunt Badge - Bottom Right */}
+      <div className="fixed bottom-4 right-4 z-40">
+        <a 
+          href="https://www.producthunt.com/products/mitesnap?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-mitesnap" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-block transition-transform duration-300 hover:scale-105 drop-shadow-lg"
+        >
+          <Image 
+            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=990814&theme=dark&t=1752123295100" 
+            alt="MiteSnap - Track the mites on your bedding, sheets, and other items. | Product Hunt" 
+            width={200} 
+            height={43}
+            unoptimized
+          />
+        </a>
       </div>
     </>
   )
