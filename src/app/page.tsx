@@ -339,26 +339,46 @@ export default function Home() {
             Just <span className="underline">take a photo</span>, leave the rest to MiteSnap.
           </motion.p>
           
-          {/* CTA Button */}
-          <div className="pt-6 md:pt-8">
-            <SignedOut>
-              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-                <button className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
-                  <span className="relative z-10">Get Started</span>
+          {/* CTA Button and Product Hunt Badge */}
+          <div className="pt-6 md:pt-8 space-y-4">
+            <div>
+              <SignedOut>
+                <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                  <button className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50">
+                    <span className="relative z-10">Get Started</span>
+                    <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              
+              <SignedIn>
+                <button 
+                  onClick={() => router.push('/dashboard')}
+                  className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
+                >
+                  <span className="relative z-10">Go to Dashboard</span>
                   <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
                 </button>
-              </SignInButton>
-            </SignedOut>
+              </SignedIn>
+            </div>
             
-            <SignedIn>
-              <button 
-                onClick={() => router.push('/dashboard')}
-                className="group relative inline-flex items-center justify-center px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-medium text-white bg-black rounded-none border-2 border-black transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-opacity-50"
+            {/* Product Hunt Badge */}
+            <div className="flex justify-center">
+              <a 
+                href="https://www.producthunt.com/products/mitesnap?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-mitesnap" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block transition-transform duration-300 hover:scale-105"
               >
-                <span className="relative z-10">Go to Dashboard</span>
-                <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left"></div>
-              </button>
-            </SignedIn>
+                <img 
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=990814&theme=dark&t=1752123295100" 
+                  alt="MiteSnap - Track the mites on your bedding, sheets, and other items. | Product Hunt" 
+                  style={{ width: '250px', height: '54px' }} 
+                  width={250} 
+                  height={54} 
+                />
+              </a>
+            </div>
           </div>
         </div>
       </main>

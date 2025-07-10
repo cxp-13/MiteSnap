@@ -28,7 +28,7 @@ export function useOrders(userId: string | undefined) {
   }, [])
 
   // Load user's orders
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async (forceLocation?: { latitude: number; longitude: number } | null) => {
     if (!userId) return
     
     setIsLoadingOrders(true)
@@ -38,12 +38,15 @@ export function useOrders(userId: string | undefined) {
       
       console.log('🔧 [useOrders] Loading orders for userId:', userId)
       
+      // Use provided location or current userLocation
+      const locationToUse = forceLocation !== undefined ? forceLocation : userLocation
+      
       const [userOrders, userOrdersWithDetails, acceptedOrdersData, nearby, allNearby] = await Promise.all([
         getUserOrders(userId),
         getUserOrdersWithDetails(userId),
         getUserAcceptedOrders(userId),
-        getNearbyOrders(userId, userLocation || undefined),
-        getAllNearbyOrders(userId, userLocation || undefined)
+        getNearbyOrders(userId, locationToUse || undefined),
+        getAllNearbyOrders(userId, locationToUse || undefined, 50) // Use larger radius to prevent orders from disappearing
       ])
       
       console.log('📥 [useOrders] Received userOrdersWithDetails:', userOrdersWithDetails)
@@ -73,17 +76,18 @@ export function useOrders(userId: string | undefined) {
     } finally {
       setIsLoadingOrders(false)
     }
-  }, [userId, userLocation])
+  }, [userId])
 
   // Get user location on mount
   useEffect(() => {
     getUserLocation()
   }, [getUserLocation])
 
-  // Load orders on mount and when userId/location changes
+  // Load orders on mount and when userId changes (but not location)
   useEffect(() => {
-    loadOrders()
-  }, [loadOrders])
+    // Only load orders initially with no location (to get all orders)
+    loadOrders(null)
+  }, [userId])
 
   // Create a new order
   const handleCreateOrder = useCallback(async (
@@ -131,7 +135,7 @@ export function useOrders(userId: string | undefined) {
 
       const order = await createOrder(userId, duvetId, addressId, placedPhoto, undefined, optimalStartTime, optimalEndTime, aiAnalysis, calculatedCost)
       if (order) {
-        await loadOrders()
+        await loadOrders(null) // Don't use location filtering when refreshing
         return true
       }
       return false
@@ -191,7 +195,7 @@ export function useOrders(userId: string | undefined) {
           }
         }
         
-        await loadOrders()
+        await loadOrders(null) // Don't use location filtering when refreshing
         return true
       }
       return false
@@ -218,7 +222,7 @@ export function useOrders(userId: string | undefined) {
           await updateDuvetStatus(order.quilt_id, 'normal')
         }
         
-        await loadOrders()
+        await loadOrders(null) // Don't use location filtering when refreshing
         return true
       }
       return false
@@ -253,7 +257,7 @@ export function useOrders(userId: string | undefined) {
         // Update duvet status to help_drying when order is accepted
         await updateDuvetStatus(order.quilt_id, 'help_drying')
         
-        await loadOrders()
+        await loadOrders(null) // Don't use location filtering when refreshing
         return true
       }
       return false
