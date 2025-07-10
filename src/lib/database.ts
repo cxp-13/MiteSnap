@@ -15,6 +15,28 @@ export interface Duvet {
   thickness?: string | null
 }
 
+export interface DuvetWithLocation extends Duvet {
+  latitude?: number | null
+  longitude?: number | null
+}
+
+// Type for Supabase query result with joined address data
+interface DuvetWithAddressQuery {
+  id: string
+  name: string
+  material: string
+  mite_score: number
+  image_url: string
+  user_id: string
+  address_id: string | null
+  status: DuvetStatus
+  thickness: string | null
+  addresses: {
+    latitude: number | null
+    longitude: number | null
+  } | null
+}
+
 export interface Address {
   id: string
   is_default: boolean | null
@@ -1206,6 +1228,132 @@ export async function markOrderAsPaid(
     return true
   } catch (error) {
     console.error('Error marking order as paid:', error)
+    return false
+  }
+}
+
+// Mite Growth Related Functions
+
+/**
+ * Get all duvets with their location information (latitude, longitude)
+ * This is used by the mite growth calculation cron job
+ */
+export async function getAllDuvetsWithLocation(): Promise<DuvetWithLocation[]> {
+  try {
+    const { data, error } = await supabase
+      .from('quilts')
+      .select(`
+        id,
+        name,
+        material,
+        mite_score,
+        image_url,
+        user_id,
+        address_id,
+        status,
+        thickness,
+        addresses!quilts_address_id_fkey (
+          latitude,
+          longitude
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching duvets with location:', error)
+      return []
+    }
+
+    // Transform the data to flatten the address information
+    const duvetsWithLocation: DuvetWithLocation[] = (data || []).map((duvet) => {
+      // Type assertion for Supabase result
+      const typedDuvet = duvet as unknown as DuvetWithAddressQuery
+      return {
+        id: typedDuvet.id,
+        name: typedDuvet.name,
+        material: typedDuvet.material,
+        mite_score: typedDuvet.mite_score,
+        image_url: typedDuvet.image_url,
+        user_id: typedDuvet.user_id,
+        address_id: typedDuvet.address_id,
+        status: typedDuvet.status,
+        thickness: typedDuvet.thickness,
+        latitude: typedDuvet.addresses?.latitude || null,
+        longitude: typedDuvet.addresses?.longitude || null
+      }
+    })
+
+    console.log(`📊 getAllDuvetsWithLocation: Found ${duvetsWithLocation.length} duvets`)
+    return duvetsWithLocation
+
+  } catch (error) {
+    console.error('Error fetching duvets with location:', error)
+    return []
+  }
+}
+
+/**
+ * Batch update mite scores for multiple duvets
+ * @param updates Array of duvet ID and new mite score pairs
+ * @returns True if successful, false otherwise
+ */
+export async function batchUpdateMiteScores(updates: Array<{ id: string; newMiteScore: number }>): Promise<boolean> {
+  try {
+    console.log(`💾 batchUpdateMiteScores: Updating ${updates.length} duvets`)
+    
+    // Use a transaction to update all mite scores atomically
+    const promises = updates.map(update => 
+      supabase
+        .from('quilts')
+        .update({ mite_score: update.newMiteScore })
+        .eq('id', update.id)
+    )
+
+    const results = await Promise.all(promises)
+    
+    // Check if any update failed
+    const errors = results.filter(result => result.error)
+    
+    if (errors.length > 0) {
+      console.error('Errors in batch mite score update:', errors)
+      return false
+    }
+
+    console.log(`✅ Successfully updated ${updates.length} mite scores`)
+    return true
+
+  } catch (error) {
+    console.error('Error in batch mite score update:', error)
+    return false
+  }
+}
+
+/**
+ * Update the last_calculated_at timestamp for multiple duvets
+ * @param duvetIds Array of duvet IDs to update
+ * @returns True if successful, false otherwise
+ */
+export async function updateDuvetLastCalculatedAt(duvetIds: string[]): Promise<boolean> {
+  try {
+    const now = new Date().toISOString()
+    
+    console.log(`🕐 updateDuvetLastCalculatedAt: Updating timestamp for ${duvetIds.length} duvets`)
+
+    const { error } = await supabase
+      .from('quilts')
+      .update({ last_calculated_at: now })
+      .in('id', duvetIds)
+
+    if (error) {
+      console.error('Error updating last_calculated_at:', error)
+      return false
+    }
+
+    console.log(`✅ Successfully updated last_calculated_at for ${duvetIds.length} duvets`)
+    return true
+
+  } catch (error) {
+    console.error('Error updating last_calculated_at:', error)
     return false
   }
 }
