@@ -32,6 +32,79 @@ export default function Home() {
   const router = useRouter()
   const [openFAQ, setOpenFAQ] = useState<number | null>(null)
   
+  // Structured Data for SEO
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "MiteSnap",
+    "url": "https://mitesnap.com",
+    "logo": "https://mitesnap.com/logo.png",
+    "description": "AI-powered dust mite detection and bedding health monitoring service",
+    "founder": {
+      "@type": "Person",
+      "name": "lantianlaoli",
+      "url": "https://x.com/lantianlaoli"
+    },
+    "sameAs": [
+      "https://x.com/lantianlaoli",
+      "https://www.producthunt.com/products/mitesnap"
+    ]
+  }
+
+  const webApplicationSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "MiteSnap",
+    "url": "https://mitesnap.com",
+    "description": "Track dust mites on your bedding, sheets, and duvets with AI visual analysis and real-time weather data. Get smart sun-drying recommendations and connect with community helpers.",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free tier with basic features"
+    },
+    "featureList": [
+      "AI-powered dust mite detection",
+      "Real-time weather integration",
+      "Smart sun-drying recommendations",
+      "Community helper network",
+      "Bedding health monitoring"
+    ]
+  }
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is MiteSnap and what does it offer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MiteSnap is your smart solution for scientifically tracking dust mite conditions in bedding (like duvets, sheets, and pillows) by combining AI visual analysis with real-time weather data. It intelligently monitors the progress and effectiveness of sun-drying your bedding. MiteSnap also features a community helper function, currently allowing you to request sun-drying assistance completely free of charge, with a future update to include a tipping feature for helpers."
+        }
+      },
+      {
+        "@type": "Question", 
+        "name": "How does MiteSnap's AI analysis work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MiteSnap's analysis leverages the advanced Qwen/Qwen2.5-VL-72B-Instruct multimodal AI model. By integrating this powerful AI with Tomorrow.io's real-time weather data and uploaded photos of your bedding, MiteSnap rapidly analyzes and provides a comprehensive understanding of your bedding's health status."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are MiteSnap's pricing plans?", 
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MiteSnap's core features are currently completely free to use. We are dedicated to providing accessible solutions for mite-free living. Future updates will introduce premium subscription plans with enhanced features and benefits."
+        }
+      }
+    ]
+  }
+  
   // Dynamic text switching state
   const dynamicWords = ['Duvets', 'Bed Sheets', 'Bedding']
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
@@ -182,14 +255,35 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col relative">
+    <>
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(organizationSchema),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(webApplicationSchema),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqSchema),
+        }}
+      />
+      
+      <div className="min-h-screen w-full bg-white flex flex-col relative">
       {/* Sticky Navigation Bar */}
       <nav
         className="fixed top-3 md:top-6 left-1/2 z-50 -translate-x-1/2 w-[95vw] md:w-[98vw] max-w-[1800px] bg-gray-900/95 backdrop-blur-lg border border-gray-700 shadow-xl flex items-center justify-between px-4 md:px-8 lg:px-16 py-3 md:py-4 rounded-2xl md:rounded-[2.5rem] transition-all duration-300"
         style={{ fontFamily: 'Plus Jakarta Sans, var(--font-plus-jakarta-sans), Segoe UI, Arial, sans-serif', boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)' }}
       >
         <div className="flex items-center space-x-2">
-          <Image src="/logo.png" alt="MiteSnap Logo" width={28} height={28} className="md:w-8 md:h-8 mr-1 md:mr-2" />
+          <Image src="/logo.png" alt="MiteSnap - AI-powered dust mite detection app logo" width={28} height={28} className="md:w-8 md:h-8 mr-1 md:mr-2" />
           <span className="text-lg md:text-2xl font-bold text-white tracking-wide">MiteSnap</span>
           {/* Nav links group - left, next to logo - Hidden on mobile */}
           <div className="hidden lg:flex items-center space-x-2 ml-4">
@@ -233,7 +327,7 @@ export default function Home() {
       {/* Hero Section - Full viewport height with perfect centering */}
       <main className="min-h-[70vh] flex flex-col items-center justify-center px-2 md:px-4 relative z-10">
         <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto text-center space-y-12">
-          {/* Main Headline */}
+          {/* Main Headline - H1 for SEO */}
           <motion.h1
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-black leading-tight tracking-[-0.02em] mb-6 md:mb-8"
             initial={{ opacity: 0, translateY: 30 }}
@@ -370,12 +464,12 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="inline-block transition-transform duration-300 hover:scale-105"
               >
-                <img 
+                <Image 
                   src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=990814&theme=dark&t=1752123295100" 
                   alt="MiteSnap - Track the mites on your bedding, sheets, and other items. | Product Hunt" 
-                  style={{ width: '250px', height: '54px' }} 
                   width={250} 
-                  height={54} 
+                  height={54}
+                  unoptimized
                 />
               </a>
             </div>
@@ -386,10 +480,11 @@ export default function Home() {
       {/* Pricing Plans Section Anchor */}
       <div ref={pricingRef}></div>
       {/* Pricing Plans Section */}
-      <section className="bg-white py-8 px-2 md:px-4 flex items-center justify-center min-h-[60vh]">
+      <section className="bg-white py-8 px-2 md:px-4 flex items-center justify-center min-h-[60vh]" id="pricing" aria-labelledby="pricing-heading">
         <div className="max-w-4xl w-full mx-auto">
           <div className="text-center mb-8">
             <motion.h2 
+              id="pricing-heading" 
               className="text-3xl md:text-4xl font-semibold text-black mb-4 tracking-tight"
               initial={{ opacity: 0, translateY: 30 }}
               whileInView={{ opacity: 1, translateY: 0 }}
@@ -451,10 +546,11 @@ export default function Home() {
 
       {/* FAQ Section Anchor */}
       <div ref={faqRef}></div>
-      <section className="bg-white py-8 px-2 md:px-4 min-h-screen flex items-center justify-center">
+      <section className="bg-white py-8 px-2 md:px-4 min-h-screen flex items-center justify-center" id="faq" aria-labelledby="faq-heading">
         <div className="max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-[900px] mx-auto w-full">
           <div className="text-center mb-8">
             <motion.h2
+              id="faq-heading"
               className="text-3xl md:text-4xl font-semibold text-black mb-4 tracking-tight"
               initial={{ opacity: 0, translateY: 30 }}
               whileInView={{ opacity: 1, translateY: 0 }}
@@ -526,12 +622,13 @@ export default function Home() {
       {/* How it Works Section Anchor */}
       <div ref={howItWorksRef}></div>
       {/* How it Works Section */}
-      <section className="min-h-screen bg-white py-8 px-2 md:px-4 flex items-center justify-center relative z-10">
+      <section className="min-h-screen bg-white py-8 px-2 md:px-4 flex items-center justify-center relative z-10" id="how-it-works" aria-labelledby="how-it-works-heading">
         <div className="max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] mx-auto w-full h-full flex flex-col justify-center space-y-8">
           
           {/* How it Works Title */}
           <div className="text-center mb-6">
             <motion.h2
+              id="how-it-works-heading"
               className="text-3xl md:text-4xl font-semibold text-black mb-4 tracking-tight"
               initial={{ opacity: 0, translateY: 30 }}
               whileInView={{ opacity: 1, translateY: 0 }}
@@ -768,6 +865,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   )
 }

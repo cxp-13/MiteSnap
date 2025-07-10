@@ -76,6 +76,7 @@ export function useOrders(userId: string | undefined) {
     } finally {
       setIsLoadingOrders(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   // Get user location on mount
@@ -87,6 +88,7 @@ export function useOrders(userId: string | undefined) {
   useEffect(() => {
     // Only load orders initially with no location (to get all orders)
     loadOrders(null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   // Create a new order

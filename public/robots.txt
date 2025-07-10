@@ -1,0 +1,44 @@
+User-agent: *
+Allow: /
+
+# Block private dashboard pages
+Disallow: /dashboard/
+Disallow: /api/
+
+# Allow crawling of public pages and resources
+Allow: /api/sitemap
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+
+# Sitemap location
+Sitemap: https://mitesnap.com/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Google specific settings
+User-agent: Googlebot
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Allow: /api/sitemap
+
+# Bing specific settings  
+User-agent: Bingbot
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Allow: /api/sitemap
+
+# Block access to sensitive files
+Disallow: /.env
+Disallow: /*.log
+Disallow: /package.json
+Disallow: /package-lock.json
+Disallow: /.git/
