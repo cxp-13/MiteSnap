@@ -203,6 +203,42 @@ export default function Sidebar() {
               <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
             </div>
           </div>
+          
+          {/* Contact & Feedback Section */}
+          <div className="mt-6 px-3 hidden md:block">
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h4 className="text-xs font-medium text-gray-700 mb-3">Contact Developer</h4>
+              <div className="space-y-2">
+                <a 
+                  href="https://x.com/lantianlaoli" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 text-xs text-gray-600 hover:text-blue-600 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                  <span>@lantianlaoli</span>
+                </a>
+                <a 
+                  href="https://www.xiaohongshu.com/user/profile/lantianlaoli" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 text-xs text-gray-600 hover:text-red-600 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                  <span>XiaoHongShu</span>
+                </a>
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Got suggestions? We'd love to hear from you! Share your feedback directly with our developer.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
     </div>
