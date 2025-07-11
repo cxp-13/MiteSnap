@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     title: 'MiteSnap - AI-Powered Dust Mite Detection',
     description: 'Track dust mites on your bedding with AI analysis and weather data. Get smart drying recommendations.',
     creator: '@lantianlaoli',
-    images: ['/logo.png'],
+    images: ['/twitter.png'],
   },
   robots: {
     index: true,

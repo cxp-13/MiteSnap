@@ -302,11 +302,26 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-300 group"
-            title="Follow us on Twitter"
+            title="Follow us on Twitter / 在Twitter上关注我们"
           >
             <svg className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform duration-300" fill="currentColor" viewBox="0 0 24 24">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
+          </a>
+          
+          {/* 小红书 Contact Link */}
+          <a
+            href="https://www.xiaohongshu.com/user/profile/646ced020000000011001e47"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center px-3 h-8 md:px-4 md:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-300 group"
+            title="给我们反馈 / Contact us on 小红书"
+          >
+            <img 
+              src="/Xiaohongshu_logo.png" 
+              alt="小红书" 
+              className="h-4 md:h-5 w-auto group-hover:scale-110 transition-transform duration-300"
+            />
           </a>
           
           <SignedOut>
