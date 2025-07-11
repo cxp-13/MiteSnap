@@ -317,9 +317,11 @@ export default function Home() {
             className="flex items-center justify-center px-3 h-8 md:px-4 md:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-300 group"
             title="给我们反馈 / Contact us on 小红书"
           >
-            <img 
+            <Image 
               src="/Xiaohongshu_logo.png" 
               alt="小红书" 
+              width={20}
+              height={20}
               className="h-4 md:h-5 w-auto group-hover:scale-110 transition-transform duration-300"
             />
           </a>

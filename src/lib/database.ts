@@ -448,6 +448,47 @@ export async function createOrder(
       return null
     }
 
+    // Send email notification for new help-drying order
+    try {
+      // Get duvet and address details for email notification
+      const [duvetResult, addressResult] = await Promise.all([
+        supabase.from('quilts').select('name').eq('id', duvetId).single(),
+        addressId ? supabase.from('addresses').select('*').eq('id', addressId).single() : null
+      ])
+
+      if (duvetResult.data) {
+        // Format address for email
+        let addressString = '地址信息不可用'
+        if (addressResult?.data) {
+          const addr = addressResult.data
+          addressString = [addr.country, addr.state, addr.city, addr.district, addr.road, addr.house_number].filter(Boolean).join(' ')
+        }
+
+        // Call internal API to send email notification
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/send-order-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId: data.id,
+            userId,
+            duvetName: duvetResult.data.name,
+            address: addressString,
+            createdAt: data.created_at,
+            cost
+          })
+        })
+
+        if (!response.ok) {
+          console.error('Failed to send email notification:', await response.text())
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send order notification email:', emailError)
+      // Don't fail the order creation if email fails
+    }
+
     return data
   } catch (error) {
     console.error('Error creating order:', error)

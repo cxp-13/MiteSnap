@@ -234,7 +234,7 @@ export default function Sidebar() {
               </div>
               <div className="mt-3 pt-3 border-t border-gray-200">
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Got suggestions? We'd love to hear from you! Share your feedback directly with our developer.
+                  Got suggestions? We&apos;d love to hear from you! Share your feedback directly with our developer.
                 </p>
               </div>
             </div>
