@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   verification: {
-    google: "TzNZIjYP45gXInPSyykjt9fY85Qgun7nS23oY4l9Sqg",
+    google: "NWWQXGdeSNhrfNE0ebGCK5S9UpLMFjnp_RMXhvo3Q3c",
   },
   metadataBase: new URL('https://mitesnap.com'),
   alternates: {
