@@ -28,6 +28,11 @@ const UserButton = dynamic(
   { ssr: false }
 );
 
+const PricingTable = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.PricingTable),
+  { ssr: false }
+);
+
 export default function Home() {
   const router = useRouter()
   const [openFAQ, setOpenFAQ] = useState<number | null>(null)
@@ -846,44 +851,17 @@ export default function Home() {
               Choose the plan that fits your needs. Upgrade anytime.
             </motion.p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Basic Plan Card */}
-            <motion.div 
-              className="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm p-8 items-center"
-              initial={{ opacity: 0, translateY: 50 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-            >
-              <span className="text-xl font-bold text-black mb-1">Basic</span>
-              <span className="text-3xl font-extrabold text-black mb-2">$0 <span className="text-base font-medium text-gray-500">/ Forever Free</span></span>
-              <span className="text-base text-gray-500 mb-6">Essential tools for initial tracking.</span>
-              <ul className="w-full space-y-4 mb-8">
-                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Manage 1 Duvet Profile</li>
-                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited AI MiteScan Analysis & Self-Drying Recommendations</li>
-                <li className="flex items-center text-gray-800"><span className="mr-3">✔️</span>Unlimited Community Drying Request Submissions</li>
-              </ul>
-            </motion.div>
-            {/* Pro Plan Card */}
-            <motion.div 
-              className="flex flex-col rounded-2xl border-2 border-gray-900 bg-gray-50 shadow-xl p-10 items-center relative transform scale-105"
-              initial={{ opacity: 0, translateY: 50 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-            >
-              <span className="absolute -top-5 left-1/2 -translate-x-1/2 bg-black text-white text-xs font-bold px-4 py-1 rounded-full shadow">Highly Recommended</span>
-              <span className="text-xl font-bold text-black mb-1">Pro</span>
-              <span className="text-3xl font-extrabold text-black mb-2">$3.9 <span className="text-base font-medium text-gray-500">/ month</span></span>
-              <span className="text-base text-gray-500 mb-6">Unlock advanced capabilities for comprehensive care.</span>
-              <ul className="w-full space-y-4 mb-8">
-                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Manage up to 5 Duvet Profiles</li>
-                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>Ability to Accept Drying Requests from others (unlimited, with tipping & visibility boost)</li>
-                <li className="flex items-center text-gray-900"><span className="mr-3">⭐</span>All other features are identical to the Basic Plan</li>
-              </ul>
-              <button className="w-full py-3 rounded-xl bg-gray-400 text-white font-semibold text-lg shadow cursor-not-allowed" disabled>Coming Soon</button>
-            </motion.div>
-          </div>
+          
+          {/* Clerk Pricing Table */}
+          <motion.div
+            initial={{ opacity: 0, translateY: 50 }}
+            whileInView={{ opacity: 1, translateY: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+            style={{ maxWidth: '800px', margin: '0 auto', padding: '0 1rem' }}
+          >
+            <PricingTable />
+          </motion.div>
         </div>
       </section>
 

@@ -72,6 +72,9 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     duvetThickness,
     selectedAddressId,
     currentStep,
+    subscriptionTier,
+    canCreateDuvet,
+    maxDuvets,
     loadDuvets,
     refreshSunDryingStatus,
     handlePhotoUpload,
@@ -533,19 +536,47 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
       {/* Latest Duvets Section */}
       <div className="mb-8 md:mb-10">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Latest Duvets</h2>
-          <button
-            onClick={handleOpenNewDuvetModal}
-            className="flex items-center space-x-2 px-3 md:px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm md:text-base"
-          >
-            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span className="hidden sm:inline">Add Duvet</span>
-            <span className="sm:hidden">Add</span>
-          </button>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Latest Duvets</h2>
+            {!canCreateDuvet && (
+              <p className="text-sm text-amber-600 mt-1">
+                {subscriptionTier === 'basic' 
+                  ? `Limited to ${maxDuvets} duvet on Basic plan` 
+                  : `Maximum ${maxDuvets} duvets reached`}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-end space-y-2">
+            <button
+              onClick={canCreateDuvet ? handleOpenNewDuvetModal : undefined}
+              disabled={!canCreateDuvet}
+              className={`flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg transition-colors font-medium text-sm md:text-base ${
+                canCreateDuvet
+                  ? 'bg-gray-900 text-white hover:bg-gray-800'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span className="hidden sm:inline">Add Duvet</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+            {!canCreateDuvet && subscriptionTier === 'basic' && (
+              <button className="text-xs text-blue-600 hover:text-blue-800 underline">
+                Upgrade to Pro
+              </button>
+            )}
+          </div>
         </div>
-        <p className="text-base text-gray-600 font-light leading-relaxed mb-8">Monitor and manage your duvets for optimal health</p>
+        <p className="text-base text-gray-600 font-light leading-relaxed mb-8">
+          Monitor and manage your duvets for optimal health
+          {subscriptionTier === 'basic' && (
+            <span className="text-amber-600 ml-2">
+              • {duvets.length}/{maxDuvets} duvets used
+            </span>
+          )}
+        </p>
       </div>
 
       <DuvetList

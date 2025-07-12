@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createDuvet, getUserDuvets, type Duvet } from '@/lib/database'
+import { getUserDuvets, type Duvet } from '@/lib/database'
 import { uploadDuvetImage } from '@/lib/storage'
 import { analyzeDuvet } from '@/lib/ai-analysis'
 import { getCurrentSunDryingStatus, type CleanHistoryRecord } from '@/lib/clean-history'
+import { checkDuvetLimit, type SubscriptionTier } from '@/lib/subscription'
 
 export interface DuvetFormData {
   name: string
@@ -25,6 +26,11 @@ export function useDuvets(userId: string | undefined) {
   const [isLoadingDuvets, setIsLoadingDuvets] = useState(false)
   const [duvetSunDryingStatus, setDuvetSunDryingStatus] = useState<Record<string, CleanHistoryRecord | null>>({})
 
+  // Subscription state
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('basic')
+  const [canCreateDuvet, setCanCreateDuvet] = useState(true)
+  const [maxDuvets, setMaxDuvets] = useState(1)
+
   // New duvet modal state
   const [showNewDuvetModal, setShowNewDuvetModal] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null)
@@ -39,6 +45,23 @@ export function useDuvets(userId: string | undefined) {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1)
 
+  // Check subscription limits
+  const checkSubscriptionLimits = useCallback(async (currentDuvetCount: number) => {
+    try {
+      const limitCheck = await checkDuvetLimit(currentDuvetCount)
+      setSubscriptionTier(limitCheck.tier)
+      setCanCreateDuvet(limitCheck.canCreate)
+      setMaxDuvets(limitCheck.maxAllowed)
+      return limitCheck
+    } catch (error) {
+      console.error('Error checking subscription limits:', error)
+      setSubscriptionTier('basic')
+      setCanCreateDuvet(false)
+      setMaxDuvets(1)
+      return { canCreate: false, tier: 'basic' as SubscriptionTier, maxAllowed: 1 }
+    }
+  }, [])
+
   // Load duvets only
   const loadDuvets = useCallback(async () => {
     if (!userId) return
@@ -47,6 +70,9 @@ export function useDuvets(userId: string | undefined) {
     try {
       const userDuvets = await getUserDuvets(userId)
       setDuvets(userDuvets)
+      
+      // Check subscription limits
+      await checkSubscriptionLimits(userDuvets.length)
       
       // Also refresh sun drying status for all duvets and check for expired sessions
       if (userDuvets.length > 0) {
@@ -74,7 +100,7 @@ export function useDuvets(userId: string | undefined) {
     } finally {
       setIsLoadingDuvets(false)
     }
-  }, [userId])
+  }, [userId, checkSubscriptionLimits])
 
   // Load sun-drying status for specific duvet or all duvets
   const refreshSunDryingStatus = useCallback(async (duvetIds?: string[]) => {
@@ -186,16 +212,27 @@ export function useDuvets(userId: string | undefined) {
     if (!userId || !analysisResult) return
 
     try {
-      await createDuvet(
-        userId,
-        duvetData.name,
-        duvetData.material,
-        analysisResult.miteScore,
-        duvetData.cleaningHistory,
-        duvetData.thickness,
-        analysisResult.imageUrl,
-        duvetData.address_id
-      )
+      const response = await fetch('/api/create-duvet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: duvetData.name,
+          material: duvetData.material,
+          miteScore: analysisResult.miteScore,
+          cleaningHistory: duvetData.cleaningHistory,
+          thickness: duvetData.thickness,
+          imageUrl: analysisResult.imageUrl,
+          addressId: duvetData.address_id
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create duvet')
+      }
       
       setCurrentStep(4)
       await loadDuvets()
@@ -238,6 +275,11 @@ export function useDuvets(userId: string | undefined) {
     duvetThickness,
     selectedAddressId,
     currentStep,
+    
+    // Subscription state
+    subscriptionTier,
+    canCreateDuvet,
+    maxDuvets,
     
     // Actions
     loadDuvets,

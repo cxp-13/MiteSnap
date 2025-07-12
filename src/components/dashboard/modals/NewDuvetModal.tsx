@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import { AnalysisResult } from '@/hooks/dashboard/useDuvets'
 import { Address } from '@/lib/database'
@@ -56,16 +56,29 @@ export default function NewDuvetModal({
   onStepChange,
   onAddNewAddress
 }: NewDuvetModalProps) {
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+
   if (!isOpen) return null
 
-  const handleCreateDuvet = () => {
-    onCreateDuvet({
-      name: duvetName,
-      material: selectedMaterial,
-      cleaningHistory,
-      thickness: duvetThickness,
-      address_id: selectedAddressId
-    })
+  const handleCreateDuvet = async () => {
+    setCreateError(null)
+    setIsCreating(true)
+    
+    try {
+      await onCreateDuvet({
+        name: duvetName,
+        material: selectedMaterial,
+        cleaningHistory,
+        thickness: duvetThickness,
+        address_id: selectedAddressId
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create duvet. Please try again.'
+      setCreateError(errorMessage)
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
@@ -379,19 +392,41 @@ export default function NewDuvetModal({
               </div>
             </div>
 
+            {/* Error Display */}
+            {createError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <div className="flex items-start space-x-3">
+                  <div className="text-red-600 text-lg">⚠️</div>
+                  <div className="flex-1">
+                    <h5 className="font-medium text-red-800 mb-1">Unable to Create Duvet</h5>
+                    <p className="text-sm text-red-700">{createError}</p>
+                    {createError.includes('Upgrade to Pro') && (
+                      <button className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline">
+                        Upgrade to Pro Plan
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => onStepChange(1)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                disabled={isCreating}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Back
               </button>
               <button
                 onClick={handleCreateDuvet}
-                disabled={!duvetName.trim() || !selectedAddressId}
-                className="px-8 py-3 bg-black text-white rounded-xl font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
+                disabled={!duvetName.trim() || !selectedAddressId || isCreating}
+                className="px-8 py-3 bg-black text-white rounded-xl font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors flex items-center space-x-2"
               >
-                Create Duvet
+                {isCreating && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                <span>{isCreating ? 'Creating...' : 'Create Duvet'}</span>
               </button>
             </div>
           </div>
