@@ -11,6 +11,81 @@ export interface OrderNotificationData {
   cost?: number | null
 }
 
+export interface DryingCompletionData {
+  userEmail: string
+  userName: string | null
+  duvetName: string
+  completedAt: string
+}
+
+export async function sendDryingCompletionEmail(data: DryingCompletionData) {
+  try {
+    console.log('Starting drying completion email send process...')
+    console.log('Drying completion data:', data)
+    console.log('Resend API Key exists:', !!process.env.RESEND_API_KEY)
+
+    const emailPayload = {
+      from: 'MiteSnap <hello@mitesnap.com>',
+      to: [data.userEmail],
+      subject: `Your duvet drying is complete - ${data.duvetName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #2563eb;">✨ Duvet Drying Complete!</h2>
+          
+          <p>Hello ${data.userName || 'there'},</p>
+          
+          <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+            <h3 style="margin-top: 0; color: #1e40af;">Good news!</h3>
+            <p>Your duvet <strong>"${data.duvetName}"</strong> has finished the drying process and is now ready.</p>
+            <p><strong>Completed at:</strong> ${new Date(data.completedAt).toLocaleString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</p>
+          </div>
+          
+          <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; color: #4b5563;">
+              <strong>What's next?</strong><br>
+              Your duvet should now have significantly reduced mite levels and be fresh and clean. 
+              Make sure to store it in a clean, dry place to maintain its freshness.
+            </p>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Thank you for using MiteSnap!<br>
+            <em>Keep your bedding mite-free and healthy.</em>
+          </p>
+        </div>
+      `,
+    }
+
+    console.log('Drying completion email payload:', JSON.stringify(emailPayload, null, 2))
+
+    const { data: emailResult, error } = await resend.emails.send(emailPayload)
+
+    if (error) {
+      console.error('Resend API error details for drying completion:', error)
+      console.error('Error type:', typeof error)
+      console.error('Error keys:', Object.keys(error))
+      return false
+    }
+
+    console.log('Drying completion email sent successfully!')
+    console.log('Resend response:', emailResult)
+    return true
+  } catch (error) {
+    console.error('Caught exception during drying completion email send:', error)
+    console.error('Exception type:', typeof error)
+    console.error('Exception message:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('Exception stack:', error instanceof Error ? error.stack : 'No stack trace')
+    return false
+  }
+}
+
 export async function sendOrderNotificationEmail(data: OrderNotificationData) {
   try {
     console.log('Starting email send process...')

@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { updateDuvetStatus } from '@/lib/database'
 import { updateDuvetMiteScore } from '@/lib/clean-history'
+import { getClerkUserById } from '@/lib/clerk-server'
+import { sendDryingCompletionEmail } from '@/lib/email'
 
 interface TimeoutResult {
   processedCount: number
   updatedCount: number
   miteScoresUpdated: number
+  emailsSent: number
   errors: string[]
 }
 
@@ -16,13 +19,14 @@ export async function GET() {
       processedCount: 0,
       updatedCount: 0,
       miteScoresUpdated: 0,
+      emailsSent: 0,
       errors: []
     }
 
-    // Get all duvets in self_drying status
+    // Get all duvets in self_drying status with user_id and name for email notification
     const { data: duvets, error } = await supabase
       .from('quilts')
-      .select('id, status')
+      .select('id, status, user_id, name')
       .eq('status', 'self_drying')
 
     if (error) {
@@ -112,6 +116,40 @@ export async function GET() {
           
           if (updated) {
             result.updatedCount++
+            
+            // Send email notification to user
+            try {
+              console.log(`Sending completion email for duvet ${duvet.id}`)
+              
+              // Get user information from Clerk
+              const clerkUser = await getClerkUserById(duvet.user_id)
+              
+              if (clerkUser?.email) {
+                // Send drying completion email
+                const emailSent = await sendDryingCompletionEmail({
+                  userEmail: clerkUser.email,
+                  userName: clerkUser.name,
+                  duvetName: duvet.name,
+                  completedAt: new Date().toISOString()
+                })
+                
+                if (emailSent) {
+                  result.emailsSent++
+                  console.log(`Successfully sent completion email for duvet ${duvet.id} to ${clerkUser.email}`)
+                } else {
+                  console.error(`Failed to send completion email for duvet ${duvet.id}`)
+                  result.errors.push(`Failed to send email for duvet ${duvet.id}`)
+                }
+              } else {
+                console.error(`No email found for user ${duvet.user_id} (duvet ${duvet.id})`)
+                result.errors.push(`No email found for user ${duvet.user_id}`)
+              }
+            } catch (emailError) {
+              const emailErrorMessage = `Error sending email for duvet ${duvet.id}: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`
+              console.error(emailErrorMessage)
+              result.errors.push(emailErrorMessage)
+              // Don't fail the whole operation if email fails
+            }
           }
         }
       } catch (error) {
@@ -123,7 +161,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: `Processed ${result.processedCount} duvets, reset ${result.updatedCount} to normal, updated ${result.miteScoresUpdated} mite scores`,
+      message: `Processed ${result.processedCount} duvets, reset ${result.updatedCount} to normal, updated ${result.miteScoresUpdated} mite scores, sent ${result.emailsSent} completion emails`,
       ...result
     })
 
