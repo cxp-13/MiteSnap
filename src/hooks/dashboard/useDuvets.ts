@@ -55,10 +55,12 @@ export function useDuvets(userId: string | undefined) {
       return limitCheck
     } catch (error) {
       console.error('Error checking subscription limits:', error)
+      // Fallback: if no duvets exist, user should be able to create at least one
+      const canCreate = currentDuvetCount === 0 ? true : false
       setSubscriptionTier('basic')
-      setCanCreateDuvet(false)
+      setCanCreateDuvet(canCreate)
       setMaxDuvets(1)
-      return { canCreate: false, tier: 'basic' as SubscriptionTier, maxAllowed: 1 }
+      return { canCreate, tier: 'basic' as SubscriptionTier, maxAllowed: 1 }
     }
   }, [])
 

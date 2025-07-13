@@ -538,7 +538,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         <div className="flex items-center justify-between mb-2">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Latest Duvets</h2>
-            {!canCreateDuvet && (
+            {!canCreateDuvet && duvets.length > 0 && (
               <p className="text-sm text-amber-600 mt-1">
                 {subscriptionTier === 'basic' 
                   ? `Limited to ${maxDuvets} duvet on Basic plan` 
@@ -548,10 +548,10 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
           </div>
           <div className="flex flex-col items-end space-y-2">
             <button
-              onClick={canCreateDuvet ? handleOpenNewDuvetModal : undefined}
-              disabled={!canCreateDuvet}
+              onClick={canCreateDuvet || duvets.length === 0 ? handleOpenNewDuvetModal : undefined}
+              disabled={!canCreateDuvet && duvets.length > 0}
               className={`flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg transition-colors font-medium text-sm md:text-base ${
-                canCreateDuvet
+                canCreateDuvet || duvets.length === 0
                   ? 'bg-gray-900 text-white hover:bg-gray-800'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
@@ -562,7 +562,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
               <span className="hidden sm:inline">Add Duvet</span>
               <span className="sm:hidden">Add</span>
             </button>
-            {!canCreateDuvet && subscriptionTier === 'basic' && (
+            {!canCreateDuvet && duvets.length > 0 && subscriptionTier === 'basic' && (
               <button className="text-xs text-blue-600 hover:text-blue-800 underline">
                 Upgrade to Pro
               </button>
@@ -571,7 +571,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         </div>
         <p className="text-base text-gray-600 font-light leading-relaxed mb-8">
           Monitor and manage your duvets for optimal health
-          {subscriptionTier === 'basic' && (
+          {subscriptionTier === 'basic' && duvets.length > 0 && (
             <span className="text-amber-600 ml-2">
               • {duvets.length}/{maxDuvets} duvets used
             </span>
