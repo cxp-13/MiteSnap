@@ -99,6 +99,9 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     sunDryStep,
     isManualMode,
     manualTimeWindow,
+    isEditingWeatherTime,
+    customTimeWindow,
+    editingTimeWindow,
     analyzeWeatherForDrying,
     closeSunDryModal,
     closeSunDryModalUIOnly,
@@ -106,7 +109,14 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     setSunDryStep,
     handleStartAIAnalysis,
     handleConfirmSunDrying,
-    handleManualTimeSelection
+    handleManualTimeSelection,
+    handleWeatherTimeSelection,
+    startEditingWeatherTime,
+    cancelEditingWeatherTime,
+    confirmEditingWeatherTime,
+    setIsEditingWeatherTime,
+    setCustomTimeWindow,
+    setSunDryingAnalysis
   } = weatherHook
 
   const { addresses, getDefaultAddress } = addressesHook
@@ -571,11 +581,6 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         </div>
         <p className="text-base text-gray-600 font-light leading-relaxed mb-8">
           Monitor and manage your duvets for optimal health
-          {subscriptionTier === 'basic' && duvets.length > 0 && (
-            <span className="text-amber-600 ml-2">
-              • {duvets.length}/{maxDuvets} duvets used
-            </span>
-          )}
         </p>
       </div>
 
@@ -692,27 +697,31 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                             </h4>
                             <div className="text-4xl font-light text-black tracking-tight leading-none">
                               {(() => {
-                                const now = new Date()
-                                const currentTime = now.getTime()
-                                console.log('weatherAnalysis', weatherAnalysis.optimalWindows)
-                                let optimalWindow = weatherAnalysis.optimalWindows[0]
+                                // Use confirmed custom time if available, otherwise use weather recommendation
+                                // DO NOT use editingTimeWindow here - only confirmed customTimeWindow
+                                const window = customTimeWindow || (() => {
+                                  const now = new Date()
+                                  const currentTime = now.getTime()
+                                  console.log('weatherAnalysis', weatherAnalysis.optimalWindows)
+                                  let optimalWindow = weatherAnalysis.optimalWindows[0]
 
-                                const futureWindow = weatherAnalysis.optimalWindows.find(window => {
-                                  const windowStartTime = new Date(window.startTime).getTime()
-                                  return windowStartTime > currentTime
-                                })
+                                  const futureWindow = weatherAnalysis.optimalWindows.find(window => {
+                                    const windowStartTime = new Date(window.startTime).getTime()
+                                    return windowStartTime > currentTime
+                                  })
 
-                                if (futureWindow) {
-                                  optimalWindow = futureWindow
-                                }
+                                  if (futureWindow) {
+                                    optimalWindow = futureWindow
+                                  }
+                                  return optimalWindow
+                                })()
 
-
-                                const startTime = new Date(optimalWindow.startTime).toLocaleTimeString('en-US', {
+                                const startTime = new Date(window.startTime).toLocaleTimeString('en-US', {
                                   hour: 'numeric',
                                   minute: '2-digit',
                                   hour12: true
                                 })
-                                const endTime = new Date(optimalWindow.endTime).toLocaleTimeString('en-US', {
+                                const endTime = new Date(window.endTime).toLocaleTimeString('en-US', {
                                   hour: 'numeric',
                                   minute: '2-digit',
                                   hour12: true
@@ -722,9 +731,66 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                               })()}
                             </div>
                             <p className="text-gray-500 font-normal text-sm">
-                              Optimal conditions detected
+                              {customTimeWindow ? 'Custom time selected' : 'Optimal conditions detected'}
                             </p>
+                            
+                            {/* Time editing controls */}
+                            <div className="flex items-center space-x-3">
+                              <button
+                                onClick={startEditingWeatherTime}
+                                className="text-blue-700 hover:text-blue-900 text-sm font-semibold transition-colors underline decoration-2 underline-offset-2"
+                              >
+                                {customTimeWindow ? 'Change time' : 'Adjust time'}
+                              </button>
+                              {customTimeWindow && (
+                                <button
+                                  onClick={() => {
+                                    setCustomTimeWindow(null)
+                                    setSunDryingAnalysis(null)
+                                  }}
+                                  className="text-gray-600 hover:text-gray-800 text-sm transition-colors"
+                                >
+                                  Reset to optimal
+                                </button>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Time editing section */}
+                          {isEditingWeatherTime && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h5 className="font-medium text-blue-900 text-sm">Customize Drying Time</h5>
+                                <button
+                                  onClick={cancelEditingWeatherTime}
+                                  className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                              <TimeRangePicker
+                                onTimeRangeChange={handleWeatherTimeSelection}
+                                initialStartTime={(() => {
+                                  const window = customTimeWindow || weatherAnalysis.optimalWindows[0]
+                                  return new Date(window.startTime).toTimeString().slice(0, 5)
+                                })()}
+                                initialEndTime={(() => {
+                                  const window = customTimeWindow || weatherAnalysis.optimalWindows[0]
+                                  return new Date(window.endTime).toTimeString().slice(0, 5)
+                                })()}
+                              />
+                              {editingTimeWindow && (
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={confirmEditingWeatherTime}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                                  >
+                                    Confirm Time
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {/* Two Option Buttons */}
                           <div className="flex flex-col space-y-3">
@@ -790,6 +856,10 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                       <div className="bg-gray-50 rounded-xl p-6">
                         <TimeRangePicker
                           onTimeRangeChange={handleManualTimeSelection}
+                          isEditMode={manualTimeWindow !== null}
+                          onEditModeChange={() => {}}
+                          initialStartTime={manualTimeWindow ? new Date(manualTimeWindow.startTime).toTimeString().slice(0, 5) : undefined}
+                          initialEndTime={manualTimeWindow ? new Date(manualTimeWindow.endTime).toTimeString().slice(0, 5) : undefined}
                         />
                       </div>
 
@@ -897,6 +967,69 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                       </div>
                     </div>
 
+                  </div>
+
+                  {/* Time editing section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-medium text-gray-900 text-sm">
+                          {customTimeWindow ? 'Custom Drying Time' : isManualMode ? 'Manual Drying Time' : 'Weather Recommended Time'}
+                        </h5>
+                        {!isManualMode && !isEditingWeatherTime && (
+                          <button
+                            onClick={startEditingWeatherTime}
+                            className="text-blue-700 hover:text-blue-900 text-sm font-semibold transition-colors underline decoration-2 underline-offset-2"
+                          >
+                            Edit Time
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Show current time if not editing */}
+                      {!isEditingWeatherTime && !isManualMode && (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <p className="text-sm text-gray-700">
+                            {(() => {
+                              const window = customTimeWindow || weatherAnalysis?.optimalWindows?.[0]
+                              if (!window) return 'No time selected'
+                              
+                              const startTime = new Date(window.startTime).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })
+                              const endTime = new Date(window.endTime).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })
+                              return `${startTime} - ${endTime} tomorrow`
+                            })()}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Time picker for editing */}
+                      {(isEditingWeatherTime || isManualMode) && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <TimeRangePicker
+                            onTimeRangeChange={isManualMode ? handleManualTimeSelection : handleWeatherTimeSelection}
+                            isEditMode={true}
+                            onEditModeChange={isManualMode ? () => {} : setIsEditingWeatherTime}
+                            initialStartTime={(() => {
+                              const window = isManualMode ? manualTimeWindow : (customTimeWindow || weatherAnalysis?.optimalWindows?.[0])
+                              return window ? new Date(window.startTime).toTimeString().slice(0, 5) : undefined
+                            })()}
+                            initialEndTime={(() => {
+                              const window = isManualMode ? manualTimeWindow : (customTimeWindow || weatherAnalysis?.optimalWindows?.[0])
+                              return window ? new Date(window.endTime).toTimeString().slice(0, 5) : undefined
+                            })()}
+                          />
+                        </div>
+                      )}
+
+                    </div>
                   </div>
 
                   <div className="flex justify-center space-x-3">

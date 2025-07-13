@@ -137,7 +137,12 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
         const avgPrecip = currentWindow.reduce((sum, w) => sum + w.values.precipitationProbability, 0) / currentWindow.length
         
         // Calculate end time by adding 30 minutes to the last interval
-        const endTime = new Date(new Date(windowEnd.startTime).getTime() + 30 * 60 * 1000).toISOString()
+        // Ensure end time doesn't exceed 7 PM (19:00)
+        const calculatedEndTime = new Date(new Date(windowEnd.startTime).getTime() + 30 * 60 * 1000)
+        const maxEndTime = new Date(calculatedEndTime)
+        maxEndTime.setHours(19, 0, 0, 0) // Set to 7:00 PM
+        
+        const endTime = calculatedEndTime <= maxEndTime ? calculatedEndTime.toISOString() : maxEndTime.toISOString()
         
         // Calculate suitability score (0-100) - updated for lower standards
         let score = 0
@@ -167,7 +172,12 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
     const avgPrecip = currentWindow.reduce((sum, w) => sum + w.values.precipitationProbability, 0) / currentWindow.length
     
     // Calculate end time by adding 30 minutes to the last interval
-    const endTime = new Date(new Date(windowEnd.startTime).getTime() + 30 * 60 * 1000).toISOString()
+    // Ensure end time doesn't exceed 7 PM (19:00)
+    const calculatedEndTime = new Date(new Date(windowEnd.startTime).getTime() + 30 * 60 * 1000)
+    const maxEndTime = new Date(calculatedEndTime)
+    maxEndTime.setHours(19, 0, 0, 0) // Set to 7:00 PM
+    
+    const endTime = calculatedEndTime <= maxEndTime ? calculatedEndTime.toISOString() : maxEndTime.toISOString()
     
     let score = 0
     score += Math.min(avgTemp - 12, 18) * 1.5

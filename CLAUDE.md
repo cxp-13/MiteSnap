@@ -6,6 +6,7 @@
 6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
 7. Finally, add a review section to the todo.md file with a summary of the changes you made and any other relevant information.
 8. The generated code. For example, annotations and UI text must be entirely in English
+9. use pnpm as the package manager
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.

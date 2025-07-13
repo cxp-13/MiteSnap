@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import LinearProgress from './shared/LinearProgress'
 import DryingCircularProgress from './shared/DryingCircularProgress'
+import CountdownTimer from './shared/CountdownTimer'
 import { Duvet, Address, CleanHistoryRecord } from './shared/types'
 import { isCurrentTimeWithinSunrise } from '@/lib/weather-analysis'
 
@@ -109,7 +110,9 @@ export default function DuvetCard({
               ) : duvet.status === 'waiting_optimal_time' ? (
                 <>
                   <span className="text-sm">⏰</span>
-                  <span className="text-xs text-gray-600 font-medium whitespace-nowrap">Scheduled</span>
+                  <CountdownTimer 
+                    startTime={duvetSunDryingStatus?.[duvet.id]?.start_time || null}
+                  />
                 </>
               ) : null}
             </div>

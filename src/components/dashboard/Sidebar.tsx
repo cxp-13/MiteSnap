@@ -1,12 +1,13 @@
 'use client'
 
+import { memo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import { UserButton } from '@clerk/nextjs'
 
-export default function Sidebar() {
+function Sidebar() {
   const { user } = useUnifiedUser()
   const pathname = usePathname()
 
@@ -50,6 +51,7 @@ export default function Sidebar() {
           
           <Link
             href="/dashboard/duvets"
+            prefetch={true}
             className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
               currentActiveTab === 'duvets'
                 ? 'bg-gray-900 text-white shadow-sm'
@@ -70,6 +72,7 @@ export default function Sidebar() {
 
           <Link
             href="/dashboard/addresses"
+            prefetch={true}
             className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
               currentActiveTab === 'addresses'
                 ? 'bg-gray-900 text-white shadow-sm'
@@ -91,6 +94,7 @@ export default function Sidebar() {
 
           <Link
             href="/dashboard/my-orders"
+            prefetch={true}
             className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
               currentActiveTab === 'my-orders'
                 ? 'bg-gray-900 text-white shadow-sm'
@@ -111,6 +115,7 @@ export default function Sidebar() {
 
           <Link
             href="/dashboard/payment-methods"
+            prefetch={true}
             className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
               currentActiveTab === 'payment-methods'
                 ? 'bg-gray-900 text-white shadow-sm'
@@ -138,6 +143,7 @@ export default function Sidebar() {
           
           <Link
             href="/dashboard/orders"
+            prefetch={true}
             className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
               currentActiveTab === 'orders'
                 ? 'bg-gray-900 text-white shadow-sm'
@@ -159,6 +165,7 @@ export default function Sidebar() {
 
           <Link
             href="/dashboard/my-accepted-orders"
+            prefetch={true}
             className={`flex items-center w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
               currentActiveTab === 'my-accepted-orders'
                 ? 'bg-gray-900 text-white shadow-sm'
@@ -255,3 +262,5 @@ export default function Sidebar() {
     </div>
   )
 }
+
+export default memo(Sidebar)

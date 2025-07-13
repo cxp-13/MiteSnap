@@ -21,6 +21,12 @@ export function useWeather() {
   // Manual time selection state
   const [isManualMode, setIsManualMode] = useState(false)
   const [manualTimeWindow, setManualTimeWindow] = useState<OptimalTimeWindow | null>(null)
+  const [isEditingTime, setIsEditingTime] = useState(false)
+  
+  // Weather recommendation time editing state
+  const [isEditingWeatherTime, setIsEditingWeatherTime] = useState(false)
+  const [customTimeWindow, setCustomTimeWindow] = useState<OptimalTimeWindow | null>(null)
+  const [editingTimeWindow, setEditingTimeWindow] = useState<OptimalTimeWindow | null>(null)
 
   // Analyze weather for sun drying
   const analyzeWeatherForDrying = useCallback(async (latitude: number, longitude: number) => {
@@ -53,6 +59,85 @@ export function useWeather() {
     setManualTimeWindow(manualWindow)
   }, [])
 
+  // Handle weather recommendation time editing (temporary state)
+  const handleWeatherTimeSelection = useCallback((startTime: string, endTime: string) => {
+    // Validate input format
+    if (!startTime || !endTime) {
+      return
+    }
+    
+    // TimeRangePicker already sends ISO strings, so parse them directly
+    const startDateTime = new Date(startTime)
+    const endDateTime = new Date(endTime)
+    const now = new Date()
+    
+    // Check if dates are valid
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+      return // Silently fail for invalid dates
+    }
+    
+    // Check if start time is not in the past
+    if (startDateTime <= now) {
+      return // Silently fail for past times
+    }
+    
+    const diffInMinutes = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60)
+    
+    // Check time range (7AM-7PM)
+    const startHour = startDateTime.getHours()
+    const endHour = endDateTime.getHours()
+    
+    if (startHour < 7 || endHour > 19) {
+      return // Silently fail for out-of-range times
+    }
+    
+    // Check duration limits
+    if (diffInMinutes < 30) {
+      return // Silently fail for too short duration
+    }
+    
+    if (diffInMinutes > 480) { // 8 hours
+      return // Silently fail for too long duration
+    }
+    
+    // Only update editing state, not the confirmed custom time
+    const editingWindow: OptimalTimeWindow = {
+      startTime: startTime, // Already an ISO string
+      endTime: endTime,     // Already an ISO string
+      temperature: 15,
+      humidity: 70,
+      precipitationProbability: 20,
+      suitabilityScore: 50
+    }
+    
+    setEditingTimeWindow(editingWindow)
+  }, [])
+
+  // Start editing weather recommended time
+  const startEditingWeatherTime = useCallback(() => {
+    setIsEditingWeatherTime(true)
+    // Initialize with current weather recommendation
+    if (weatherAnalysis?.optimalWindows?.[0]) {
+      setCustomTimeWindow(weatherAnalysis.optimalWindows[0])
+    }
+  }, [weatherAnalysis])
+
+  // Cancel editing weather time
+  const cancelEditingWeatherTime = useCallback(() => {
+    setIsEditingWeatherTime(false)
+    setEditingTimeWindow(null)
+  }, [])
+
+  // Confirm editing weather time
+  const confirmEditingWeatherTime = useCallback(() => {
+    if (editingTimeWindow) {
+      setCustomTimeWindow(editingTimeWindow)
+      setSunDryingAnalysis(null) // Clear previous AI analysis
+    }
+    setIsEditingWeatherTime(false)
+    setEditingTimeWindow(null)
+  }, [editingTimeWindow])
+
 
 
   // Close sun dry modal and clear all data
@@ -63,6 +148,10 @@ export function useWeather() {
     setSunDryingAnalysis(null)
     setIsManualMode(false)
     setManualTimeWindow(null)
+    setIsEditingTime(false)
+    setIsEditingWeatherTime(false)
+    setCustomTimeWindow(null)
+    setEditingTimeWindow(null)
   }, [])
 
   // Close sun dry modal UI only (preserve weather data for order creation)
@@ -74,10 +163,18 @@ export function useWeather() {
 
   // Start AI analysis (don't create record yet)
   const handleStartAIAnalysis = useCallback(async (currentMiteScore: number) => {
-    // Use manual time window if in manual mode, otherwise use weather analysis
-    const effectiveWindow = isManualMode && manualTimeWindow 
-      ? manualTimeWindow 
-      : weatherAnalysis?.optimalWindows?.[0]
+    // Determine effective time window priority: 
+    // 1. Editing time window (if currently editing)
+    // 2. Custom time window (if previously confirmed)
+    // 3. Manual time window (if in manual mode)
+    // 4. Weather analysis optimal window (default)
+    const effectiveWindow = editingTimeWindow
+      ? editingTimeWindow
+      : (customTimeWindow
+          ? customTimeWindow
+          : (isManualMode && manualTimeWindow 
+              ? manualTimeWindow 
+              : weatherAnalysis?.optimalWindows?.[0]))
     
     if (!effectiveWindow) {
       alert(isManualMode ? 'Please select a time window first' : 'Weather analysis not available')
@@ -109,14 +206,22 @@ export function useWeather() {
     } finally {
       setIsLoadingSunDryingAnalysis(false)
     }
-  }, [weatherAnalysis, isManualMode, manualTimeWindow])
+  }, [weatherAnalysis, isManualMode, manualTimeWindow, customTimeWindow, editingTimeWindow])
 
   // Confirm and start sun drying (after showing results)
   const handleConfirmSunDrying = useCallback(async (duvetId: string, userId: string, currentMiteScore: number) => {
-    // Use manual time window if in manual mode, otherwise use weather analysis
-    const effectiveWindow = isManualMode && manualTimeWindow 
-      ? manualTimeWindow 
-      : weatherAnalysis?.optimalWindows?.[0]
+    // Determine effective time window priority: 
+    // 1. Editing time window (if currently editing)
+    // 2. Custom time window (if previously confirmed)
+    // 3. Manual time window (if in manual mode)
+    // 4. Weather analysis optimal window (default)
+    const effectiveWindow = editingTimeWindow
+      ? editingTimeWindow
+      : (customTimeWindow
+          ? customTimeWindow
+          : (isManualMode && manualTimeWindow 
+              ? manualTimeWindow 
+              : weatherAnalysis?.optimalWindows?.[0]))
     
     if (!effectiveWindow || !sunDryingAnalysis) {
       alert('Time window or prediction not available')
@@ -145,7 +250,7 @@ export function useWeather() {
       alert('Failed to start sun drying. Please try again.')
       return false
     }
-  }, [weatherAnalysis, sunDryingAnalysis, closeSunDryModal, isManualMode, manualTimeWindow])
+  }, [weatherAnalysis, sunDryingAnalysis, closeSunDryModal, isManualMode, manualTimeWindow, customTimeWindow, editingTimeWindow])
 
   return {
     // Location & Weather State
@@ -165,6 +270,12 @@ export function useWeather() {
     // Manual Time Selection State
     isManualMode,
     manualTimeWindow,
+    isEditingTime,
+    
+    // Weather Time Editing State
+    isEditingWeatherTime,
+    customTimeWindow,
+    editingTimeWindow,
     
     // Actions
     setLocation,
@@ -179,6 +290,14 @@ export function useWeather() {
     closeSunDryModalUIOnly,
     setShowSunDryModal,
     setSunDryStep,
-    setIsManualMode
+    setIsManualMode,
+    setIsEditingTime,
+    handleWeatherTimeSelection,
+    startEditingWeatherTime,
+    cancelEditingWeatherTime,
+    confirmEditingWeatherTime,
+    setIsEditingWeatherTime,
+    setCustomTimeWindow,
+    setSunDryingAnalysis
   }
 }
