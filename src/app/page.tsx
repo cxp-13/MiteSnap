@@ -352,7 +352,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-center min-h-[80vh]">
             
             {/* Left Side - Content Area */}
-            <div className="lg:col-span-6 order-2 lg:order-1">
+            <div className="lg:col-span-6 order-1 lg:order-1">
               <div className="p-6 md:p-8 lg:p-12">
                 {/* Main Headline - H1 for SEO */}
                 <motion.h1
@@ -520,7 +520,7 @@ export default function Home() {
             </div>
 
             {/* Right Side - Scrolling Image Gallery with Blur Edges */}
-            <div className="lg:col-span-6 order-1 lg:order-2 relative">
+            <div className="lg:col-span-6 order-2 lg:order-2 relative">
               <motion.div
                 className="relative h-[800px] overflow-hidden w-full"
                 initial={{ opacity: 0, translateX: 50 }}
@@ -556,10 +556,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold">
-                            Mite Score: 15
-                          </span>
+                        <div className="flex items-center justify-end mb-3">
                           <div className="flex text-yellow-400">
                             <span className="text-base">⭐⭐⭐⭐⭐</span>
                           </div>
@@ -586,10 +583,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 45
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐</span>
                           </div>
@@ -610,10 +604,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 72
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐⭐</span>
                           </div>
@@ -635,10 +626,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold">
-                            Mite Score: 15
-                          </span>
+                        <div className="flex items-center justify-end mb-3">
                           <div className="flex text-yellow-400">
                             <span className="text-base">⭐⭐⭐⭐⭐</span>
                           </div>
@@ -665,10 +653,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 45
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐</span>
                           </div>
@@ -706,10 +691,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 32
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐</span>
                           </div>
@@ -730,10 +712,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 58
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐</span>
                           </div>
@@ -754,10 +733,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 85
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐⭐</span>
                           </div>
@@ -779,10 +755,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 32
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐</span>
                           </div>
@@ -803,10 +776,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">
-                            Score: 58
-                          </span>
+                        <div className="flex items-center justify-end mb-2">
                           <div className="flex text-yellow-400 text-sm">
                             <span>⭐⭐⭐⭐</span>
                           </div>
