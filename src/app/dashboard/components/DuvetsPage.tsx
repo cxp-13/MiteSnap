@@ -80,6 +80,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     handlePhotoUpload,
     handleStartAnalysis,
     handleCreateDuvet,
+    handleDeleteDuvet,
     handleCloseModal,
     setShowNewDuvetModal,
     setDuvetName,
@@ -184,20 +185,22 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
   const handleSunDryingService = async (duvet: Duvet) => {
     setSelectedDuvet(duvet)
 
-    // Get location and analyze weather
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords
-          weatherHook.setLocation({ latitude, longitude })
-          await analyzeWeatherForDrying(latitude, longitude)
-          setShowSunDryModal(true)
-        },
-        (error) => {
-          console.error('Error getting location:', error)
-          alert('Please enable location access to use sun-drying service')
-        }
-      )
+    // Get location from duvet's bound address instead of current geolocation
+    if (duvet.address_id) {
+      const duvetAddress = addresses.find(addr => addr.id === duvet.address_id)
+      if (duvetAddress && duvetAddress.latitude && duvetAddress.longitude) {
+        // Use duvet's bound address coordinates
+        weatherHook.setLocation({ 
+          latitude: duvetAddress.latitude, 
+          longitude: duvetAddress.longitude 
+        })
+        await analyzeWeatherForDrying(duvetAddress.latitude, duvetAddress.longitude)
+        setShowSunDryModal(true)
+      } else {
+        alert('This duvet is not bound to a valid address with location information. Please update the duvet\'s address first.')
+      }
+    } else {
+      alert('This duvet is not bound to any address. Please assign an address to this duvet first.')
     }
   }
 
@@ -592,6 +595,7 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
         addresses={addresses}
         helpDryingData={helpDryingData}
         onCancelHelpDryingOrder={handleCancelHelpDryingOrder}
+        onDeleteDuvet={handleDeleteDuvet}
       />
 
       {/* Address Prompt Modal */}

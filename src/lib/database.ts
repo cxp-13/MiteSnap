@@ -152,6 +152,25 @@ export async function updateDuvetStatus(duvetId: string, status: DuvetStatus): P
   }
 }
 
+export async function deleteDuvet(duvetId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('quilts')
+      .delete()
+      .eq('id', duvetId)
+
+    if (error) {
+      console.error('Error deleting duvet:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting duvet:', error)
+    return false
+  }
+}
+
 export async function createAddress(
   addressData: {
     country?: string | null
@@ -326,6 +345,29 @@ export async function updateAddress(
   } catch (error) {
     console.error('Error updating address:', error)
     return null
+  }
+}
+
+export async function checkAddressDuvetAssociations(addressId: string): Promise<{ hasAssociations: boolean; associatedDuvets: { id: string; name: string }[] }> {
+  try {
+    const { data, error } = await supabase
+      .from('quilts')
+      .select('id, name')
+      .eq('address_id', addressId)
+
+    if (error) {
+      console.error('Error checking address duvet associations:', error)
+      return { hasAssociations: false, associatedDuvets: [] }
+    }
+
+    const associatedDuvets = data || []
+    return {
+      hasAssociations: associatedDuvets.length > 0,
+      associatedDuvets
+    }
+  } catch (error) {
+    console.error('Error checking address duvet associations:', error)
+    return { hasAssociations: false, associatedDuvets: [] }
   }
 }
 

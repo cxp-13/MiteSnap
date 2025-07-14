@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getUserDuvets, type Duvet } from '@/lib/database'
+import { getUserDuvets, deleteDuvet, type Duvet } from '@/lib/database'
 import { uploadDuvetImage } from '@/lib/storage'
 import { analyzeDuvet } from '@/lib/ai-analysis'
 import { getCurrentSunDryingStatus, type CleanHistoryRecord } from '@/lib/clean-history'
@@ -244,6 +244,23 @@ export function useDuvets(userId: string | undefined) {
     }
   }, [userId, analysisResult, loadDuvets])
 
+  // Delete duvet
+  const handleDeleteDuvet = useCallback(async (duvet: Duvet) => {
+    if (!duvet.id) return false
+
+    try {
+      const success = await deleteDuvet(duvet.id)
+      if (success) {
+        await loadDuvets()
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Error deleting duvet:', error)
+      return false
+    }
+  }, [loadDuvets])
+
   // Close modal and reset state
   const handleCloseModal = useCallback(() => {
     setShowNewDuvetModal(false)
@@ -289,6 +306,7 @@ export function useDuvets(userId: string | undefined) {
     handlePhotoUpload,
     handleStartAnalysis,
     handleCreateDuvet,
+    handleDeleteDuvet,
     handleCloseModal,
     setShowNewDuvetModal,
     setDuvetName,
