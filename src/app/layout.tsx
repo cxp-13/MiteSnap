@@ -38,14 +38,14 @@ export const metadata: Metadata = {
   verification: {
     google: "NWWQXGdeSNhrfNE0ebGCK5S9UpLMFjnp_RMXhvo3Q3c",
   },
-  metadataBase: new URL('https://mitesnap.com'),
+  metadataBase: new URL('https://www.mitesnap.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://mitesnap.com',
+    url: 'https://www.mitesnap.com',
     title: 'MiteSnap - AI-Powered Dust Mite Detection for Your Bedding',
     description: 'Track dust mites on your bedding with AI analysis and weather data. Get smart drying recommendations and community help.',
     siteName: 'MiteSnap',

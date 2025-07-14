@@ -17,7 +17,7 @@ Allow: /*.svg
 Allow: /*.ico
 
 # Sitemap location
-Sitemap: https://mitesnap.com/sitemap.xml
+Sitemap: https://www.mitesnap.com/sitemap.xml
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
@@ -28,6 +28,8 @@ Allow: /
 Disallow: /dashboard/
 Disallow: /api/
 Allow: /api/sitemap
+Allow: /sitemap.xml
+Allow: /manifest.json
 
 # Bing specific settings  
 User-agent: Bingbot
@@ -35,6 +37,14 @@ Allow: /
 Disallow: /dashboard/
 Disallow: /api/
 Allow: /api/sitemap
+Allow: /sitemap.xml
+Allow: /manifest.json
+
+# Other search engines
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
 
 # Block access to sensitive files
 Disallow: /.env

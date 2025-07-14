@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://mitesnap.com'
+  const baseUrl = 'https://www.mitesnap.com'
   const currentDate = new Date()
 
   return [
@@ -28,6 +28,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: currentDate,
       changeFrequency: 'monthly',
       priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/api/sitemap`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 0.3,
     },
     // Note: Dashboard pages are excluded as they require authentication
     // and are marked as noindex in robots.txt

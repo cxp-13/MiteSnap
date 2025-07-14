@@ -42,8 +42,8 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "MiteSnap",
-    "url": "https://mitesnap.com",
-    "logo": "https://mitesnap.com/logo.png",
+    "url": "https://www.mitesnap.com",
+    "logo": "https://www.mitesnap.com/logo.png",
     "description": "AI-powered dust mite detection and bedding health monitoring service",
     "founder": {
       "@type": "Person",
@@ -60,7 +60,7 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "MiteSnap",
-    "url": "https://mitesnap.com",
+    "url": "https://www.mitesnap.com",
     "description": "Track dust mites on your bedding, sheets, and duvets with AI visual analysis and real-time weather data. Get smart sun-drying recommendations and connect with community helpers.",
     "applicationCategory": "HealthApplication",
     "operatingSystem": "Web",
@@ -76,6 +76,19 @@ export default function Home() {
       "Smart sun-drying recommendations",
       "Community helper network",
       "Bedding health monitoring"
+    ]
+  }
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.mitesnap.com"
+      }
     ]
   }
 
@@ -272,6 +285,12 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(webApplicationSchema),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbSchema),
         }}
       />
       <script
