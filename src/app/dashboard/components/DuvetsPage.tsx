@@ -12,6 +12,7 @@ import type { OrderWithDuvet } from '@/lib/database'
 import { useUnifiedUser } from '@/hooks/useUnifiedUser'
 import { uploadDuvetImage } from '@/lib/storage'
 import { getCostBreakdown, type CostBreakdown } from '@/lib/pricing'
+import { isCurrentTimeWithinSunrise } from '@/lib/weather-analysis'
 import DuvetList from '@/components/dashboard/DuvetList'
 import NewDuvetModal from '@/components/dashboard/modals/NewDuvetModal'
 import OrderRequestModal from '@/components/dashboard/modals/OrderRequestModal'
@@ -130,6 +131,9 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     'Calculating optimal drying effectiveness...',
     'Generating personalized recommendations...'
   ]
+
+  // Check if current time is within sun drying hours
+  const isWithinSunDryingHours = isCurrentTimeWithinSunrise()
 
   // Cycle through analysis messages during animation
   useEffect(() => {
@@ -772,54 +776,85 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                                   Cancel
                                 </button>
                               </div>
-                              <TimeRangePicker
-                                onTimeRangeChange={handleWeatherTimeSelection}
-                                initialStartTime={(() => {
-                                  const window = customTimeWindow || weatherAnalysis.optimalWindows[0]
-                                  return new Date(window.startTime).toTimeString().slice(0, 5)
-                                })()}
-                                initialEndTime={(() => {
-                                  const window = customTimeWindow || weatherAnalysis.optimalWindows[0]
-                                  return new Date(window.endTime).toTimeString().slice(0, 5)
-                                })()}
-                              />
-                              {editingTimeWindow && (
-                                <div className="flex justify-end">
-                                  <button
-                                    onClick={confirmEditingWeatherTime}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                                  >
-                                    Confirm Time
-                                  </button>
+                              {!isWithinSunDryingHours ? (
+                                <div className="text-center py-4 space-y-3">
+                                  <div className="text-2xl">🌙</div>
+                                  <p className="text-sm text-blue-800">
+                                    Time customization is only available during daylight hours (7:00 AM - 7:00 PM)
+                                  </p>
                                 </div>
+                              ) : (
+                                <>
+                                  <TimeRangePicker
+                                    onTimeRangeChange={handleWeatherTimeSelection}
+                                    initialStartTime={(() => {
+                                      const window = customTimeWindow || weatherAnalysis.optimalWindows[0]
+                                      const startDate = new Date(window.startTime)
+                                      return `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`
+                                    })()}
+                                    initialEndTime={(() => {
+                                      const window = customTimeWindow || weatherAnalysis.optimalWindows[0]
+                                      const endDate = new Date(window.endTime)
+                                      return `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`
+                                    })()}
+                                  />
+                                  {editingTimeWindow && (
+                                    <div className="flex justify-end">
+                                      <button
+                                        onClick={confirmEditingWeatherTime}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                                      >
+                                        Confirm Time
+                                      </button>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           )}
 
                           {/* Two Option Buttons */}
-                          <div className="flex flex-col space-y-3">
-                            <button
-                              onClick={handleDryItMyself}
-                              disabled={isLoadingSunDryingAnalysis}
-                              className="px-8 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 text-base flex items-center justify-center"
-                            >
-                              {isLoadingSunDryingAnalysis ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                  Analyzing...
-                                </>
-                              ) : (
-                                'Dry it myself'
-                              )}
-                            </button>
-                            <button
-                              onClick={handleRequestHelp}
-                              className="px-8 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium transition-all duration-200 text-base border border-gray-300"
-                            >
-                              Hire Helper
-                            </button>
-
-                          </div>
+                          {!isWithinSunDryingHours ? (
+                            <div className="text-center space-y-4">
+                              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center justify-center space-x-2 text-gray-600">
+                                  <div className="text-lg">🌙</div>
+                                  <p className="text-sm font-medium">
+                                    Sun drying is only available during daylight hours (7:00 AM - 7:00 PM)
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={handleRequestHelp}
+                                className="w-full px-8 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium transition-all duration-200 text-base border border-gray-300"
+                              >
+                                Hire Helper
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col space-y-3">
+                              <button
+                                onClick={handleDryItMyself}
+                                disabled={isLoadingSunDryingAnalysis}
+                                className="px-8 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 text-base flex items-center justify-center"
+                              >
+                                {isLoadingSunDryingAnalysis ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Analyzing...
+                                  </>
+                                ) : (
+                                  'Dry it myself'
+                                )}
+                              </button>
+                              <button
+                                onClick={handleRequestHelp}
+                                className="px-8 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium transition-all duration-200 text-base border border-gray-300"
+                              >
+                                Hire Helper
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="text-center py-8 space-y-6">
@@ -847,25 +882,54 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                     </div>
                   ) : isManualMode ? (
                     <div className="py-6 space-y-4">
-                      <div className="text-center space-y-3">
-                        <div className="text-3xl text-gray-300 mb-3">⏰</div>
-                        <h4 className="text-lg font-medium text-gray-700">
-                          Weather Analysis Unavailable
-                        </h4>
-                        <p className="text-gray-500 font-normal text-sm">
-                          Select your preferred drying time manually
-                        </p>
-                      </div>
+                      {!isWithinSunDryingHours ? (
+                        <div className="text-center space-y-4">
+                          <div className="text-4xl text-gray-300 mb-4">🌙</div>
+                          <div className="space-y-3">
+                            <h4 className="text-lg font-medium text-gray-700">
+                              Sun Drying Not Available
+                            </h4>
+                            <p className="text-gray-500 font-normal text-sm">
+                              Sun drying is only available during daylight hours (7:00 AM - 7:00 PM)
+                            </p>
+                          </div>
+                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                            <p className="text-sm text-blue-800">
+                              <span className="font-medium">Next available time:</span> Tomorrow at 7:00 AM
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-center space-y-3">
+                            <div className="text-3xl text-gray-300 mb-3">⏰</div>
+                            <h4 className="text-lg font-medium text-gray-700">
+                              Weather Analysis Unavailable
+                            </h4>
+                            <p className="text-gray-500 font-normal text-sm">
+                              Select your preferred drying time manually
+                            </p>
+                          </div>
 
-                      <div className="bg-gray-50 rounded-xl p-6">
-                        <TimeRangePicker
-                          onTimeRangeChange={handleManualTimeSelection}
-                          isEditMode={manualTimeWindow !== null}
-                          onEditModeChange={() => {}}
-                          initialStartTime={manualTimeWindow ? new Date(manualTimeWindow.startTime).toTimeString().slice(0, 5) : undefined}
-                          initialEndTime={manualTimeWindow ? new Date(manualTimeWindow.endTime).toTimeString().slice(0, 5) : undefined}
-                        />
-                      </div>
+                          <div className="bg-gray-50 rounded-xl p-6">
+                            <TimeRangePicker
+                              onTimeRangeChange={handleManualTimeSelection}
+                              isEditMode={manualTimeWindow !== null}
+                              onEditModeChange={() => {}}
+                              initialStartTime={manualTimeWindow ? new Date(manualTimeWindow.startTime).toTimeString().slice(0, 5) : undefined}
+                              initialEndTime={manualTimeWindow ? new Date(manualTimeWindow.endTime).toTimeString().slice(0, 5) : undefined}
+                            />
+                            {/* Show message if no time options available */}
+                            {!isWithinSunDryingHours && (
+                              <div className="mt-4 text-center">
+                                <p className="text-sm text-gray-500">
+                                  Time selection is not available outside of daylight hours
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
 
                       {manualTimeWindow && (
                         <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
@@ -881,29 +945,31 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                         </div>
                       )}
 
-                      <div className="flex flex-col space-y-3">
-                        <button
-                          onClick={handleDryItMyself}
-                          disabled={!manualTimeWindow || isLoadingSunDryingAnalysis}
-                          className="px-8 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 text-base flex items-center justify-center"
-                        >
-                          {isLoadingSunDryingAnalysis ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Analyzing...
-                            </>
-                          ) : (
-                            'Dry it myself'
-                          )}
-                        </button>
-                        <button
-                          onClick={handleRequestHelp}
-                          disabled={!manualTimeWindow}
-                          className="px-8 py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-900 rounded-lg font-medium transition-all duration-200 text-base border border-gray-300"
-                        >
-                          Hire Helper
-                        </button>
-                      </div>
+                      {isWithinSunDryingHours && (
+                        <div className="flex flex-col space-y-3">
+                          <button
+                            onClick={handleDryItMyself}
+                            disabled={!manualTimeWindow || isLoadingSunDryingAnalysis}
+                            className="px-8 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 text-base flex items-center justify-center"
+                          >
+                            {isLoadingSunDryingAnalysis ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Analyzing...
+                              </>
+                            ) : (
+                              'Dry it myself'
+                            )}
+                          </button>
+                          <button
+                            onClick={handleRequestHelp}
+                            disabled={!manualTimeWindow}
+                            className="px-8 py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-900 rounded-lg font-medium transition-all duration-200 text-base border border-gray-300"
+                          >
+                            Hire Helper
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">

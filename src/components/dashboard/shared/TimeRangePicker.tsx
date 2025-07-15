@@ -28,15 +28,23 @@ export default function TimeRangePicker({
     const currentHour = now.getHours()
     const currentMinute = now.getMinutes()
     
-    // If current time is past 6:30 PM, no options available
-    if (currentHour > 18 || (currentHour === 18 && currentMinute > 30)) {
+    // If skip night limit is enabled for development, allow full range
+    const isSkipNightLimit = process.env.NEXT_PUBLIC_SKIP_NIGHT_LIMIT === 'true'
+    
+    // If current time is past 6:30 PM and night limit is not skipped, no options available
+    if (!isSkipNightLimit && (currentHour > 18 || (currentHour === 18 && currentMinute > 30))) {
       return []
     }
     
     const options = []
     
-    // Start from the later of: current time or 7:00 AM
-    let startHour = Math.max(currentHour, 7)
+    // Determine time range based on skip night limit setting
+    const minHour = isSkipNightLimit ? 0 : 7
+    const maxHour = isSkipNightLimit ? 23 : 18
+    const maxMinute = isSkipNightLimit ? 30 : (maxHour === 18 ? 30 : 30)
+    
+    // Start from the later of: current time or minimum hour
+    let startHour = Math.max(currentHour, minHour)
     let startMinute = 0
     
     // If we're starting from current time, round up to next 30-minute interval
@@ -49,12 +57,12 @@ export default function TimeRangePicker({
       }
     }
     
-    // Generate options until 6:30 PM (last start time that allows 30min drying)
-    for (let hour = startHour; hour <= 18; hour++) {
-      const maxMinute = hour === 18 ? 30 : 30 // Only go to 6:30 PM for hour 18
+    // Generate options until max hour
+    for (let hour = startHour; hour <= maxHour; hour++) {
+      const hourMaxMinute = (hour === maxHour) ? maxMinute : 30
       
-      for (let minute = (hour === startHour ? startMinute : 0); minute <= maxMinute; minute += 30) {
-        if (hour === 18 && minute > 30) break // Stop at 6:30 PM
+      for (let minute = (hour === startHour ? startMinute : 0); minute <= hourMaxMinute; minute += 30) {
+        if (hour === maxHour && minute > maxMinute) break
         
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
         const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
@@ -72,10 +80,16 @@ export default function TimeRangePicker({
   // Generate all possible time options (for end time selection)
   const generateAllTimeOptions = () => {
     const options = []
-    for (let hour = 7; hour <= 19; hour++) {
+    const isSkipNightLimit = process.env.NEXT_PUBLIC_SKIP_NIGHT_LIMIT === 'true'
+    
+    // Determine time range based on skip night limit setting
+    const minHour = isSkipNightLimit ? 0 : 7
+    const maxHour = isSkipNightLimit ? 23 : 19
+    
+    for (let hour = minHour; hour <= maxHour; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
-        // Stop at 7:00 PM (19:00)
-        if (hour === 19 && minute > 0) break
+        // Stop at max hour
+        if (hour === maxHour && minute > 0) break
         
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
         const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
@@ -105,8 +119,10 @@ export default function TimeRangePicker({
       const endMinute = parseInt(option.value.split(':')[1])
       const endTotalMinutes = endHour * 60 + endMinute
       
-      // End time must be after start time and not exceed 7 PM (19:00)
-      return endTotalMinutes > startTotalMinutes && endTotalMinutes <= 19 * 60
+      // End time must be after start time and not exceed max hour
+      const isSkipNightLimit = process.env.NEXT_PUBLIC_SKIP_NIGHT_LIMIT === 'true'
+      const maxHour = isSkipNightLimit ? 23 : 19
+      return endTotalMinutes > startTotalMinutes && endTotalMinutes <= maxHour * 60
     })
   }
 
@@ -144,8 +160,9 @@ export default function TimeRangePicker({
       const today = new Date()
       const todayDateStr = today.toISOString().split('T')[0]
       
-      const startDateTime = new Date(`${todayDateStr}T${startTime}:00.000Z`)
-      const endDateTime = new Date(`${todayDateStr}T${endTime}:00.000Z`)
+      // Use local timezone instead of UTC to avoid timezone conversion issues
+      const startDateTime = new Date(`${todayDateStr}T${startTime}:00`)
+      const endDateTime = new Date(`${todayDateStr}T${endTime}:00`)
       
       onTimeRangeChange(startDateTime.toISOString(), endDateTime.toISOString())
     }
