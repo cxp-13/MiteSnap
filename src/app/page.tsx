@@ -1188,8 +1188,20 @@ export default function Home() {
       </section>
       </div>
 
-      {/* Fixed Product Hunt Badge - Bottom Right */}
-      <div className="fixed bottom-4 right-4 z-40">
+      {/* Fixed Badges - Bottom Right */}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end space-y-3">
+        {/* Live on Launch Badge */}
+        <div className="transition-transform duration-300 hover:scale-105">
+          <Image 
+            src="/Launch_SVG_Dark.svg" 
+            alt="Live on Launch" 
+            width={180} 
+            height={48}
+            className="drop-shadow-lg"
+          />
+        </div>
+        
+        {/* Product Hunt Badge */}
         <a 
           href="https://www.producthunt.com/products/mitesnap?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-mitesnap" 
           target="_blank" 
