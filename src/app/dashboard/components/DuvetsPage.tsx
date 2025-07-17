@@ -116,7 +116,6 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
     startEditingWeatherTime,
     cancelEditingWeatherTime,
     confirmEditingWeatherTime,
-    setIsEditingWeatherTime,
     setCustomTimeWindow,
     setSunDryingAnalysis
   } = weatherHook
@@ -1037,69 +1036,6 @@ export default function DuvetsPage({ userId }: DuvetsPageProps) {
                       </div>
                     </div>
 
-                  </div>
-
-                  {/* Time editing section */}
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h5 className="font-medium text-gray-900 text-sm">
-                          {customTimeWindow ? 'Custom Drying Time' : isManualMode ? 'Manual Drying Time' : 'Weather Recommended Time'}
-                        </h5>
-                        {!isManualMode && !isEditingWeatherTime && (
-                          <button
-                            onClick={startEditingWeatherTime}
-                            className="text-blue-700 hover:text-blue-900 text-sm font-semibold transition-colors underline decoration-2 underline-offset-2"
-                          >
-                            Edit Time
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Show current time if not editing */}
-                      {!isEditingWeatherTime && !isManualMode && (
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-sm text-gray-700">
-                            {(() => {
-                              const window = customTimeWindow || weatherAnalysis?.optimalWindows?.[0]
-                              if (!window) return 'No time selected'
-                              
-                              const startTime = new Date(window.startTime).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })
-                              const endTime = new Date(window.endTime).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })
-                              return `${startTime} - ${endTime} tomorrow`
-                            })()}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Time picker for editing */}
-                      {(isEditingWeatherTime || isManualMode) && (
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <TimeRangePicker
-                            onTimeRangeChange={isManualMode ? handleManualTimeSelection : handleWeatherTimeSelection}
-                            isEditMode={true}
-                            onEditModeChange={isManualMode ? () => {} : setIsEditingWeatherTime}
-                            initialStartTime={(() => {
-                              const window = isManualMode ? manualTimeWindow : (customTimeWindow || weatherAnalysis?.optimalWindows?.[0])
-                              return window ? new Date(window.startTime).toTimeString().slice(0, 5) : undefined
-                            })()}
-                            initialEndTime={(() => {
-                              const window = isManualMode ? manualTimeWindow : (customTimeWindow || weatherAnalysis?.optimalWindows?.[0])
-                              return window ? new Date(window.endTime).toTimeString().slice(0, 5) : undefined
-                            })()}
-                          />
-                        </div>
-                      )}
-
-                    </div>
                   </div>
 
                   <div className="flex justify-center space-x-3">
