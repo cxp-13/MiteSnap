@@ -4,11 +4,11 @@ import { memo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useUnifiedUser } from '@/hooks/useUnifiedUser'
+import { useUser } from '@clerk/nextjs'
 import { UserButton } from '@clerk/nextjs'
 
 function Sidebar() {
-  const { user } = useUnifiedUser()
+  const { user } = useUser()
   const pathname = usePathname()
 
   // Determine active tab from URL path
@@ -207,7 +207,7 @@ function Sidebar() {
               />
             </div>
             <div className="flex-1 min-w-0 hidden md:block">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.fullName || user?.firstName || 'User'}</p>
             </div>
           </div>
           

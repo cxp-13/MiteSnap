@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react'
 import { getWeatherForecast, analyzeWeatherForSunDrying, type WeatherAnalysisResult, type OptimalTimeWindow } from '@/lib/weather-analysis'
 import { calculateBasicSunDryingReduction, type SunDryingAnalysisResult } from '@/lib/sun-drying-ai'
-import { createSunDryRecord } from '@/lib/clean-history'
-import { updateDuvetStatus } from '@/lib/database'
 
 export function useWeather() {
   const [location, setLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null)
@@ -229,18 +227,29 @@ export function useWeather() {
     }
 
     try {
-      // Create sun dry record with effective time window and predicted mite score
-      await createSunDryRecord(
-        duvetId, 
-        userId, 
-        currentMiteScore,
-        effectiveWindow.startTime,
-        effectiveWindow.endTime,
-        sunDryingAnalysis.finalMiteScore
-      )
-      
-      // Update duvet status to waiting for optimal time
-      await updateDuvetStatus(duvetId, 'waiting_optimal_time')
+      // Call API to handle sun drying start
+      const response = await fetch('/api/sun-drying/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          duvetId,
+          currentMiteScore,
+          startTime: effectiveWindow.startTime,
+          endTime: effectiveWindow.endTime,
+          predictedMiteScore: sunDryingAnalysis.finalMiteScore
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('API error:', error)
+        throw new Error(error.error || 'Failed to start sun drying')
+      }
+
+      const result = await response.json()
+      console.log('Sun drying started successfully:', result)
       
       // Close modal and indicate success
       closeSunDryModal()

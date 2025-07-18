@@ -180,20 +180,31 @@ export function useOrders(userId: string | undefined) {
           await updateDuvetStatus(order.quilt_id, duvetStatus as 'help_drying' | 'self_drying' | 'normal')
         }
         
-        // Handle clean history update for completed help-drying orders
-        if (status === 'completed' && order.clean_history_id) {
+        // Handle completion via API endpoint for server-side operations
+        if (status === 'completed') {
           try {
-            // Complete the sun dry record (only set end_time, preserve AI-predicted after_mite_score)
-            const { completeSunDryRecord } = await import('@/lib/clean-history')
-            const completedRecord = await completeSunDryRecord(order.clean_history_id)
+            // Find the order details to get duvet name
+            const orderWithDetails = ordersWithDetails.find(o => o.id === order.id)
             
-            if (completedRecord && completedRecord.after_mite_score !== null) {
-              // Update the duvet's mite score using the AI-predicted value
-              const { updateDuvetMiteScore } = await import('@/lib/clean-history')
-              await updateDuvetMiteScore(order.quilt_id, completedRecord.after_mite_score)
+            const response = await fetch('/api/orders/complete', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                orderId: order.id,
+                orderData: {
+                  ...order,
+                  duvet_name: orderWithDetails?.duvet_name || 'Your duvet'
+                }
+              }),
+            })
+            
+            if (!response.ok) {
+              console.error('Failed to complete order via API')
             }
           } catch (error) {
-            console.error('Error updating clean history for completed help-drying order:', error)
+            console.error('Error completing order:', error)
           }
         }
         
@@ -205,7 +216,7 @@ export function useOrders(userId: string | undefined) {
       console.error('Error updating order status:', error)
       return false
     }
-  }, [loadOrders, orders, acceptedOrders, nearbyOrders])
+  }, [loadOrders, orders, acceptedOrders, nearbyOrders, ordersWithDetails])
 
   // Delete order
   const handleDeleteOrder = useCallback(async (orderId: string) => {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createDuvet, getUserDuvets } from '@/lib/database'
-import { checkDuvetLimitServer } from '@/lib/subscription-server'
+import { createDuvet } from '@/lib/database'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,23 +13,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, material, miteScore, cleaningHistory, thickness, imageUrl, addressId } = body
 
-    // Check subscription limits before creating
-    const currentDuvets = await getUserDuvets(userId)
-    const limitCheck = await checkDuvetLimitServer(currentDuvets.length)
-    
-    if (!limitCheck.canCreate) {
-      return NextResponse.json(
-        { 
-          error: limitCheck.errorMessage || 'Subscription limit reached.',
-          tier: limitCheck.tier,
-          maxAllowed: limitCheck.maxAllowed,
-          currentCount: currentDuvets.length
-        }, 
-        { status: 403 }
-      )
-    }
-
-    // Create the duvet
+    // Create the duvet without subscription limits
     const duvet = await createDuvet(
       userId,
       name,

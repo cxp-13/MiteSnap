@@ -8,7 +8,7 @@ export function useUnifiedUser() {
   return {
     user: clerkUser.user ? {
       id: clerkUser.user.id,
-      name: clerkUser.user.fullName || 'User',
+      name: clerkUser.user.fullName || clerkUser.user.firstName || 'User',
       email: clerkUser.user.primaryEmailAddress?.emailAddress || ''
     } : null,
     isLoaded: clerkUser.isLoaded,

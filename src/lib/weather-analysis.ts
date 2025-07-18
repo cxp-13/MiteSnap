@@ -199,12 +199,36 @@ export function analyzeWeatherForSunDrying(weatherData: WeatherResponse): Weathe
   // Sort by suitability score (best first)
   optimalWindows.sort((a, b) => b.suitabilityScore - a.suitabilityScore)
 
+  // Check if we should skip night limit (for development/testing)
+  const skipNightLimit = process.env.NEXT_PUBLIC_SKIP_NIGHT_LIMIT === 'true'
+  
   // Determine if conditions are suitable overall - lowered threshold for testing
-  const isOptimalForSunDrying = optimalWindows.length > 0 && optimalWindows[0].suitabilityScore >= 15
+  let isOptimalForSunDrying = optimalWindows.length > 0 && optimalWindows[0].suitabilityScore >= 15
+  
+  // If skip night limit is enabled and no suitable windows found, create a default window
+  if (skipNightLimit && optimalWindows.length === 0) {
+    const now = new Date()
+    const defaultStart = new Date(now.getTime() + 5 * 60 * 1000) // 5 minutes from now
+    const defaultEnd = new Date(defaultStart.getTime() + 2 * 60 * 60 * 1000) // 2 hours later
+    
+    const defaultWindow: OptimalTimeWindow = {
+      startTime: defaultStart.toISOString(),
+      endTime: defaultEnd.toISOString(),
+      temperature: averageTemperature || 20,
+      humidity: averageHumidity || 60,
+      precipitationProbability: 0,
+      suitabilityScore: 50 // Decent score for testing
+    }
+    
+    optimalWindows.push(defaultWindow)
+    isOptimalForSunDrying = true
+  }
 
   // Generate reason message
   let reason = ''
-  if (rainHours > totalHours * 0.6) {
+  if (skipNightLimit && optimalWindows.length === 1 && optimalWindows[0].suitabilityScore === 50) {
+    reason = 'Development mode: Default drying window created'
+  } else if (rainHours > totalHours * 0.6) {
     reason = 'High precipitation probability in the next 12 hours, not suitable for drying'
   } else if (averageTemperature < 8) {
     reason = 'Temperature too low for effective drying'

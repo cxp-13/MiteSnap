@@ -6,7 +6,7 @@ export interface SubscriptionLimits {
 
 export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   basic: {
-    maxDuvets: 1
+    maxDuvets: Infinity  // 移除限制
   },
   pro: {
     maxDuvets: Infinity
@@ -14,39 +14,16 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> =
 }
 
 export async function getUserSubscriptionTier(): Promise<SubscriptionTier> {
-  try {
-    const response = await fetch('/api/check-subscription')
-    if (!response.ok) {
-      throw new Error('Failed to fetch subscription info')
-    }
-    const data = await response.json()
-    return data.tier
-  } catch (error) {
-    console.error('Error checking subscription tier:', error)
-    return 'basic'
-  }
+  // 暂时返回 pro，所有用户都没有限制
+  return 'pro'
 }
 
-export async function checkDuvetLimit(currentDuvetCount: number): Promise<{ canCreate: boolean; tier: SubscriptionTier; maxAllowed: number }> {
-  try {
-    const response = await fetch('/api/check-subscription')
-    if (!response.ok) {
-      throw new Error('Failed to fetch subscription info')
-    }
-    const data = await response.json()
-    
-    return {
-      canCreate: currentDuvetCount < data.maxDuvets,
-      tier: data.tier,
-      maxAllowed: data.maxDuvets
-    }
-  } catch (error) {
-    console.error('Error checking duvet limit:', error)
-    // Return safe fallback
-    return {
-      canCreate: false,
-      tier: 'basic',
-      maxAllowed: 1
-    }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function checkDuvetLimit(_currentDuvetCount: number): Promise<{ canCreate: boolean; tier: SubscriptionTier; maxAllowed: number }> {
+  // 始终允许创建，没有限制
+  return {
+    canCreate: true,
+    tier: 'pro',
+    maxAllowed: Infinity
   }
 }
